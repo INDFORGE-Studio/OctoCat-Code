@@ -57,8 +57,8 @@ const SCENARIOS = {
 };
 
 const wanted = process.argv.slice(2).filter((a) => !a.startsWith("-"));
-const names = wanted.length ? wanted : Object.keys(SCENARIOS);
-const browser = await chromium.launch({ args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
+const names = (wanted.length ? wanted : Object.keys(SCENARIOS)).filter((n) => n !== "audio");
+const browser = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required", "--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
 let failed = 0;
 
 for (const [view, size] of Object.entries(VIEWS)) {
@@ -84,6 +84,25 @@ for (const [view, size] of Object.entries(VIEWS)) {
     failed += problems.length;
     await page.context().close();
   }
+}
+
+// Audio : la musique démarre au premier geste, produit du son, et devient plus rapide quand le danger monte.
+if (!wanted.length || wanted.includes("audio")) {
+  const page = await (await browser.newContext({ viewport: VIEWS.desktop })).newPage();
+  const problems = [];
+  page.on("pageerror", (e) => problems.push("pageerror: " + e.message));
+  await page.goto(URL_BASE, { waitUntil: "load" });
+  await ready(page);
+  await page.mouse.click(40, 40); // geste utilisateur : déverrouille l'audio
+  await page.waitForTimeout(2500);
+  const calm = await page.evaluate(() => ({ s: window.OctoMusic.state(), rms: window.OctoMusic.level() }));
+  await page.evaluate(() => window.OctoMusic.setMood(0.95));
+  await page.waitForTimeout(3500);
+  const hostile = await page.evaluate(() => window.OctoMusic.state());
+  const ok = calm.s.running && calm.s.ctx === "running" && calm.rms > 0.0005 && hostile.bpm > calm.s.bpm + 20;
+  console.log(`${ok && !problems.length ? "✓" : "✗"} audio : calme ${calm.s.bpm.toFixed(0)} BPM (rms ${calm.rms.toFixed(4)}) → hostile ${hostile.bpm.toFixed(0)} BPM`);
+  problems.forEach((m) => console.log("    " + m));
+  failed += ok && !problems.length ? 0 : 1;
 }
 
 await browser.close();

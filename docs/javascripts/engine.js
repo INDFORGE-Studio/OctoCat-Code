@@ -211,6 +211,11 @@
     });
   }
 
+  /** Musique : no-op si music.js n'est pas chargé (tests Node). */
+  function music() {
+    return window.OctoMusic || { unlock: function () {}, setMood: function () {}, hit: function () {}, victory: function () {}, toggle: function () { return false; }, isMuted: function () { return false; } };
+  }
+
   /* ---------- Interface de jeu (HTML en surimpression du canvas) ---------- */
 
   function createUI(host, hooks) {
@@ -237,6 +242,12 @@
     konsole.setAttribute("aria-live", "polite");
     panel.appendChild(bar); panel.appendChild(editor); panel.appendChild(actions); panel.appendChild(konsole);
     root.appendChild(dialog); root.appendChild(panel);
+    // bouton son : la musique démarre au premier geste, ce bouton la coupe / la relance
+    var mute = el("button", "octo-mute", music().isMuted() ? "♪ OFF" : "♪ ON");
+    mute.type = "button";
+    mute.setAttribute("aria-label", "Activer ou couper la musique");
+    mute.addEventListener("click", function () { mute.textContent = music().toggle() ? "♪ OFF" : "♪ ON"; mute.blur(); });
+    root.appendChild(mute);
     host.appendChild(root);
 
     var hintIdx = 0, def = null;
@@ -366,6 +377,15 @@
       palette: window.OctoSprites.palette
     };
 
+    // les navigateurs n'autorisent le son qu'après un geste : le premier clic ou la première touche lance la musique
+    function unlockAudio() {
+      music().unlock();
+      document.removeEventListener("pointerdown", unlockAudio);
+      document.removeEventListener("keydown", unlockAudio);
+    }
+    document.addEventListener("pointerdown", unlockAudio);
+    document.addEventListener("keydown", unlockAudio);
+
     var P = window.OctoProgress, cur = { name: null, def: null, ctrl: null }, busy = false;
 
     function nextName(id) { return levels[id + 1] ? "level" + (id + 1) : "hub"; }
@@ -396,6 +416,7 @@
           ui.log("✔ Compilation réussie.", "ok");
           gained.forEach(function (key) { ui.log("🏆 Succès débloqué : " + P.achievements[key].title, "gold"); });
           emit("success", { level: def.id, result: result });
+          music().victory();
           cur.ctrl.success(result).then(function () {
             ui.log(levels[def.id + 1] ? "→ Le portail s'ouvre vers le niveau suivant…" : "→ Retour au menu…", "dim");
             window.setTimeout(function () { goTo(nextName(def.id)); }, 600);
@@ -404,6 +425,7 @@
           P.recordFail(def.id);
           ui.log("✗ Compilation échouée.", "err");
           emit("fail", { level: def.id, result: result });
+          music().hit();
           cur.ctrl.fail(result).then(function () { busy = false; ui.setBusy(false); });
         }
       }
@@ -411,6 +433,7 @@
 
     function enter(name, def, isLevel) {
       cur.name = name; cur.def = def; cur.ctrl = null;
+      music().setMood(isLevel ? (def.mood != null ? def.mood : 0.5) : 0.1);
       var ctx = { go: goTo, host: host, name: name, reserve: isLevel ? 0.4 : 0 };
       cur.ctrl = def.scene(k, helpers, ctx);
       if (isLevel) ui.showLevel(def); else { ui.hide(); canvas.focus(); }

@@ -143,3 +143,10 @@ PATH à ajouter dans un shell neuf : le dossier `node-v24…` du paquet winget `
 
 Vérification visuelle : `npm run build && npm run shot`, puis lire les PNG. Ne pas utiliser le navigateur intégré de Claude (consigne du PO).
 `.editorconfig` et `.gitattributes` imposent UTF-8 et fins de ligne LF.
+
+## 13. Musique
+
+`docs/javascripts/music.js` : musique **100 % synthétisée** (WebAudio), donc 0 octet d'audio, aucun échantillon, aucun droit d'auteur (consigne : solutions optimisées et open source).
+Un curseur « danger » (`def.mood`, 0..1 par niveau ; menu = 0,1) pilote gamme (pentatonique claire ⇄ gamme sombre à triton), tempo (76 → 132 BPM), couches (nappes, arpèges, basse, charleston, grosse caisse, caisse claire) et timbre.
+`hit()` sur une erreur (pic de danger + accord dissonant), `victory()` sur une réussite (arpège majeur, retour au calme).
+Démarre au premier geste (politique d'autoplay) ; bouton ♪ ON/OFF mémorisé dans `localStorage`. Vérifié par `npm test` (théorie) et `npm run shot` (signal audio + tempo).

@@ -9,6 +9,7 @@
     zone: 1,
     title: "Le Pont des Booléens",
     comingSoon: true,
+    mood: 0.15,
     briefing: {
       title: "Le Pont des Booléens",
       lore: "Tu as franchi le premier portail. Devant toi, un pont de pixels s'effondre case par case : seules les conditions vraies tiennent encore.",
