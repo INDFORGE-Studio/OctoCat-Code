@@ -1,21 +1,26 @@
 site_name: OctoCat-Code
 site_description: Un jeu d'aventure rétro pour apprendre à programmer — le site est le jeu.
-site_author: OctoCat-Code
+site_author: INDFORGE Studio
+site_url: https://indforge-studio.github.io/OctoCat-Code/
+repo_url: https://github.com/INDFORGE-Studio/OctoCat-Code
+repo_name: INDFORGE-Studio/OctoCat-Code
 use_directory_urls: true
 
 theme:
   name: material
+  custom_dir: overrides
   language: fr
+  logo: assets/favicon.svg
+  favicon: assets/favicon.svg
+  font: false          # aucune police externe : tout est auto-hébergé (voir stylesheets/octocat.css)
   palette:
     scheme: slate
     primary: custom
     accent: custom
-  font:
-    text: Roboto
-    code: Roboto Mono
   features:
-    - navigation.sections
+    - navigation.tabs
     - navigation.top
+    - navigation.footer
     - content.code.copy
     - content.tabs.link
   # NB : ne pas activer `navigation.instant` — chaque niveau instancie son propre canvas KAPLAY.
@@ -41,13 +46,16 @@ markdown_extensions:
 extra_css:
   - stylesheets/octocat.css
 
-# Ordre important : KAPLAY → persistance → sprites → moteur → scripts de niveau.
-# Chaque script de niveau s'enregistre auprès de window.gameEngine ; le moteur
-# ne monte que le niveau dont la page contient un <div class="octo-game" data-level="N">.
+# Tout est auto-hébergé (KAPLAY compris) : le site fonctionne sans CDN et sous une CSP stricte.
+# Ordre important : KAPLAY → persistance → sprites → décor → moteur → scènes et niveaux.
+# Chaque script de niveau s'enregistre auprès de window.gameEngine ; le moteur ne monte que
+# les <div class="octo-game" data-level="N"> et <div class="octo-scene" data-scene="…"> de la page.
 extra_javascript:
-  - https://unpkg.com/kaplay@3001.0.19/dist/kaplay.js
+  - javascripts/vendor/kaplay-3001.0.19.js
   - javascripts/progress.js
   - javascripts/sprites.js
+  - javascripts/scenery.js
   - javascripts/engine.js
+  - javascripts/hub.js
   - javascripts/level1.js
   - javascripts/level2.js

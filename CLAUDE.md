@@ -28,11 +28,17 @@ mkdocs.yml                  # extensions, CDN KAPLAY, scripts globaux (ordre sig
 docs/index.md               # hub + HUD de progression (#octo-hud)
 docs/niveau-N.md            # cours + <div class="octo-game" data-level="N" data-next="…" data-hub="…">
 docs/javascripts/
+  vendor/kaplay-<version>.js # KAPLAY auto-hébergé (aucun CDN)
   progress.js               # OctoProgress : localStorage, verrous, succès, HUD
-  sprites.js                # OctoSprites : pixel art procédural → loadSprite
-  engine.js                 # gameEngine : composant canvas+éditeur+console, interpréteur, validateurs
+  sprites.js                # OctoSprites : pixel art procédural (tampon de pixels + contour) → loadSprite
+  scenery.js                # OctoScenery.build : décor partagé (ciel, forêt, sol, torches, portail, lucioles)
+  engine.js                 # gameEngine : composant canvas+éditeur+console, scènes autonomes, interpréteur, validateurs
+  hub.js                    # scène d'accueil jouable (<div class="octo-scene" data-scene="hub">)
   levelN.js                 # gameEngine.registerLevel({ id, starter, hints, validate, scene })
-docs/stylesheets/octocat.css
+docs/stylesheets/octocat.css  # thème GitHub Dark, police pixel auto-hébergée (assets/fonts)
+overrides/                  # custom_dir Material (404 thématisée)
+tools/postbuild.py          # garde post-build : site auto-contenu + budget de taille
+.github/workflows/deploy.yml # build strict + garde sur chaque push, déploiement Pages depuis main
 ```
 
 Contrat d'un niveau : `validate(code, engine) → { ok, messages[], data }` et `scene(k, h) → { success(result), fail(result), reset() }`
@@ -88,3 +94,29 @@ Statut : ✅ écrit · 🔶 écrit mais non vérifié · ⬜ à faire
 - Python 3.12 installé via winget (utilisateur) ; lancer avec `python -m mkdocs …` (le dossier `Scripts` n'est pas dans le PATH). Node absent.
 - Les tests navigateur du composant ont été faits sur une page statique reproduisant le DOM de MkDocs, servie en localhost. Le Browser pane **caché** met en pause `requestAnimationFrame` : les animations KAPLAY ne se jouent que si le pane est affiché.
 - Commits : utiliser l'e-mail `noreply` GitHub (le push est refusé avec l'e-mail privé).
+
+## 9. Budget de taille (limites GitHub Pages)
+
+La limite vient de **GitHub Pages** (l'hébergeur), pas de Material for MkDocs. Source :
+<https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits>
+
+| Limite GitHub Pages | Valeur |
+|---|---|
+| Site publié | **≤ 1 Go** |
+| Dépôt source | 1 Go recommandé |
+| Bande passante | ~100 Go/mois (souple) |
+| Déploiement | timeout 10 min |
+| Fichier git | 100 Mo max (blocage), 50 Mo (avertissement) |
+
+Règles du projet (appliquées par `tools/postbuild.py`, qui fait échouer le build) :
+- site total **≤ 200 Mo** (avertissement dès 100 Mo) ; un seul fichier **≤ 20 Mo**.
+- Mesure actuelle : **~2,9 Mo** (KAPLAY 185 Ko, police pixel 12 Ko, sprites 0 octet car procéduraux).
+- Viser < 2 Mo de poids de page par niveau : à 100 Go/mois, 5 Mo/visite ≈ 20 000 visites/mois seulement.
+- Tout gros média (musique, vidéo, spritesheets lourdes) → GitHub Releases ou stockage externe, jamais dans le dépôt.
+- Pas de CDN en production : tout est auto-hébergé (le gate refuse toute ressource externe).
+
+## 10. Déploiement
+
+- `deploy.yml` : build strict + `postbuild.py` sur **chaque** push ; publication Pages **uniquement** depuis `main`.
+- ⬜ Activer GitHub Pages (Settings → Pages → Source : GitHub Actions) — action publique, à valider par le PO.
+- ⬜ i18n (français par défaut + anglais) avec `mkdocs-static-i18n`, comme le site FISTILAND.
