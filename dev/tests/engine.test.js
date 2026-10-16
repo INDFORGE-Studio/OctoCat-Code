@@ -16,7 +16,7 @@ function loadGame() {
   };
   ctx.window = ctx;
   vm.createContext(ctx);
-  for (const f of ["engine.js", "level1.js"]) {
+  for (const f of ["engine.js", "level1.js", "level2.js"]) {
     vm.runInContext(fs.readFileSync(path.join(JS, f), "utf8"), ctx, { filename: f });
   }
   return ctx.gameEngine;
