@@ -193,3 +193,34 @@ a.octo-card:hover { border-color: var(--octo-green); }
 
 .octo-lock { max-width: 28rem; margin: 3rem auto; text-align: center; }
 .octo-lock__icon { font-size: 3.5rem; }
+
+/* ---------- Page de jeu plein écran (overrides/game.html) ---------- */
+
+.octo-sr {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
+  clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+.octo-fs {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  /* Bandes haut/bas = prolongement du ciel et du premier plan, pour une scène 2,4:1 sur n'importe quel écran */
+  background: linear-gradient(#3a47b4 0 50%, #150e24 50% 100%);
+}
+.octo-fs .octo-hero {
+  /* le canvas épouse toute la fenêtre : la largeur logique s'adapte au format de l'écran */
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  max-width: none;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+body:has(.octo-fs) { margin: 0; overflow: hidden; background: #150e24; }
+.octo-fs .octo-stage, .octo-fs .octo-canvas { width: 100%; height: 100%; aspect-ratio: auto; }

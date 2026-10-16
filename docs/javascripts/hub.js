@@ -27,20 +27,24 @@
       var P = window.OctoProgress;
       var done = Object.keys(P.get().completed).length;
 
-      // ----- titre (police KAPLAY sans accents) -----
-      k.add([k.rect(400, 92), k.pos(100, 22), k.color(rgb("#1a1040")), k.opacity(0.38), k.z(30.6)]);
-      k.add([k.text("OCTOCAT-CODE", { size: 38, font: "monospace" }), k.pos(302, 48), k.anchor("center"), k.color(rgb("#1a1040")), k.z(31)]);
-      k.add([k.text("OCTOCAT-CODE", { size: 38, font: "monospace" }), k.pos(300, 46), k.anchor("center"), k.color(rgb("#f0f6fc")), k.z(32)]);
-      k.add([k.text("APPRENDS A CODER - LE SITE EST LE JEU", { size: 11, font: "monospace" }), k.pos(300, 78), k.anchor("center"),
-        k.color(rgb("#f0f6fc")), k.z(32)]);
-      var prompt = k.add([k.text(info.started ? "[ CLIQUE : CONTINUER L'AVENTURE ]" : "[ CLIQUE : ENTRER DANS LE PORTAIL ]", { size: 12, font: "monospace" }),
-        k.pos(300, 102), k.anchor("center"), k.color(rgb("#ffe08a")), k.z(32)]);
-      k.add([k.text("NIVEAUX TERMINES : " + done + "/" + P.levels.length, { size: 10, font: "monospace" }), k.pos(10, 236),
-        k.color(rgb("#f0f6fc")), k.z(32)]);
+      // ----- interface fixe (indépendante de la caméra et du format d'écran ; police KAPLAY sans accents) -----
+      var VW = sc.viewW, cx = VW / 2, fit = Math.min(1, VW / 420); // réduit les textes sur écrans étroits
+      function fsz(n) { return Math.max(7, Math.round(n * fit)); }
+      k.add([k.rect(Math.min(420, VW - 12), 92 * Math.max(0.7, fit)), k.pos(cx, 70), k.anchor("center"),
+        k.color(rgb("#1a1040")), k.opacity(0.38), k.fixed(), k.z(30.6)]);
+      k.add([k.text("OCTOCAT-CODE", { size: fsz(38), font: "monospace" }), k.pos(cx + 2, 50), k.anchor("center"), k.color(rgb("#1a1040")), k.fixed(), k.z(31)]);
+      k.add([k.text("OCTOCAT-CODE", { size: fsz(38), font: "monospace" }), k.pos(cx, 48), k.anchor("center"), k.color(rgb("#f0f6fc")), k.fixed(), k.z(32)]);
+      k.add([k.text("APPRENDS A CODER - LE SITE EST LE JEU", { size: fsz(11), font: "monospace" }), k.pos(cx, 80), k.anchor("center"),
+        k.color(rgb("#f0f6fc")), k.fixed(), k.z(32)]);
+      var prompt = k.add([k.text(info.started ? "[ CLIQUE : CONTINUER ]" : "[ CLIQUE : ENTRER DANS LE PORTAIL ]", { size: fsz(12), font: "monospace" }),
+        k.pos(cx, 104), k.anchor("center"), k.color(rgb("#ffe08a")), k.fixed(), k.z(32)]);
+      k.add([k.text("NIVEAUX TERMINES : " + done + "/" + P.levels.length, { size: 10, font: "monospace" }), k.pos(10, 8),
+        k.color(rgb("#f0f6fc")), k.fixed(), k.z(32)]);
 
       // ----- l'OctoCat patrouille -----
       var shadow = sc.shadow(80, 0.85);
       var octo = k.add([k.sprite("octo", { anim: "idle" }), k.pos(80, BASE_Y), k.anchor("bot"), k.scale(S), k.opacity(1), k.z(9)]);
+      sc.follow(octo);
       var goal = 80, wait = 1.2, state = "wait", entering = false;
 
       sc.onFrame(function (t) {

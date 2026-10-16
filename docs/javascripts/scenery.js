@@ -15,9 +15,16 @@
     opts = opts || {};
     var rgb = function (hex) { return k.Color.fromHex(hex); };
     var time = 0, i, n;
+    // Vue : hauteur fixe, largeur selon l'écran. Le bas de la vue reste aligné sur le bas du monde (y = 250) ;
+    // si la vue est plus étroite que le monde (600), la caméra suit la cible, sinon elle se centre.
+    var VW = k.width(), VH = k.height(), WORLD_W = 600, camTarget = null;
+    k.camPos(VW > WORLD_W ? WORLD_W / 2 : VW / 2, 250 - VH / 2);
 
     // ---------- ciel, nuages qui dérivent, canyon + cité ----------
-    k.add([k.sprite("sky"), k.pos(0, 0), k.scale(2), k.z(0)]);
+    k.add([k.rect(3600, 700), k.pos(-1500, -640), k.color(rgb("#3a47b4")), k.z(-1)]);   // ciel au-dessus du décor
+    // décor prolongé de part et d'autre par des copies en miroir (écrans plus larges que 600)
+    var MIRRORED = [[-600, true], [0, false], [600, true]];
+    MIRRORED.forEach(function (c) { k.add([k.sprite("sky", { flipX: c[1] }), k.pos(c[0], 0), k.scale(2), k.z(0)]); });
     [[40, 30, "cloud0", 4], [330, 58, "cloud1", 6], [470, 18, "cloud0", 3], [200, 74, "cloud1", 5]].forEach(function (c) {
       var cl = k.add([k.sprite(c[2]), k.pos(c[0], c[1]), k.scale(2), k.opacity(0.95), k.z(0.5)]);
       cl.onUpdate(function () {
@@ -25,14 +32,14 @@
         if (cl.pos.x < -140) cl.pos.x = 610;
       });
     });
-    k.add([k.sprite("land"), k.pos(0, 0), k.scale(2), k.z(1)]);
+    MIRRORED.forEach(function (c) { k.add([k.sprite("land", { flipX: c[1] }), k.pos(c[0], 0), k.scale(2), k.z(1)]); });
 
     // brume basse (2 bandes qui dérivent)
     [[GROUND_Y - 30, 0.09, 7, 0], [GROUND_Y - 12, 0.07, -5, 60]].forEach(function (f) {
-      var fog = k.add([k.rect(900, 12), k.pos(-150 + f[3], f[0]), k.color(rgb("#ffffff")), k.opacity(f[1]), k.z(2)]);
+      var fog = k.add([k.rect(2800, 12), k.pos(-1100 + f[3], f[0]), k.color(rgb("#ffffff")), k.opacity(f[1]), k.z(2)]);
       fog.onUpdate(function () {
         fog.pos.x += f[2] * k.dt();
-        if (fog.pos.x > 0) fog.pos.x = -300; else if (fog.pos.x < -300) fog.pos.x = 0;
+        if (fog.pos.x > -800) fog.pos.x = -1400; else if (fog.pos.x < -1400) fog.pos.x = -800;
       });
     });
 
@@ -42,7 +49,7 @@
     });
 
     // ---------- sol : plateau de roche mauve ----------
-    for (var gx = 0, g = 0; gx < 600; gx += 32, g++) {
+    for (var gx = -640, g = 0; gx < 1280; gx += 32, g++) {
       k.add([k.sprite("grass" + (g % 3)), k.pos(gx, GROUND_Y), k.scale(2), k.z(5)]);
       k.add([k.sprite("dirt" + ((g + 1) % 3)), k.pos(gx, GROUND_Y + 32), k.scale(2), k.z(5)]);
     }
@@ -106,9 +113,9 @@
 
     // ---------- feuillage d'avant-plan (violet sombre) + vignette ----------
     k.add([k.sprite("leavesCorner"), k.pos(0, 250), k.anchor("botleft"), k.scale(2), k.z(6.5)]);
-    k.add([k.sprite("leavesBand"), k.pos(0, 250), k.anchor("botleft"), k.scale(2), k.z(28)]);
-    k.add([k.sprite("vignette"), k.pos(0, 0), k.z(30)]);
-    if (opts.hudBar !== false) k.add([k.rect(600, 40), k.pos(0, 0), k.color(rgb("#0d1117")), k.opacity(0.42), k.z(30.5)]);
+    [-600, 0, 600].forEach(function (bx) { k.add([k.sprite("leavesBand"), k.pos(bx, 250), k.anchor("botleft"), k.scale(2), k.z(28)]); });
+    k.add([k.sprite("vignette"), k.pos(0, 0), k.scale(VW / 600, VH / 250), k.fixed(), k.z(30)]);
+    if (opts.hudBar !== false) k.add([k.rect(VW, 40), k.pos(0, 0), k.color(rgb("#0d1117")), k.opacity(0.42), k.fixed(), k.z(30.5)]);
 
     // ---------- vie du décor ----------
     var frameHooks = [];
@@ -128,11 +135,17 @@
       });
       var pulse = 0.5 + 0.5 * Math.sin(time * 2.4);
       portalGlow.opacity = portalOpen ? 0.22 + 0.1 * pulse : 0.08 + 0.04 * pulse;
+      if (camTarget && VW <= WORLD_W) { // la caméra suit la cible en douceur
+        var want = Math.max(VW / 2, Math.min(WORLD_W - VW / 2, camTarget.pos.x + 60)), cur = k.camPos();
+        k.camPos(cur.x + (want - cur.x) * Math.min(1, 5 * k.dt()), cur.y);
+      }
       frameHooks.forEach(function (fn) { fn(time); });
     });
 
     return {
       GROUND_Y: GROUND_Y, BASE_Y: BASE_Y, PORTAL_X: PORTAL_X,
+      viewW: VW, viewH: VH,
+      follow: function (obj) { camTarget = obj; },
       portal: portal,
       rgb: rgb,
       time: function () { return time; },
