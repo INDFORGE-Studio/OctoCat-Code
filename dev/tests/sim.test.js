@@ -84,6 +84,18 @@ test("ennemis : les pics et les marcheurs blessent, l'écrasement et l'épée tu
   assert.ok(sim.player.x < 6 * 32, "retour au départ");
 });
 
+test("chute : un trou coûte un cœur ; à 0 cœur, on repart avec tous les cœurs", () => {
+  const sim = S.createPlatform(S.buildCourse([{ t: "flat", n: 6 }, { t: "gap", n: 6 }, { t: "flat", n: 4 }, { t: "end", n: 8 }]), {});
+  const max = S.CFG.hpMax;
+  assert.equal(sim.player.hp, max);
+  let falls = 0, last = sim.stats.deaths;
+  for (let t = 0; t < 60 && falls < max; t += DT) {
+    sim.step({ right: true }, DT);
+    if (sim.stats.deaths > last) { falls++; last = sim.stats.deaths; assert.equal(sim.player.hp, falls < max ? max - falls : max, `après ${falls} chute(s)`); }
+  }
+  assert.equal(falls, max);
+});
+
 test("shuriken : tue à distance, seulement avec la capacité", () => {
   const trial = (ab) => {
     const sim = S.createPlatform(S.buildCourse([{ t: "flat", n: 14, en: [9] }, { t: "end", n: 8 }]), ab);
