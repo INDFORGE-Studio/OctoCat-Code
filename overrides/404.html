@@ -1,0 +1,10 @@
+{% extends "main.html" %}
+
+{% block content %}
+  <div class="octo-lock">
+    <div class="octo-lock__icon">👾</div>
+    <h1>404 · Glitch détecté</h1>
+    <p>Cette page a été avalée par le Grand Kernel Crash.</p>
+    <p><a class="md-button md-button--primary" href="{{ config.site_url | default('/', true) }}">Retour au hub</a></p>
+  </div>
+{% endblock %}

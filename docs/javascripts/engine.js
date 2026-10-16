@@ -179,6 +179,7 @@
    * ==================================================================== */
 
   var levels = {};
+  var scenes = {};
   var listeners = {};
   var mounted = [];
 
@@ -205,6 +206,56 @@
         if (p >= 1) { c.cancel(); res(); }
       });
     });
+  }
+
+  /** Initialise KAPLAY sur `canvas` et construit la scène `sceneFn(k, helpers)`. Renvoie null sans KAPLAY. */
+  function startKaplay(host, canvas, sceneFn) {
+    if (typeof window.kaplay !== "function") return null;
+    var k = window.kaplay({
+      canvas: canvas, width: 600, height: 250, global: false,
+      background: [13, 17, 23], crisp: true, texFilter: "nearest",
+      focus: false, debug: false, touchToMouse: false,
+      pixelDensity: Math.min(window.devicePixelRatio || 1, 2)
+    });
+    // Canvas fluide : le ratio 600×250 est conservé par le CSS (aspect-ratio).
+    canvas.style.width = "100%"; canvas.style.height = "auto";
+    canvas.style.touchAction = "pan-y";
+    window.OctoSprites.registerAll(k);
+    var helpers = {
+      wait: function (s) { return wait(k, s); },
+      tween: function (d, fn, e) { return tween(k, d, fn, e); },
+      palette: window.OctoSprites.palette
+    };
+    var ctrl = null, ready = false;
+    k.scene("level", function () { ctrl = sceneFn(k, helpers); ready = true; });
+    k.onLoad(function () { k.go("level"); });
+    host.__kaplay = k;
+    return { k: k, ready: function () { return ready; }, ctrl: function () { return ctrl; } };
+  }
+
+  /** Scène autonome (page d'accueil) : un canvas, pas d'éditeur. */
+  function mountScene(host) {
+    var name = host.getAttribute("data-scene");
+    var def = scenes[name];
+    if (!def) { host.textContent = "Scène « " + name + " » introuvable."; return; }
+    if (host.__octo) return;
+    host.__octo = true;
+    host.classList.add("octo-hero");
+    host.innerHTML = "";
+    var stage = el("div", "octo-stage");
+    var canvas = el("canvas", "octo-canvas");
+    canvas.setAttribute("role", "img");
+    canvas.setAttribute("aria-label", def.alt || ("Scène " + name));
+    stage.appendChild(canvas);
+    host.appendChild(stage);
+    var handle = startKaplay(host, canvas, function (k, h) {
+      return def.scene(k, h, {
+        go: function (url) { window.location.href = new URL(url, window.location.href).href; },
+        host: host
+      });
+    });
+    if (!handle) host.appendChild(el("p", "octo-hero__error", "La scène animée n'a pas pu être chargée."));
+    mounted.push(host);
   }
 
   function mountGame(host) {
@@ -252,29 +303,11 @@
     log("// Écris ta solution puis clique sur « Compiler » (Ctrl+Entrée).", "dim");
 
     // --- KAPLAY ---
-    var ctrl = null, ready = false, busy = false, hintIdx = 0;
-    if (typeof window.kaplay !== "function") {
-      log("✗ KAPLAY n'a pas pu être chargé (réseau / CDN). La scène est indisponible.", "err");
-    } else {
-      var k = window.kaplay({
-        canvas: canvas, width: 600, height: 250, global: false,
-        background: [13, 17, 23], crisp: true, texFilter: "nearest",
-        focus: false, debug: false, touchToMouse: false,
-        pixelDensity: Math.min(window.devicePixelRatio || 1, 2)
-      });
-      // Canvas fluide : le ratio 600×250 est conservé par le CSS (aspect-ratio).
-      canvas.style.width = "100%"; canvas.style.height = "auto";
-      canvas.style.touchAction = "pan-y";
-      window.OctoSprites.registerAll(k);
-      var helpers = {
-        wait: function (s) { return wait(k, s); },
-        tween: function (d, fn, e) { return tween(k, d, fn, e); },
-        palette: window.OctoSprites.palette
-      };
-      k.scene("level", function () { ctrl = def.scene(k, helpers); ready = true; });
-      k.onLoad(function () { k.go("level"); });
-      host.__kaplay = k;
-    }
+    var busy = false, hintIdx = 0;
+    var stageHandle = startKaplay(host, canvas, def.scene);
+    if (!stageHandle) log("✗ KAPLAY n'a pas pu être chargé. La scène est indisponible.", "err");
+    // `ctrl` / `ready` sont lus à chaque clic : la scène démarre après le chargement des sprites.
+    function ctrlOf() { return stageHandle && stageHandle.ready() ? stageHandle.ctrl() : null; }
 
     function setBusy(b) { busy = b; bCompile.disabled = b; bReset.disabled = b; }
 
@@ -294,7 +327,7 @@
         log("✔ Compilation réussie.", "ok");
         gained.forEach(function (key) { log("🏆 Succès débloqué : " + P.achievements[key].title, "gold"); });
         emit("success", { level: id, result: result });
-        var anim = ready && ctrl ? ctrl.success(result) : Promise.resolve();
+        var anim = ctrlOf() ? ctrlOf().success(result) : Promise.resolve();
         anim.then(function () {
           if (next) {
             log("→ Ouverture du portail vers le niveau suivant…", "dim");
@@ -308,7 +341,7 @@
         P.recordFail(id);
         log("✗ Compilation échouée.", "err");
         emit("fail", { level: id, result: result });
-        var f = ready && ctrl ? ctrl.fail(result) : Promise.resolve();
+        var f = ctrlOf() ? ctrlOf().fail(result) : Promise.resolve();
         f.then(function () { setBusy(false); });
       }
     }
@@ -317,7 +350,7 @@
     bReset.addEventListener("click", function () {
       editor.value = def.starter; konsole.innerHTML = "";
       log("// Code réinitialisé.", "dim");
-      if (ctrl && ctrl.reset) ctrl.reset();
+      if (ctrlOf() && ctrlOf().reset) ctrlOf().reset();
     });
     bHint.addEventListener("click", function () {
       var hints = def.hints || [];
@@ -346,9 +379,11 @@
     interpreter: { run: run, evalExpr: evalExpr },
     validators: validators,
     registerLevel: function (def) { levels[def.id] = def; },
+    registerScene: function (name, def) { scenes[name] = def; },
     on: function (ev, cb) { (listeners[ev] = listeners[ev] || []).push(cb); return api; },
     mount: function () {
       Array.prototype.forEach.call(document.querySelectorAll(".octo-game[data-level]"), mountGame);
+      Array.prototype.forEach.call(document.querySelectorAll(".octo-scene[data-scene]"), mountScene);
     },
     get levels() { return levels; },
     get mounted() { return mounted; }
