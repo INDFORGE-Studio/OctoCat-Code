@@ -1,0 +1,21 @@
+{#- Page de jeu plein écran : aucun élément du thème Material (en-tête, navigation, pied de page). -#}
+{% extends "base.html" %}
+
+{% block header %}{% endblock %}
+{% block tabs %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block container %}
+  <div class="octo-fs">
+    <h1 class="octo-sr">{{ config.site_name }}</h1>
+    <div class="octo-scene" data-scene="hub" data-root="./" data-fullscreen></div>
+    <noscript><p class="octo-sr">Ce jeu nécessite JavaScript.</p></noscript>
+  </div>
+{% endblock %}
+
+{#- Seuls nos scripts sont chargés (le JS du thème n'a rien à faire ici). -#}
+{% block scripts %}
+  {% for script in config.extra_javascript %}
+    {{ script | script_tag }}
+  {% endfor %}
+{% endblock %}

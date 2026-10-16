@@ -209,16 +209,24 @@
   }
 
   /** Initialise KAPLAY sur `canvas` et construit la scène `sceneFn(k, helpers)`. Renvoie null sans KAPLAY. */
-  function startKaplay(host, canvas, sceneFn) {
+  function startKaplay(host, canvas, sceneFn, full) {
     if (typeof window.kaplay !== "function") return null;
+    var W = 600, H = 250, dpr = window.devicePixelRatio || 1, density = Math.min(dpr, 2);
+    if (full) { // plein écran : hauteur logique fixe, largeur selon le format de la fenêtre
+      // le monde fait 600 de large : on le fait tenir en entier (plus de ciel au-dessus sur les écrans plus hauts)
+      var aspect = window.innerWidth / window.innerHeight;
+      H = Math.round(Math.min(360, Math.max(250, 600 / aspect)));
+      W = Math.max(200, Math.round(H * aspect));
+      density = Math.min(6, Math.max(1, window.innerHeight * dpr / H)); // ~1 pixel logique = n pixels écran entiers
+    }
     var k = window.kaplay({
-      canvas: canvas, width: 600, height: 250, global: false,
+      canvas: canvas, width: W, height: H, global: false,
       background: [13, 17, 23], crisp: true, texFilter: "nearest",
       focus: false, debug: false, touchToMouse: false,
-      pixelDensity: Math.min(window.devicePixelRatio || 1, 2)
+      pixelDensity: density
     });
-    // Canvas fluide : le ratio 600×250 est conservé par le CSS (aspect-ratio).
-    canvas.style.width = "100%"; canvas.style.height = "auto";
+    // Mode cadre : le ratio 600×250 est conservé par le CSS ; plein écran : le CSS remplit la fenêtre.
+    canvas.style.width = "100%"; canvas.style.height = full ? "100%" : "auto";
     canvas.style.touchAction = "pan-y";
     window.OctoSprites.registerAll(k);
     var helpers = {
@@ -253,7 +261,16 @@
         go: function (url) { window.location.href = new URL(url, window.location.href).href; },
         host: host
       });
-    });
+    }, host.hasAttribute("data-fullscreen"));
+    if (host.hasAttribute("data-fullscreen")) { // le format de la fenêtre a changé : on recompose la vue
+      var ratio = window.innerWidth / window.innerHeight, timer = null;
+      window.addEventListener("resize", function () {
+        window.clearTimeout(timer);
+        timer = window.setTimeout(function () {
+          if (Math.abs(window.innerWidth / window.innerHeight / ratio - 1) > 0.06) window.location.reload();
+        }, 400);
+      });
+    }
     if (!handle) host.appendChild(el("p", "octo-hero__error", "La scène animée n'a pas pu être chargée."));
     mounted.push(host);
   }
