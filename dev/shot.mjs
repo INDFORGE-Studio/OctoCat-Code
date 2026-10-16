@@ -93,14 +93,19 @@ if (!wanted.length || wanted.includes("audio")) {
   page.on("pageerror", (e) => problems.push("pageerror: " + e.message));
   await page.goto(URL_BASE, { waitUntil: "load" });
   await ready(page);
-  await page.mouse.click(40, 40); // geste utilisateur : déverrouille l'audio
+  await page.keyboard.press("Shift"); // geste utilisateur (sans entrer dans le portail) : déverrouille l'audio
   await page.waitForTimeout(2500);
   const calm = await page.evaluate(() => ({ s: window.OctoMusic.state(), rms: window.OctoMusic.level() }));
-  await page.evaluate(() => window.OctoMusic.setMood(0.95));
-  await page.waitForTimeout(3500);
-  const hostile = await page.evaluate(() => window.OctoMusic.state());
-  const ok = calm.s.running && calm.s.ctx === "running" && calm.rms > 0.0005 && hostile.bpm > calm.s.bpm + 20;
-  console.log(`${ok && !problems.length ? "✓" : "✗"} audio : calme ${calm.s.bpm.toFixed(0)} BPM (rms ${calm.rms.toFixed(4)}) → hostile ${hostile.bpm.toFixed(0)} BPM`);
+  await page.evaluate(() => window.OctoMusic.setMood(0.9));
+  await page.waitForTimeout(5000);
+  const alert = await page.evaluate(() => window.OctoMusic.state());
+  await page.evaluate(() => window.OctoMusic.setBattle(true));
+  await page.waitForTimeout(4000);
+  const fightS = await page.evaluate(() => ({ s: window.OctoMusic.state(), rms: window.OctoMusic.level() }));
+  const title = await page.title();
+  if (title !== "OCTOCAT-CODE") problems.push(`titre d'onglet : ${title}`);
+  const ok = calm.s.running && calm.s.ctx === "running" && calm.rms > 0.0005 && alert.bpm > calm.s.bpm + 6 && alert.bpm < calm.s.bpm + 20 && fightS.s.bpm > calm.s.bpm + 35 && fightS.rms > 0.0005;
+  console.log(`${ok && !problems.length ? "✓" : "✗"} audio : calme ${calm.s.bpm.toFixed(0)} BPM (rms ${calm.rms.toFixed(4)}) → alerte ${alert.bpm.toFixed(0)} BPM → combat ${fightS.s.bpm.toFixed(0)} BPM (rms ${fightS.rms.toFixed(4)})`);
   problems.forEach((m) => console.log("    " + m));
   failed += ok && !problems.length ? 0 : 1;
 }
