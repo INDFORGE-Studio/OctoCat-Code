@@ -18,8 +18,9 @@
 
   /* ======================================================================
    * 1. Mini-interpréteur sécurisé
-   * Sous-ensemble commun à Python / JavaScript : affectations de variables,
-   * nombres, chaînes, + - * / % et parenthèses. Jamais d'eval ni de Function.
+   * Sous-ensemble commun à Python / JavaScript / pseudo-code : affectations de variables, nombres,
+   * chaînes, booléens, + - * / %, comparaisons, et/ou/non, parenthèses et conditions if / sinon.
+   * Jamais d'eval ni de Function : parseur à liste blanche.
    * ==================================================================== */
 
   function stripComment(line) {
@@ -47,6 +48,12 @@
     return out.map(function (s) { return s.trim(); }).filter(Boolean);
   }
 
+  var RESERVED = {
+    and: 1, or: 1, not: 1, true: 1, false: 1, True: 1, False: 1, if: 1, else: 1, elif: 1,
+    et: 1, ou: 1, non: 1, vrai: 1, faux: 1, si: 1, sinon: 1, alors: 1
+  };
+  var TRUE_WORDS = { true: 1, True: 1, vrai: 1 }, FALSE_WORDS = { false: 1, False: 1, faux: 1 };
+
   function tokenize(src) {
     var tokens = [], i = 0, m;
     while (i < src.length) {
@@ -57,28 +64,40 @@
       if ((m = /^("([^"\\]|\\.)*"|'([^'\\]|\\.)*')/.exec(rest))) {
         tokens.push({ t: "str", v: m[0].slice(1, -1) }); i += m[0].length; continue;
       }
-      if ("+-*/%()".indexOf(rest[0]) >= 0) { tokens.push({ t: "op", v: rest[0] }); i++; continue; }
+      if ((m = /^(==|!=|<=|>=|&&|\|\|)/.exec(rest))) { tokens.push({ t: "op", v: m[0] }); i += 2; continue; }
+      if ("+-*/%()<>!".indexOf(rest[0]) >= 0) { tokens.push({ t: "op", v: rest[0] }); i++; continue; }
+      if (rest[0] === "=") throw new Error("« = » donne une valeur à une variable ; pour comparer deux valeurs, utilise « == ».");
       throw new Error("caractère inattendu « " + rest[0] + " »");
     }
     return tokens;
   }
 
+  /**
+   * Évalue une expression : nombres, textes, booléens (true/false/True/False/vrai/faux), variables,
+   * + - * / %, comparaisons (== != < > <= >=), et/ou/non (and or not && || !), parenthèses.
+   * Jamais d'eval : parseur récursif descendant sur liste blanche.
+   */
   function evalExpr(src, vars) {
     var toks = tokenize(src), p = 0;
-    if (!toks.length) throw new Error("expression vide après « = »");
+    if (!toks.length) throw new Error("expression vide");
     function peek() { return toks[p]; }
     function isOp(v) { return peek() && peek().t === "op" && peek().v === v; }
+    function isWord(list) { return peek() && peek().t === "id" && Object.prototype.hasOwnProperty.call(list, peek().v); }
+    var AND = { and: 1, et: 1 }, OR = { or: 1, ou: 1 }, NOT = { not: 1, non: 1 };
 
     function atom() {
       var t = toks[p++];
       if (!t) throw new Error("expression incomplète");
       if (t.t === "num" || t.t === "str") return t.v;
       if (t.t === "id") {
+        if (Object.prototype.hasOwnProperty.call(TRUE_WORDS, t.v)) return true;
+        if (Object.prototype.hasOwnProperty.call(FALSE_WORDS, t.v)) return false;
+        if (Object.prototype.hasOwnProperty.call(RESERVED, t.v)) throw new Error("« " + t.v + " » est un mot réservé, il ne peut pas être utilisé ici");
         if (!Object.prototype.hasOwnProperty.call(vars, t.v)) throw new Error("« " + t.v + " » n'est pas défini");
         return vars[t.v];
       }
       if (t.v === "(") {
-        var v = sum();
+        var v = orExpr();
         if (!isOp(")")) throw new Error("parenthèse fermante « ) » manquante");
         p++;
         return v;
@@ -86,7 +105,11 @@
       if (t.v === "-") return -num(atom());
       throw new Error("« " + t.v + " » est inattendu ici");
     }
-    function num(v) { if (typeof v !== "number") throw new Error("opération impossible sur du texte"); return v; }
+    function num(v) {
+      if (typeof v === "string") throw new Error("opération impossible sur du texte");
+      if (typeof v !== "number") throw new Error("opération impossible sur un booléen");
+      return v;
+    }
     function prod() {
       var v = atom();
       while (isOp("*") || isOp("/") || isOp("%")) {
@@ -101,48 +124,195 @@
       var v = prod();
       while (isOp("+") || isOp("-")) {
         var o = toks[p++].v, r = prod();
-        if (o === "+") v = (typeof v === "string" || typeof r === "string") ? String(v) + String(r) : v + r;
+        if (o === "+") v = (typeof v === "string" || typeof r === "string") ? String(v) + String(r) : num(v) + num(r);
         else v = num(v) - num(r);
       }
       return v;
     }
-    var result = sum();
+    function compare(a, op, b) {
+      if (op === "==") return a === b;
+      if (op === "!=") return a !== b;
+      if (typeof a !== typeof b || typeof a === "boolean") throw new Error("comparaison impossible entre " + kind(a) + " et " + kind(b));
+      return op === "<" ? a < b : op === ">" ? a > b : op === "<=" ? a <= b : a >= b;
+    }
+    function kind(v) { return typeof v === "number" ? "un nombre" : typeof v === "string" ? "du texte" : "un booléen"; }
+    function comparison() {
+      var left = sum(), result = null;
+      while (peek() && peek().t === "op" && /^(==|!=|<=|>=|<|>)$/.test(peek().v)) {
+        var op = toks[p++].v, right = sum(), ok = compare(left, op, right);
+        result = result === null ? ok : result && ok; // a < b < c : comme en Python
+        left = right;
+      }
+      return result === null ? left : result;
+    }
+    function notExpr() {
+      if (isOp("!") || isWord(NOT)) { p++; return !truthy(notExpr()); }
+      return comparison();
+    }
+    function andExpr() {
+      var v = notExpr();
+      while (isOp("&&") || isWord(AND)) { p++; var r = notExpr(); v = truthy(v) && truthy(r); }
+      return v;
+    }
+    function orExpr() {
+      var v = andExpr();
+      while (isOp("||") || isWord(OR)) { p++; var r = andExpr(); v = truthy(v) || truthy(r); }
+      return v;
+    }
+    var result = orExpr();
     if (p < toks.length) throw new Error("« " + toks[p].v + " » est inattendu ici");
     return result;
   }
 
+  function truthy(v) { return !!v; }
+
   var ASSIGN = /^(?:(?:let|const|var)\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*(\+=|-=|\*=|\/=|=(?!=))\s*(.*)$/;
+
+  /* --- structure du programme : affectations et conditions (if / sinon) en trois écritures --------------
+   *   Python      if cond:  /  elif cond:  /  else:        (blocs par indentation, ou une seule ligne)
+   *   JavaScript  if (cond) {  /  } else if (cond) {  /  } else {  /  }
+   *   Pseudo-code si cond alors  /  sinon si cond alors  /  sinon  /  fin si
+   * ----------------------------------------------------------------------------------------------------- */
+
+  /** Lignes utiles : { n: numéro, indent, text }. */
+  function logicalLines(code) {
+    var out = [];
+    String(code).split(/\r?\n/).forEach(function (raw, idx) {
+      var body = stripComment(raw), text = body.trim();
+      if (!text) return;
+      out.push({ n: idx + 1, indent: /^[ \t]*/.exec(body)[0].replace(/\t/g, "    ").length, text: text });
+    });
+    return out;
+  }
+
+  /** Reconnaît un en-tête de condition ; renvoie { style, kind: if|elif|else|end, cond, rest } ou null. */
+  function classify(text) {
+    var m;
+    if ((m = /^if\s*(\(.*\))\s*\{\s*$/.exec(text))) return { style: "js", kind: "if", cond: m[1] };
+    if ((m = /^\}\s*else\s+if\s*(\(.*\))\s*\{\s*$/.exec(text))) return { style: "js", kind: "elif", cond: m[1] };
+    if (/^\}\s*else\s*\{\s*$/.test(text)) return { style: "js", kind: "else" };
+    if (/^\}\s*;?\s*$/.test(text)) return { style: "js", kind: "end" };
+    if ((m = /^si\s+(.+?)\s+alors\s*$/i.exec(text))) return { style: "fr", kind: "if", cond: m[1] };
+    if ((m = /^sinon\s+si\s+(.+?)\s+alors\s*$/i.exec(text))) return { style: "fr", kind: "elif", cond: m[1] };
+    if (/^sinon\s*:?\s*$/i.test(text)) return { style: "fr", kind: "else" };
+    if (/^fin\s*si\s*$/i.test(text)) return { style: "fr", kind: "end" };
+    if ((m = /^if\s+(.+?)\s*:\s*(.*)$/.exec(text))) return { style: "py", kind: "if", cond: m[1], rest: m[2] };
+    if ((m = /^elif\s+(.+?)\s*:\s*(.*)$/.exec(text))) return { style: "py", kind: "elif", cond: m[1], rest: m[2] };
+    if ((m = /^else\s*:\s*(.*)$/.exec(text))) return { style: "py", kind: "else", rest: m[1] };
+    return null;
+  }
+
+  /** Transforme les lignes en arbre ; les erreurs de structure sont ajoutées à `errors`. */
+  function parseProgram(lines, errors) {
+    var i = 0;
+
+    function simple(stmtText, n) {
+      var nodes = [];
+      splitStatements(stmtText).forEach(function (stmt) {
+        var m = ASSIGN.exec(stmt);
+        if (m) {
+          if (Object.prototype.hasOwnProperty.call(RESERVED, m[1])) errors.push({ line: n, msg: "« " + m[1] + " » est un mot réservé : choisis un autre nom de variable." });
+          else nodes.push({ type: "assign", line: n, name: m[1], op: m[2], expr: m[3] });
+          return;
+        }
+        var cmp = /^[A-Za-z_]\w*\s*==/.exec(stmt);
+        var cond = /^(if|si|elif|else|sinon)\b/i.test(stmt);
+        errors.push({
+          line: n,
+          msg: cmp ? "« == » compare deux valeurs ; pour donner une valeur à une variable, utilise un seul « = »."
+            : cond ? "condition mal écrite : en Python termine la ligne par « : », en JavaScript écris if (…) {, en pseudo-code si … alors."
+              : "instruction non reconnue : « " + stmt + " »"
+        });
+      });
+      return nodes;
+    }
+
+    function seq(isStop) {
+      var nodes = [];
+      while (i < lines.length && !isStop(lines[i])) {
+        var L = lines[i], h = classify(L.text);
+        if (h && h.kind === "if") nodes.push(parseIf());
+        else if (h) {
+          errors.push({ line: L.n, msg: h.kind === "end" ? "« " + L.text + " » ferme un bloc qui n'a jamais été ouvert." : "« " + L.text.split(/\s|:|\{/)[0] + " » sans « if / si » avant." });
+          i++;
+        } else { nodes.push.apply(nodes, simple(L.text, L.n)); i++; }
+      }
+      return nodes;
+    }
+
+    function parseIf() {
+      var hl = lines[i], h = classify(hl.text), style = h.style, indent0 = hl.indent;
+      var node = { type: "if", line: hl.n, branches: [], other: null };
+      i++;
+      var cur = { cond: h.cond, line: hl.n, body: [] }, rest = h.rest, inElse = false;
+      for (;;) {
+        var body;
+        if (style === "py") {
+          if (rest) body = simple(rest, hl.n);
+          else {
+            body = seq(function (x) { return x.indent <= indent0; });
+            if (!body.length) errors.push({ line: hl.n, msg: "le bloc est vide : écris au moins une instruction, indentée, sous cette ligne." });
+          }
+        } else if (style === "js") {
+          body = seq(function (x) { return x.text.charAt(0) === "}"; });
+        } else {
+          body = seq(function (x) { var c = classify(x.text); return !!c && c.style === "fr" && c.kind !== "if"; });
+        }
+        if (inElse) node.other = body; else { cur.body = body; node.branches.push(cur); }
+
+        var nx = lines[i], c = nx ? classify(nx.text) : null;
+        if (style === "py") {
+          if (nx && nx.indent === indent0 && c && c.style === "py" && !inElse && (c.kind === "elif" || c.kind === "else")) {
+            hl = nx; rest = c.rest; i++;
+            if (c.kind === "elif") cur = { cond: c.cond, line: nx.n, body: [] }; else inElse = true;
+            continue;
+          }
+          return node;
+        }
+        if (!c || c.style !== style) {
+          errors.push({ line: hl.n, msg: style === "js" ? "accolade fermante « } » manquante pour ce if." : "« fin si » manquant pour ce « si »." });
+          return node;
+        }
+        if (c.kind === "end") { i++; return node; }
+        if (inElse) { errors.push({ line: nx.n, msg: "rien ne peut suivre « sinon » avant la fin du bloc." }); i++; return node; }
+        hl = nx; i++;
+        if (c.kind === "elif") cur = { cond: c.cond, line: nx.n, body: [] }; else inElse = true;
+      }
+    }
+
+    return seq(function () { return false; });
+  }
+
+  function exec(nodes, vars, errors, tally) {
+    nodes.forEach(function (nd) {
+      if (nd.type === "assign") {
+        try {
+          var val = evalExpr(nd.expr, vars);
+          if (nd.op !== "=") {
+            if (!Object.prototype.hasOwnProperty.call(vars, nd.name)) throw new Error("« " + nd.name + " » n'est pas défini");
+            val = evalExpr(nd.name + nd.op[0] + "(" + nd.expr + ")", vars);
+          }
+          vars[nd.name] = val;
+          tally.count++;
+        } catch (e) { errors.push({ line: nd.line, msg: e.message }); }
+        return;
+      }
+      for (var b = 0; b < nd.branches.length; b++) {
+        var branch = nd.branches[b], yes;
+        try { yes = truthy(evalExpr(branch.cond, vars)); }
+        catch (e) { errors.push({ line: branch.line, msg: e.message }); return; }
+        if (yes) { exec(branch.body, vars, errors, tally); return; }
+      }
+      if (nd.other) exec(nd.other, vars, errors, tally);
+    });
+  }
 
   /** Exécute `code` et renvoie { vars, errors:[{line, msg}], statements }. */
   function run(code, env) {
-    var vars = Object.assign({}, env || {}), errors = [], count = 0;
-    String(code).split(/\r?\n/).forEach(function (raw, idx) {
-      var line = idx + 1;
-      splitStatements(stripComment(raw)).forEach(function (stmt) {
-        var m = ASSIGN.exec(stmt);
-        if (!m) {
-          var cmp = /^[A-Za-z_]\w*\s*==/.exec(stmt);
-          errors.push({
-            line: line,
-            msg: cmp ? "« == » compare deux valeurs ; pour donner une valeur à une variable, utilise un seul « = »."
-              : "instruction non reconnue : « " + stmt + " »"
-          });
-          return;
-        }
-        try {
-          var val = evalExpr(m[3], vars);
-          if (m[2] !== "=") {
-            if (!Object.prototype.hasOwnProperty.call(vars, m[1])) throw new Error("« " + m[1] + " » n'est pas défini");
-            val = evalExpr(m[1] + m[2][0] + "(" + m[3] + ")", vars);
-          }
-          vars[m[1]] = val;
-          count++;
-        } catch (e) {
-          errors.push({ line: line, msg: e.message });
-        }
-      });
-    });
-    return { vars: vars, errors: errors, statements: count };
+    var vars = Object.assign({}, env || {}), errors = [], tally = { count: 0 };
+    exec(parseProgram(logicalLines(code), errors), vars, errors, tally);
+    errors.sort(function (a, b) { return a.line - b.line; });
+    return { vars: vars, errors: errors, statements: tally.count };
   }
 
   /* ======================================================================

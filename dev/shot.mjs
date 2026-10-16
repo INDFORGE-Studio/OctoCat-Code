@@ -54,7 +54,11 @@ const SCENARIOS = {
   "level1-brief": { hash: "#level1", wait: 1200 },
   "level1-editor": { hash: "#level1", wait: 800, act: async (p) => { await p.click(".octo-dialog .octo-btn--primary"); } },
   "level1-fail": { hash: "#level1", wait: 650, act: play("v_speed = 150") },
-  "level1-win": { hash: "#level1", wait: 3300, act: play("v_speed = 200") }
+  "level1-win": { hash: "#level1", wait: 3300, act: play("v_speed = 200") },
+  "level2-brief": { hash: "#level2", unlock: true, wait: 1200 },
+  "level2-editor": { hash: "#level2", unlock: true, wait: 800, act: async (p) => { await p.click(".octo-dialog .octo-btn--primary"); } },
+  "level2-fail": { hash: "#level2", unlock: true, wait: 1100, act: play('v_pont = "solide"') },
+  "level2-win": { hash: "#level2", unlock: true, wait: 3000, act: play(['v_pont = "fragile"', "if v_energie >= 50:", '    v_pont = "solide"'].join("\n")) }
 };
 
 const wanted = process.argv.slice(2).filter((a) => !a.startsWith("-"));
@@ -75,6 +79,7 @@ for (const [view, size] of Object.entries(VIEWS)) {
     page.on("requestfailed", (r) => problems.push("requête échouée: " + r.url()));
     await page.goto(URL_BASE + QUALITY + sc.hash, { waitUntil: "load" });
     if (sc.hash) await page.evaluate(() => localStorage.clear());
+    if (sc.unlock) { await page.evaluate(() => window.OctoProgress.complete(1)); await page.reload({ waitUntil: "load" }); }
     await ready(page);
     if (sc.act) await sc.act(page);
     await page.waitForTimeout(sc.wait);

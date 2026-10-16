@@ -67,7 +67,7 @@ Statut : ✅ écrit · 🔶 écrit mais non vérifié · ⬜ à faire
 
 ### Étape 4 — Level design du Vertical Slice
 - ✅ `docs/index.md` (hub + narration), `docs/niveau-1.md`, `docs/javascripts/level1.js` (`v_speed = 200`).
-- ✅ `niveau-2.md` en placeholder verrouillé.
+- ✅ Niveau 2 « Le Pont des Booléens » jouable (`level2.js`) : booléens, comparaisons, `et/ou/non`, `if / elif / else` (Python, JavaScript, pseudo-code `si … alors … sinon … fin si`). Le validateur exécute le code du joueur avec 7 valeurs de `v_energie` (0…100) : la condition doit être juste partout.
 - ✅ Test bout en bout sur le vrai site : échec → réussite → redirection `/niveau-2/` → déblocage → verrou si `localStorage` vide ; onglets Python/JS → langage mémorisé.
 
 ## 5. Définition de « terminé » (DoD)
@@ -173,3 +173,7 @@ Toujours penser à toutes les plateformes. Déjà en place :
 - **Jeu installé dans le navigateur** : `docs/sw.js` (service worker, cache d'abord) + `docs/manifest.webmanifest` (plein écran, paysage, icônes PNG générées par `dev/icons.mjs`). `tools/postbuild.py` réécrit `VERSION` (hash du contenu) et `PRECACHE` (tous les fichiers du site) à chaque build : 1re visite = tout est téléchargé une fois (~3 Mo), ensuite chargement instantané et jeu **hors ligne**. Une nouvelle version remplace l'ancien cache au rechargement suivant. Le worker est désactivé en local (sauf `?pwa=on`) pour ne jamais servir de fichiers périmés en développement. Vérifié par `npm run shot` (rechargement hors ligne).
 - **Qualité graphique** : `docs/javascripts/fx.js` = un passage plein écran WebGL (KAPLAY `usePostEffect`) : halo lumineux (bloom) sur torches, portail, yeux du Glitch, lucioles ; étalonnage (contraste en S, hautes lumières chaudes), vignettage, dithering. **Désactivé par défaut** (le PO a jugé le rendu moins bon : halo qui adoucit les contours et les textes) ; option expérimentale via `?quality=high|lite`, `SHOT_QUALITY=… npm run shot` pour comparer. Le rendu de référence reste le pixel art net (`pixelDensity` jusqu'à 6, plafonné à 4 sur appareils modestes).
 - Rappel : Material for MkDocs n'apporte que l'enveloppe de la page ; le rendu du jeu vient de KAPLAY/WebGL et du pixel art procédural. Pistes suivantes : lumières dynamiques, parallaxe plus profonde, animations de feuillage, particules supplémentaires (toujours avec un palier `lite`).
+
+## 16. Interpréteur : ce qu'il sait faire
+
+Affectations (`=`, `+=`, `-=`, `*=`, `/=`, `let/const/var`), nombres, chaînes, booléens (`true/false/True/False/vrai/faux`), `+ - * / %`, comparaisons (`== != < > <= >=`, chaînées comme en Python), `and/or/not`, `&&/||/!`, `et/ou/non`, parenthèses, conditions `if / elif / else` (3 écritures, imbriquées possibles). Pas encore : boucles, fonctions, tableaux (zones 2/3). Toujours un parseur à liste blanche : jamais d'`eval`.
