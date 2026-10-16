@@ -535,6 +535,8 @@
     vol.addEventListener("change", function () { vol.blur(); });
     audio.appendChild(mute); audio.appendChild(vol);
     root.appendChild(audio);
+    if (window.OctoSettings) window.OctoSettings.mountButton(audio); // ⚙ réglages (touches, son, affichage, remise à zéro)
+    document.addEventListener("octo:audio", syncMute);
     host.appendChild(root);
 
     var hintIdx = 0, def = null;
@@ -663,6 +665,8 @@
       pixelDensity: Math.min(window.OctoFX && window.OctoFX.modest() ? 4 : 6, Math.max(1, window.innerHeight * dpr / H)) // net sur grands écrans ; plafonné à 4 sur appareils modestes
     });
     canvas.style.width = "100%"; canvas.style.height = "100%";
+    var rawShake = k.shake; // « secousses de l'écran » : réglable dans le menu ⚙
+    k.shake = function (n) { if (!window.OctoSettings || window.OctoSettings.get("shake")) rawShake.call(k, n); };
     window.OctoSprites.registerAll(k);
     if (window.OctoSprites.registerRun) window.OctoSprites.registerRun(k);
     var applyFx = window.OctoFX ? window.OctoFX.install(k) : function () {}; // post-traitement (halo, étalonnage)

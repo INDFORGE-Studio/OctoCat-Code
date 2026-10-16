@@ -105,7 +105,35 @@
     /** Déverrouille tous les niveaux (démonstration : ?unlock=all dans l'adresse). */
     unlockAll: function () { var s = read(); s.unlocked = LEVELS.length; write(s); },
 
-    reset: function () { write(defaults()); }
+    reset: function () { write(defaults()); },
+
+    /** Sauvegarde sous forme de texte (à copier) et rechargement depuis ce texte, avec validation stricte. */
+    exportSave: function () { return JSON.stringify(read()); },
+    importSave: function (text) {
+      var o;
+      try { o = JSON.parse(String(text || "").trim()); } catch { return { ok: false, error: "Ce code est illisible." }; }
+      if (!o || typeof o !== "object" || Array.isArray(o)) return { ok: false, error: "Ce code n'est pas une sauvegarde." };
+      var max = LEVELS.length, s = defaults(), n = Math.floor(Number(o.unlocked));
+      if (!(n >= 1)) return { ok: false, error: "Ce code n'est pas une sauvegarde." };
+      s.unlocked = Math.min(max, n);
+      if (o.completed && typeof o.completed === "object") Object.keys(o.completed).forEach(function (id) {
+        var i = parseInt(id, 10), c = o.completed[id];
+        if (i >= 1 && i <= max && c && typeof c === "object") {
+          s.completed[i] = { at: Number(c.at) || 0, flawless: !!c.flawless };
+          s.unlocked = Math.max(s.unlocked, Math.min(max, i + 1));
+        }
+      });
+      if (o.language === "Python" || o.language === "JavaScript") s.language = o.language;
+      if (o.achievements && typeof o.achievements === "object") Object.keys(o.achievements).forEach(function (key) {
+        if (ACHIEVEMENTS[key]) s.achievements[key] = Number(o.achievements[key]) || 1;
+      });
+      if (o.fails && typeof o.fails === "object") Object.keys(o.fails).forEach(function (id) {
+        var i = parseInt(id, 10), v = Math.floor(Number(o.fails[id]));
+        if (i >= 1 && i <= max && v > 0) s.fails[i] = v;
+      });
+      write(s);
+      return { ok: true };
+    }
   };
 
   window.OctoProgress = Progress;

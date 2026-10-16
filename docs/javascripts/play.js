@@ -36,35 +36,43 @@
 
   /* ---------- entrées : clavier + boutons tactiles ---------- */
 
-  // Les codes physiques valent pour QWERTY comme pour AZERTY : WASD = ZQSD.
-  var KEYS = {
+  // Les touches viennent des réglages (menu ⚙) ; les codes sont physiques : WASD = ZQSD, valables pour tous les claviers.
+  var FALLBACK_KEYS = {
     ArrowLeft: "left", KeyA: "left", ArrowRight: "right", KeyD: "right", ArrowUp: "up", KeyW: "up",
-    ArrowDown: "down", KeyS: "down", Space: "jump", KeyX: "attack", KeyJ: "attack", KeyC: "throw", KeyK: "throw"
+    ArrowDown: "down", KeyS: "down", Space: "jump", KeyX: "attack", KeyJ: "attack", KeyC: "throw", KeyK: "throw", Mouse0: "attack", Mouse2: "throw"
   };
+  function settings() { return window.OctoSettings || null; }
+  function actionOf(code) { var S = settings(); return S ? S.lookup(code) : FALLBACK_KEYS[code] || null; }
+  function menuOpen() { var S = settings(); return !!(S && S.isOpen()); }
 
   function createInput(brawl) {
     var kb = {}, pad = {};
     function typing(e) { return e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName); }
+    function reset() { kb = {}; pad = {}; }
     function onKey(down) {
       return function (e) {
-        var a = KEYS[e.code];
+        if (menuOpen()) { if (!down) kb = {}; return; } // le menu ⚙ garde les touches pour lui
+        var a = actionOf(e.code);
         if (!a || typing(e)) return;
         kb[a] = down;
         e.preventDefault();
       };
     }
     var kd = onKey(true), ku = onKey(false);
-    function reset() { kb = {}; pad = {}; }
-    // Souris : clic gauche = frapper, clic droit = shuriken (sur le canvas ; le tactile garde ses boutons).
+    // Souris : les boutons se lient comme des touches (par défaut clic gauche = frapper, clic droit = shuriken).
+    // Seuls les clics sur le canvas comptent ; le tactile garde ses boutons à l'écran.
     function onMouse(down) {
       return function (e) {
-        if (e.pointerType !== "mouse" || !e.target || e.target.tagName !== "CANVAS") { if (!down) { kb.attack = false; kb.throw = false; } return; }
-        if (e.button === 0) kb.attack = down; else if (e.button === 2) kb.throw = down; else return;
-        e.preventDefault();
+        if (e.pointerType !== "mouse" || menuOpen()) { if (!down) kb = {}; return; }
+        var a = actionOf("Mouse" + e.button);
+        if (!a) return;
+        if (!down) { kb[a] = false; return; }
+        if (!e.target || e.target.tagName !== "CANVAS") return;
+        kb[a] = true; e.preventDefault();
       };
     }
     var md = onMouse(true), mu = onMouse(false);
-    function noMenu(e) { if (e.target && e.target.tagName === "CANVAS") e.preventDefault(); }
+    function noMenu(e) { if (e.target && e.target.tagName === "CANVAS" && actionOf("Mouse" + e.button)) e.preventDefault(); }
     window.addEventListener("keydown", kd);
     window.addEventListener("keyup", ku);
     window.addEventListener("pointerdown", md);
@@ -109,11 +117,13 @@
     if (shuriken) right.appendChild(btn("★", "throw", "octo-pad__btn--round", "Lancer un shuriken"));
     wrap.appendChild(left); wrap.appendChild(right);
     host.appendChild(wrap);
-    function show() { wrap.classList.add("is-on"); }
-    var coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
-    if (coarse) show();
-    window.addEventListener("touchstart", show, { once: true, passive: true });
-    return { destroy: function () { window.removeEventListener("touchstart", show); wrap.remove(); } };
+    var coarse = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches), touched = false;
+    function onTouch() { touched = true; refresh(); }
+    function visible() { var S = settings(), m = S ? S.get("pad") : "auto"; return m === "on" || (m === "auto" && (coarse || touched)); }
+    function refresh() { wrap.classList.toggle("is-on", visible()); }
+    refresh();
+    window.addEventListener("touchstart", onTouch, { once: true, passive: true });
+    return { refresh: refresh, visible: visible, destroy: function () { window.removeEventListener("touchstart", onTouch); wrap.remove(); } };
   }
 
   /* ---------- scène ---------- */
@@ -127,7 +137,6 @@
     var input = createInput(brawl);
     var host = document.querySelector(".octo-hero") || document.body;
     var pad = createPad(host, input, brawl, !!ab.shuriken);
-    var touch = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
     var skipBtn = null, ended = false, destroyed = false, endT = 0, time = 0, mt = 0, hurtFlash = 0;
 
     /* ----- décor ----- */
@@ -212,8 +221,22 @@
     var plate = k.add([k.rect(Math.min(VW - 20, 300), 62), k.pos(VW / 2, VH * 0.3 + 8), k.anchor("center"), k.color(rgb("#0d1117")), k.opacity(0.5), k.fixed(), k.z(31.8)]);
     var banner = k.add([k.text("NIVEAU " + def.id, { size: 22, font: "monospace" }), k.pos(VW / 2, VH * 0.3), k.anchor("center"), k.color(rgb("#ffffff")), k.opacity(1), k.fixed(), k.z(32)]);
     var sub = k.add([k.text(plain(def.title), { size: 11, font: "monospace" }), k.pos(VW / 2, VH * 0.3 + 22), k.anchor("center"), k.color(rgb("#ffe08a")), k.opacity(1), k.fixed(), k.z(32)]);
-    var hintStr = brawl ? "FLECHES: BOUGER   ESPACE: SAUTER   CLIC GAUCHE / X: FRAPPER" : "GAUCHE/DROITE: BOUGER   HAUT/ESPACE: SAUTER   CLIC GAUCHE / X: ATTAQUER" + (ab.shuriken ? "   CLIC DROIT / C: SHURIKEN" : "") + (ab.doubleJump ? "   (DOUBLE SAUT)" : "");
-    var hint = k.add([k.text(hintStr, { size: 9, font: "monospace" }), k.pos(VW / 2, VH - 12), k.anchor("center"), k.color(rgb("#e6edf3")), k.opacity(0.9), k.fixed(), k.z(31)]);
+    // Rappel des commandes : suit les touches choisies dans le menu ⚙ (texte sans accents : police par défaut de KAPLAY)
+    function hintText() {
+      var S = settings();
+      if (!S) return "";
+      var f = function (a, n) { return S.hintFor(a, n); };
+      if (brawl) return f("left", 1) + "/" + f("right", 1) + "/" + f("up", 1) + "/" + f("down", 1) + ": BOUGER   " + f("jump", 1) + ": SAUTER   " + f("attack", 2) + ": FRAPPER";
+      return f("left", 1) + "/" + f("right", 1) + ": BOUGER   " + f("jump", 1) + "/" + f("up", 1) + ": SAUTER   " + f("attack", 2) + ": ATTAQUER" +
+        (ab.shuriken ? "   " + f("throw", 2) + ": SHURIKEN" : "") + (ab.doubleJump ? "   (DOUBLE SAUT)" : "");
+    }
+    var hint = k.add([k.text(" ", { size: 9, font: "monospace" }), k.pos(VW / 2, VH - 12), k.anchor("center"), k.color(rgb("#e6edf3")), k.opacity(0.9), k.fixed(), k.z(31)]);
+    var hintVer = -1;
+    function refreshHint() { // la plus grande taille entière qui tient dans la largeur de l'écran
+      var txt = hintText(), sz = 9;
+      try { while (sz > 6 && k.formatText({ text: txt, size: sz, font: "monospace" }).width > VW - 12) sz--; } catch { /* mesure indisponible : taille par défaut */ }
+      hint.text = txt; hint.textSize = sz;
+    }
     var goTxt = k.add([k.text("GO >", { size: 22, font: "monospace" }), k.pos(VW - 40, VH * 0.4), k.anchor("center"), k.color(rgb("#ffe08a")), k.opacity(0), k.fixed(), k.z(32)]);
     var toast = k.add([k.text("", { size: 14, font: "monospace" }), k.pos(VW / 2, VH * 0.46), k.anchor("center"), k.color(rgb("#ffffff")), k.opacity(0), k.fixed(), k.z(32)]);
     var toastT = 0;
@@ -395,8 +418,12 @@
       var dt = Math.min(k.dt(), 1 / 20), p = sim.player;
       time += dt;
 
+      var S = settings();
+      if (S && S.version() !== hintVer) { hintVer = S.version(); refreshHint(); pad.refresh(); }
+      sim.relax = !!(S && S.get("relax"));
+
       if (!ended) {
-        sim.step(input.get(), dt);
+        if (!menuOpen()) sim.step(input.get(), dt); // le menu ⚙ met la partie en pause
         sim.events.forEach(handle);
         sim.events.length = 0;
         if (sim.finished) finishRun();
@@ -437,7 +464,7 @@
       progress.width = Math.max(1, VW * sim.progress());
       var introT = Math.max(0, 2.6 - time);
       banner.opacity = Math.min(1, introT); sub.opacity = Math.min(1, introT); plate.opacity = 0.5 * Math.min(1, introT);
-      hint.opacity = touch ? 0 : time < 9 ? 0.9 : Math.max(0, 0.9 - (time - 9) * 0.5); // sur tactile, les boutons à l'écran suffisent
+      hint.opacity = (S && !S.get("hints")) || pad.visible() ? 0 : time < 9 ? 0.9 : Math.max(0, 0.9 - (time - 9) * 0.5); // avec les boutons à l'écran, l'aide est inutile
       toastT = Math.max(0, toastT - dt); toast.opacity = Math.min(1, toastT * 2);
       hurtFlash = Math.max(0, hurtFlash - dt); flash.opacity = hurtFlash * 0.35;
       goTxt.opacity = brawl && sim.goT > 0 ? (Math.floor(time * 3) % 2 ? 1 : 0.2) : 0;
@@ -452,7 +479,7 @@
       }
 
       // « passer le trajet » apparaît après plusieurs échecs
-      if (!skipBtn && sim.stats.deaths >= (brawl ? 2 : 3)) {
+      if (!skipBtn && (sim.stats.deaths >= (brawl ? 2 : 3) || (S && S.get("skipAlways")))) {
         skipBtn = el("button", "octo-skip", "Passer le trajet ▸");
         skipBtn.type = "button";
         skipBtn.addEventListener("click", function () { ctrl.skip(); });
