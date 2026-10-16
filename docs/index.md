@@ -1,6 +1,6 @@
 ---
 template: game.html
-title: OctoCat-Code
+title: OCTOCAT-CODE
 description: Un jeu d'aventure rétro pour apprendre à programmer — le site est le jeu.
 ---
 

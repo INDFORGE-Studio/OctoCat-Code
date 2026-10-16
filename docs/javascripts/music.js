@@ -1,12 +1,14 @@
 /* OctoCat-Code — Musique d'ambiance adaptative, 100 % synthétisée (WebAudio).
  * Aucun fichier audio, aucun échantillon, aucun droit : tout est généré par ce code.
  *
- * Un curseur « danger » (0 = calme, 1 = hostile) pilote en continu :
- *   - la gamme : pentatonique majeure lumineuse (D E F# A B) ⇄ gamme sombre à triton (D Eb F G# A C) ;
- *   - le tempo : 76 → 132 BPM ;
- *   - les couches : nappes, arpèges, basse, charleston, grosse caisse, caisse claire ;
- *   - le timbre : nappes douces ⇄ nappes en dents de scie filtrées.
- * API : OctoMusic.unlock() (geste utilisateur), setMood(0..1), hit(), victory(), toggle(), state(), level().
+ * Trois états, du plus doux au plus intense :
+ *   1. CALME (par défaut) : joyeux, entraînant et doux. Ré majeur, ~100 BPM, thème accrocheur au « glockenspiel »,
+ *      basse sautillante, nappe douce, percussions feutrées.
+ *   2. ALERTE (curseur « tension » 0..1) : petit changement pour éveiller l'attention, sans casser l'ambiance :
+ *      tempo un peu plus vif, pouls de cœur, bourdon grave, « ping » aigu, couleur modale (sol mineur) sur la 3e mesure.
+ *   3. COMBAT (setBattle) : épique et intense. Ré mineur, ~148 BPM, grosse caisse et caisse claire, basse
+ *      en croches, cuivres, mélodie héroïque. Réservé aux affrontements.
+ * API : unlock() (geste utilisateur), setMood(0..1) = tension, setBattle(bool), hit(), victory(), toggle(), state(), level().
  */
 (function () {
   "use strict";
@@ -16,31 +18,65 @@
   /* ---------- théorie (pure, testée sous Node) ---------- */
 
   var ROOT = 50; // ré 3 (MIDI)
-  var SCALE_CALM = [0, 2, 4, 7, 9];
-  var SCALE_DARK = [0, 1, 3, 6, 7, 10];
-  var CHORDS_CALM = [[0, 4, 7, 11], [-3, 0, 4, 7], [-7, -3, 0, 4], [-5, -1, 2, 4]];
-  var CHORDS_DARK = [[0, 3, 7, 10], [1, 5, 8, 12], [-1, 2, 5, 8], [-5, -1, 2, 5]];
+  var SCALE_CALM = [0, 2, 4, 7, 9];     // pentatonique majeure
+  var SCALE_ALERT = [0, 3, 5, 7, 8];    // couleur mineure empruntée
+  // une mesure par accord : I – vi – IV – V7 (Ré, Si m, Sol, La 7)
+  var CHORDS_CALM = [[0, 4, 7, 11], [-3, 0, 4, 7], [-7, -3, 0, 4], [-5, -1, 2, 5]];
+  var CHORD_BORROW = [-7, -4, 0, 3];    // Sol mineur 7 : remplace le Sol majeur en alerte
+  // combat : Ré m – Si♭ – Sol m – La
+  var CHORDS_BATTLE = [[0, 3, 7, 12], [-4, 0, 3, 8], [-7, -4, 0, 5], [-5, -1, 2, 7]];
+
+  // thème calme : [pas, hauteur au-dessus de ré 4, durée en pas] — 4 mesures de 16 doubles-croches
+  var MELODY_CALM = [
+    [[0, 4, 2], [2, 7, 2], [4, 12, 4], [8, 9, 2], [10, 7, 2], [12, 4, 4]],
+    [[0, 12, 2], [2, 9, 2], [4, 7, 4], [8, 4, 2], [10, 7, 2], [12, 9, 4]],
+    [[0, 9, 2], [2, 12, 2], [4, 14, 4], [8, 12, 2], [10, 9, 2], [12, 5, 4]],
+    [[0, 7, 2], [2, 11, 2], [4, 14, 2], [6, 11, 2], [8, 7, 4], [12, 7, 2], [14, 11, 2]]
+  ];
+  // thème de combat : motif héroïque en mineur
+  var MELODY_BATTLE = [
+    [[0, 12, 3], [3, 10, 1], [4, 12, 4], [8, 15, 4], [12, 14, 2], [14, 12, 2]],
+    [[0, 10, 3], [3, 8, 1], [4, 10, 4], [8, 12, 4], [12, 10, 2], [14, 8, 2]],
+    [[0, 8, 3], [3, 7, 1], [4, 8, 4], [8, 12, 4], [12, 14, 2], [14, 15, 2]],
+    [[0, 14, 3], [3, 11, 1], [4, 14, 4], [8, 16, 2], [10, 14, 2], [12, 11, 4]]
+  ];
 
   function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
   function midiToHz(m) { return 440 * Math.pow(2, (m - 69) / 12); }
-  function bpmFor(mood) { return 76 + 56 * Math.pow(clamp(mood, 0, 1), 1.2); }
-  /** Note d'arpège : gamme sombre avec une probabilité égale au danger, sinon gamme claire. */
-  function pickNote(mood, rnd) {
-    var scale = rnd() < mood ? SCALE_DARK : SCALE_CALM;
+  /** Tempo : 100 BPM au calme, jusqu'à 112 en alerte, 148 en combat. */
+  function bpmFor(tension, fight) {
+    return 100 + 12 * clamp(tension, 0, 1) + 48 * clamp(fight || 0, 0, 1);
+  }
+  /** Note d'ornement : pentatonique claire ; la couleur d'alerte n'apparaît que lorsque la tension monte. */
+  function pickNote(tension, rnd) {
+    var scale = rnd() < clamp(tension, 0, 1) * 0.35 ? SCALE_ALERT : SCALE_CALM;
     var degree = scale[Math.floor(rnd() * scale.length)];
     return ROOT + 12 + degree + (rnd() < 0.4 ? 12 : 0);
   }
-  function chordFor(mood, index) {
-    return (mood > 0.5 ? CHORDS_DARK : CHORDS_CALM)[((index % 4) + 4) % 4];
+  /** Accord de la mesure `bar` (boucle sur 4). */
+  function chordFor(battle, tension, bar) {
+    var i = ((bar % 4) + 4) % 4;
+    if (battle) return CHORDS_BATTLE[i];
+    return tension > 0.5 && i === 2 ? CHORD_BORROW : CHORDS_CALM[i];
+  }
+  /** Note du thème au pas `pos` de la mesure `bar` (sans tonalité d'alerte) ; null si rien ne démarre. */
+  function melodyAt(battle, bar, pos) {
+    var line = (battle ? MELODY_BATTLE : MELODY_CALM)[((bar % 4) + 4) % 4], i;
+    for (i = 0; i < line.length; i++) if (line[i][0] === pos) return line[i];
+    return null;
   }
 
   /* ---------- moteur audio ---------- */
 
-  var ctx = null, master, analyser, padCalm, padDark, drumBus, arpBus, noiseBuf;
+  var ctx = null, master, analyser, padCalm, padFight, padAlert, drumBus, arpBus, noiseBuf;
   var running = false, muted = false, timer = null;
-  var base = 0.1, spike = 0, mood = 0.1;
+  var base = 0, spike = 0, tension = 0, fight = 0, battle = false;
   var step = 0, nextTime = 0;
   var rnd = Math.random;
+  // Appareils modestes (Android d'entrée de gamme, vieux portables) : moins d'oscillateurs et moins de réveils du processeur.
+  var nav = typeof navigator === "object" && navigator ? navigator : {};
+  var lite = /Android|Mobi|iPhone|iPad/i.test(nav.userAgent || "") || (nav.hardwareConcurrency || 8) <= 4 || (nav.deviceMemory || 8) <= 4;
+  var LOOKAHEAD = lite ? 0.3 : 0.15, EVERY = lite ? 60 : 25; // secondes d'avance / période du planificateur (ms)
 
   try { muted = window.localStorage.getItem(KEY) === "off"; } catch { /* stockage indisponible */ }
 
@@ -53,11 +89,13 @@
     analyser = ctx.createAnalyser(); analyser.fftSize = 512;
     master.connect(comp); comp.connect(analyser); analyser.connect(ctx.destination);
 
-    padCalm = ctx.createGain(); padDark = ctx.createGain(); drumBus = ctx.createGain(); arpBus = ctx.createGain();
-    padCalm.connect(master); padDark.connect(master); drumBus.connect(master);
-    // écho filtré sur les arpèges : de la profondeur pour presque rien
+    padCalm = ctx.createGain(); padFight = ctx.createGain(); padAlert = ctx.createGain();
+    drumBus = ctx.createGain(); arpBus = ctx.createGain();
+    padCalm.connect(master); padFight.connect(master); padAlert.connect(master); drumBus.connect(master);
+    padFight.gain.value = 0; padAlert.gain.value = 0;
+    // écho filtré sur les mélodies : de la profondeur pour presque rien
     var delay = ctx.createDelay(1), fb = ctx.createGain(), lp = ctx.createBiquadFilter();
-    delay.delayTime.value = 0.29; fb.gain.value = 0.32; lp.type = "lowpass"; lp.frequency.value = 2200;
+    delay.delayTime.value = 0.3; fb.gain.value = 0.3; lp.type = "lowpass"; lp.frequency.value = 2600;
     arpBus.connect(master); arpBus.connect(delay); delay.connect(lp); lp.connect(fb); fb.connect(delay); lp.connect(master);
 
     noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
@@ -78,6 +116,13 @@
     o.start(t); o.stop(t + dur + 0.05);
   }
 
+  /** Note de glockenspiel / marimba : fondamentale triangle + harmonique sinus qui s'éteint vite. */
+  function bell(midi, t, dur, vol, dest) {
+    var hz = midiToHz(midi);
+    tone("triangle", hz, t, dur, vol, dest, 0.004);
+    tone("sine", hz * 2, t, dur * 0.45, vol * 0.45, dest, 0.003);
+  }
+
   function noise(t, dur, vol, type, hz, dest) {
     var s = ctx.createBufferSource(), g = ctx.createGain(), f = ctx.createBiquadFilter();
     s.buffer = noiseBuf; f.type = type; f.frequency.value = hz;
@@ -86,65 +131,120 @@
     s.start(t, rnd() * 0.5); s.stop(t + dur + 0.02);
   }
 
-  function kick(t, vol) {
+  function kick(t, vol, deep) {
     var o = ctx.createOscillator(), g = ctx.createGain();
-    o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.12);
-    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
-    o.connect(g); g.connect(drumBus); o.start(t); o.stop(t + 0.25);
+    o.frequency.setValueAtTime(deep ? 150 : 110, t); o.frequency.exponentialRampToValueAtTime(deep ? 40 : 52, t + (deep ? 0.13 : 0.1));
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + (deep ? 0.26 : 0.18));
+    o.connect(g); g.connect(drumBus); o.start(t); o.stop(t + 0.3);
   }
 
-  /** Nappe d'accord sur 2 mesures (calme : sinus/triangle doux ; hostile : dents de scie filtrées). */
-  function pad(t, dur, index) {
-    [[CHORDS_CALM, padCalm, "triangle", 0], [CHORDS_DARK, padDark, "sawtooth", 900]].forEach(function (set) {
-      var chord = set[0][((index % 4) + 4) % 4];
-      chord.forEach(function (semi, i) {
-        [-4, 4].forEach(function (detune) {
-          var o = ctx.createOscillator(), g = ctx.createGain(), out = g;
-          o.type = set[2]; o.frequency.value = midiToHz(ROOT + semi + (i === 0 ? -12 : 0)); o.detune.value = detune;
-          g.gain.setValueAtTime(0.0001, t);
-          g.gain.linearRampToValueAtTime(set[3] ? 0.035 : 0.05, t + 0.9);
-          g.gain.setValueAtTime(set[3] ? 0.035 : 0.05, t + dur - 1.1);
-          g.gain.linearRampToValueAtTime(0.0001, t + dur + 0.2);
-          o.connect(g);
-          if (set[3]) { var f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = set[3]; g.connect(f); out = f; }
-          out.connect(set[1]);
-          o.start(t); o.stop(t + dur + 0.3);
-        });
+  /** Une nappe par mesure : douce (calme), puissante (combat), grave (bourdon d'alerte). */
+  function pad(t, dur, bar) {
+    function note(midi, type, bus, vol, cutoff, detune) {
+      var o = ctx.createOscillator(), g = ctx.createGain(), out = g, up = dur * 0.3;
+      o.type = type; o.frequency.value = midiToHz(midi); o.detune.value = detune;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(vol, t + up);
+      g.gain.setValueAtTime(vol, t + dur - up);
+      g.gain.linearRampToValueAtTime(0.0001, t + dur + 0.2);
+      o.connect(g);
+      if (cutoff) { var f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = cutoff; g.connect(f); out = f; }
+      out.connect(bus);
+      o.start(t); o.stop(t + dur + 0.3);
+    }
+    if (fight < 0.98) {
+      chordFor(false, tension, bar).forEach(function (semi, i) {
+        (lite ? [0] : [-4, 4]).forEach(function (d) { note(ROOT + semi + (i === 0 ? -12 : 0), "triangle", padCalm, lite ? 0.07 : 0.045, 0, d); });
       });
-    });
+    }
+    if (battle || fight > 0.02) {
+      chordFor(true, 0, bar).forEach(function (semi, i) {
+        (lite ? [0] : [-6, 6]).forEach(function (d) { note(ROOT + semi + (i === 0 ? -12 : 0), "sawtooth", padFight, lite ? 0.06 : 0.04, 1100, d); });
+      });
+    }
+    if (!battle && tension > 0.05) { // bourdon grave : ré + la
+      note(ROOT - 12, "sawtooth", padAlert, 0.05, 240, 0);
+      note(ROOT - 5, "sawtooth", padAlert, 0.035, 240, 3);
+    }
+  }
+
+  /** Musique calme / alerte : légère, sautillante. */
+  function calmStep(s, t, stepDur, bar, pos) {
+    var chord = chordFor(false, tension, bar), alert = tension > 0.5 && bar === 2;
+
+    // thème (en alerte, le si et le mi de la 3e mesure deviennent mineurs : la couleur change sans bruit)
+    var m = melodyAt(false, bar, pos);
+    if (m) {
+      var n = ROOT + 12 + m[1];
+      if (alert && (m[1] === 9 || m[1] === 14)) n -= 1;
+      bell(n, t, Math.max(0.25, stepDur * m[2] * 1.1), 0.1, arpBus);
+    }
+    // ornements discrets (pentatonique), un peu plus présents quand la tension monte
+    else if (!lite && pos % 2 === 1 && rnd() < 0.05 + 0.2 * tension) {
+      bell(pickNote(tension, rnd) + 12, t, 0.3, 0.035, arpBus);
+    }
+
+    // basse sautillante
+    var bassHz = midiToHz(ROOT + chord[0] - 12), fifthHz = midiToHz(ROOT + chord[2] - 12);
+    if (pos === 0) tone("triangle", bassHz, t, stepDur * 3.5, 0.2, master, 0.006, 500);
+    if (pos === 6) tone("triangle", bassHz * 2, t, stepDur * 1.8, 0.13, master, 0.006, 700);
+    if (pos === 8) tone("triangle", fifthHz, t, stepDur * 3, 0.17, master, 0.006, 500);
+    if (pos === 12 || pos === 14) tone("triangle", pos === 12 ? bassHz : fifthHz, t, stepDur * 1.8, 0.12, master, 0.006, 600);
+
+    // percussions feutrées : pouls doux, charleston léger sur les contretemps
+    if (pos === 0 || pos === 8) kick(t, 0.28, false);
+    if (pos % 4 === 2) noise(t, 0.03, 0.02, "highpass", 8500, drumBus);
+    if (pos === 4 || pos === 12) noise(t, 0.05, 0.03, "bandpass", 3200, drumBus); // petit clap
+
+    // alerte : pouls de cœur, « ping » aigu, pizzicato plus nerveux
+    if (tension > 0.25 && (pos === 0 || pos === 3)) kick(t, 0.1 + 0.3 * tension, false);
+    if (tension > 0.5 && pos % 8 === 4) tone("sine", midiToHz(ROOT + 31), t, 0.35, 0.05, arpBus, 0.004);
+    if (tension > 0.4 && (pos === 2 || pos === 10)) tone("triangle", bassHz * 2, t, stepDur * 1.2, 0.07 * tension, master, 0.004, 800);
+  }
+
+  /** Musique de combat : épique et intense. */
+  function battleStep(s, t, stepDur, bar, pos) {
+    var chord = chordFor(true, 0, bar), bassHz = midiToHz(ROOT + chord[0] - 12);
+
+    // mélodie héroïque (scie + carré, écho)
+    var m = melodyAt(true, bar, pos);
+    if (m) {
+      var hz = midiToHz(ROOT + 12 + m[1]), dur = stepDur * m[2] * 1.05;
+      tone("sawtooth", hz, t, dur, 0.07, arpBus, 0.01, 3400);
+      if (!lite) tone("square", hz * 0.5, t, dur, 0.035, arpBus, 0.01, 1800);
+    }
+    // basse en croches, octave sur le contretemps
+    if (pos % 2 === 0) tone("sawtooth", bassHz * (pos % 8 === 6 ? 2 : 1), t, stepDur * 1.7, 0.17, master, 0.004, 520);
+    // cuivres : accords martelés sur le 1 et le « et » du 2
+    if (pos === 0 || pos === 6 || (pos === 10 && bar % 2 === 1)) {
+      chord.slice(0, 3).forEach(function (semi) { tone("sawtooth", midiToHz(ROOT + semi), t, stepDur * 3.2, 0.05, master, 0.012, 1900); });
+    }
+    // batterie
+    if (pos % 4 === 0 || pos === 10) kick(t, 0.75, true);
+    if (pos === 4 || pos === 12) { noise(t, 0.16, 0.16, "bandpass", 1900, drumBus); tone("triangle", 190, t, 0.1, 0.08, drumBus, 0.002); }
+    if (bar === 3 && pos >= 12) noise(t, 0.08, 0.12, "bandpass", 2200, drumBus); // roulement de fin de boucle
+    if (pos % 2 === 0) noise(t, 0.035, pos % 4 === 2 ? 0.07 : 0.045, "highpass", 7500, drumBus);
+    if (pos === 0 && bar === 0) noise(t, 0.9, 0.09, "highpass", 5500, drumBus); // cymbale au début de chaque boucle
   }
 
   function scheduleStep(s, t, stepDur) {
-    var m = mood, pos = s % 16;
-    if (s % 32 === 0) pad(t, stepDur * 32, Math.floor(s / 32));
-    var chord = chordFor(m, Math.floor(s / 32));
-
-    // basse : toujours un pouls sur les temps forts, plus nerveuse quand le danger monte
-    var bassHz = midiToHz(ROOT + chord[0] - 12);
-    if (pos === 0 || pos === 8) tone(m > 0.5 ? "sawtooth" : "sine", bassHz, t, stepDur * 6, 0.16, master, 0.01, 420);
-    else if (m > 0.35 && pos % 4 === 0) tone("sine", bassHz, t, stepDur * 2.5, 0.12, master, 0.01);
-    if (m > 0.6 && pos % 2 === 0) tone("square", bassHz * (pos % 4 === 2 ? 2 : 1), t, stepDur * 1.4, 0.05, master, 0.004, 600);
-
-    // arpèges : plus fréquents et plus sombres avec le danger
-    if (rnd() < 0.1 + 0.3 * m + (pos % 2 === 0 ? 0.12 : 0)) {
-      tone(m > 0.55 ? "square" : "triangle", midiToHz(pickNote(m, rnd)), t, 0.26 + 0.12 * (1 - m), 0.06 + 0.02 * m, arpBus, 0.004, m > 0.55 ? 2400 : 0);
-    }
-
-    // percussions : apparaissent par couches
-    if (m > 0.3 && pos % 2 === 0) noise(t, 0.04, 0.025 + 0.04 * m, "highpass", 7000, drumBus);
-    if (m > 0.45 && (pos === 0 || pos === 8 || (m > 0.7 && pos === 6))) kick(t, 0.55);
-    if (m > 0.65 && (pos === 4 || pos === 12)) noise(t, 0.12, 0.09, "bandpass", 1800, drumBus);
+    var bar = Math.floor(s / 16) % 4, pos = s % 16;
+    if (pos === 0) pad(t, stepDur * 16, bar);
+    if (battle) battleStep(s, t, stepDur, bar, pos); else calmStep(s, t, stepDur, bar, pos);
   }
 
   function tick() {
     if (!running || !ctx) return;
-    spike *= 0.985;
-    mood += (clamp(base + spike, 0, 1) - mood) * 0.04;
+    var k = EVERY / 25; // lissages exprimés pour une période de 25 ms
+    spike *= Math.pow(0.985, k);
+    tension += (clamp(base + spike, 0, 1) - tension) * 0.04 * k;
+    fight += ((battle ? 1 : 0) - fight) * 0.03 * k;
     var now = ctx.currentTime;
-    padCalm.gain.setTargetAtTime(clamp(1 - mood * 1.4, 0, 1), now, 0.4);
-    padDark.gain.setTargetAtTime(clamp(mood * 1.4 - 0.2, 0, 1), now, 0.4);
-    var stepDur = 60 / bpmFor(mood) / 4;
-    while (nextTime < now + 0.15) {
+    padCalm.gain.setTargetAtTime(1 - fight, now, 0.3);
+    padFight.gain.setTargetAtTime(fight, now, 0.3);
+    padAlert.gain.setTargetAtTime(clamp(tension * 1.2 - 0.1, 0, 1) * (1 - fight), now, 0.5);
+    var stepDur = 60 / bpmFor(tension, fight) / 4;
+    while (nextTime < now + LOOKAHEAD) {
       scheduleStep(step, nextTime, stepDur);
       nextTime += stepDur; step += 1;
     }
@@ -158,7 +258,7 @@
     nextTime = ctx.currentTime + 0.1;
     master.gain.cancelScheduledValues(ctx.currentTime);
     master.gain.setTargetAtTime(0.55, ctx.currentTime, 0.8); // fondu d'entrée
-    timer = window.setInterval(tick, 25);
+    timer = window.setInterval(tick, EVERY);
   }
 
   function halt() {
@@ -176,22 +276,38 @@
   var Music = {
     /** À appeler depuis un geste utilisateur (politique d'autoplay des navigateurs). */
     unlock: function () { begin(); },
+    /** Tension 0..1 : 0 = calme joyeux ; plus haut = alerte (changement léger). Le combat passe par setBattle. */
     setMood: function (m) { base = clamp(m, 0, 1); },
-    /** Coup dur (erreur) : accord dissonant grave + pic de danger qui retombe. */
-    hit: function () {
-      spike = Math.max(spike, 0.4);
+    /** Combat : musique épique et intense (true), retour au calme (false). */
+    setBattle: function (on) {
+      on = !!on;
+      if (on === battle) return;
+      battle = on;
       if (!running || !ctx) return;
       var t = ctx.currentTime;
-      tone("sawtooth", 55, t, 0.5, 0.2, master, 0.005, 500);
-      tone("sawtooth", 58.3, t, 0.5, 0.15, master, 0.005, 500);
-      noise(t, 0.25, 0.14, "lowpass", 900, drumBus);
+      if (on) { // choc d'entrée : cymbale + grosse caisse
+        noise(t, 1.2, 0.2, "highpass", 4500, drumBus);
+        kick(t, 0.9, true);
+        tone("sawtooth", midiToHz(ROOT - 12), t, 0.8, 0.2, master, 0.005, 500);
+      } else {
+        tone("triangle", midiToHz(ROOT + 24), t, 1, 0.08, arpBus, 0.01);
+      }
     },
-    /** Victoire : arpège majeur ascendant, retour au calme. */
+    /** Coup dur (erreur) : petit accord grave et pic de tension qui retombe (jamais de combat). */
+    hit: function () {
+      spike = Math.max(spike, 0.35);
+      if (!running || !ctx) return;
+      var t = ctx.currentTime;
+      tone("sawtooth", 55, t, 0.45, 0.16, master, 0.005, 500);
+      tone("sawtooth", 58.3, t, 0.45, 0.12, master, 0.005, 500);
+      noise(t, 0.2, 0.1, "lowpass", 900, drumBus);
+    },
+    /** Victoire : arpège majeur ascendant, retour au calme joyeux. */
     victory: function () {
-      base = 0.08; spike = 0;
+      base = 0; spike = 0; battle = false;
       if (!running || !ctx) return;
       var t = ctx.currentTime + 0.05;
-      [74, 78, 81, 86, 90].forEach(function (n, i) { tone("triangle", midiToHz(n), t + i * 0.09, 0.9, 0.1, arpBus, 0.004); });
+      [74, 78, 81, 86, 90].forEach(function (n, i) { bell(n, t + i * 0.09, 0.9, 0.12, arpBus); });
     },
     toggle: function () {
       muted = !muted;
@@ -201,7 +317,7 @@
     },
     isMuted: function () { return muted; },
     state: function () {
-      return { running: running, muted: muted, mood: mood, bpm: bpmFor(mood), ctx: ctx ? ctx.state : "none" };
+      return { running: running, muted: muted, tension: tension, fight: fight, battle: battle, bpm: bpmFor(tension, fight), ctx: ctx ? ctx.state : "none" };
     },
     /** Niveau sonore instantané (RMS 0..1), pour les tests et un éventuel visualiseur. */
     level: function () {
@@ -211,7 +327,10 @@
       for (i = 0; i < buf.length; i++) { var v = (buf[i] - 128) / 128; sum += v * v; }
       return Math.sqrt(sum / buf.length);
     },
-    _theory: { ROOT: ROOT, SCALE_CALM: SCALE_CALM, SCALE_DARK: SCALE_DARK, midiToHz: midiToHz, bpmFor: bpmFor, pickNote: pickNote, chordFor: chordFor }
+    _theory: {
+      ROOT: ROOT, SCALE_CALM: SCALE_CALM, SCALE_ALERT: SCALE_ALERT, MELODY_CALM: MELODY_CALM, MELODY_BATTLE: MELODY_BATTLE,
+      lite: lite, midiToHz: midiToHz, bpmFor: bpmFor, pickNote: pickNote, chordFor: chordFor, melodyAt: melodyAt
+    }
   };
 
   window.OctoMusic = Music;

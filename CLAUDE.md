@@ -146,7 +146,23 @@ Vérification visuelle : `npm run build && npm run shot`, puis lire les PNG. Ne 
 
 ## 13. Musique
 
-`docs/javascripts/music.js` : musique **100 % synthétisée** (WebAudio), donc 0 octet d'audio, aucun échantillon, aucun droit d'auteur (consigne : solutions optimisées et open source).
-Un curseur « danger » (`def.mood`, 0..1 par niveau ; menu = 0,1) pilote gamme (pentatonique claire ⇄ gamme sombre à triton), tempo (76 → 132 BPM), couches (nappes, arpèges, basse, charleston, grosse caisse, caisse claire) et timbre.
-`hit()` sur une erreur (pic de danger + accord dissonant), `victory()` sur une réussite (arpège majeur, retour au calme).
-Démarre au premier geste (politique d'autoplay) ; bouton ♪ ON/OFF mémorisé dans `localStorage`. Vérifié par `npm test` (théorie) et `npm run shot` (signal audio + tempo).
+`docs/javascripts/music.js` : musique **100 % synthétisée** (WebAudio), donc 0 octet d'audio, aucun échantillon, aucun droit.
+Règle du PO : **toujours joyeuse, entraînante et douce** ; **épique et intense uniquement en combat** ; à l'approche d'un danger, **un léger changement** qui éveille l'attention.
+
+| État | Déclencheur | Rendu |
+|---|---|---|
+| Calme | défaut (`def.mood` absent ou 0) | Ré majeur, 100 BPM, thème au glockenspiel (I–vi–IV–V7), basse sautillante, nappe douce, percussions feutrées |
+| Alerte | `def.mood` 0..1 (niveau 1 = 0,35), pic de `hit()` | tempo jusqu'à 112, pouls de cœur, bourdon grave, « ping » aigu, Sol mineur emprunté à la 3e mesure |
+| Combat | `def.combat: true` ou `OctoMusic.setBattle(true)` | Ré mineur, 148 BPM, grosse caisse/caisse claire, basse en croches, cuivres, mélodie héroïque, choc d'entrée |
+
+`hit()` = petit accord grave + pic de tension (jamais de combat) ; `victory()` = arpège majeur, retour au calme.
+Démarre au premier geste (autoplay) ; bouton ♪ ON/OFF mémorisé dans `localStorage`. Vérifié par `npm test` (théorie, thèmes) et `npm run shot` (signal audio, calme → alerte → combat, titre d'onglet).
+
+## 14. Optimisation multi-plateformes (PC, portable, tablette, Android, iOS)
+
+Toujours penser à toutes les plateformes. Déjà en place :
+- **Rendu** : résolution logique adaptée au format de l'écran (250–360 px de haut), `pixelDensity` plafonné à 4 (4K et téléphones ne coûtent pas plus de fill-rate), sprites procéduraux (0 octet), `100dvh` (barres d'URL mobiles), pas de reload sauf changement de format.
+- **Tactile** : `touch-action`, pas de défilement élastique ni de zoom au double toucher, bouton ♪ ≥ 44 px, clic = toucher.
+- **Audio** : mode « lite » automatique (Android/iOS, ≤ 4 cœurs ou ≤ 4 Go) : moins d'oscillateurs, planificateur à 60 ms au lieu de 25 ms (batterie), suspension quand l'onglet est caché.
+- **Réseau** : site de ~3 Mo, aucune ressource externe, police et KAPLAY auto-hébergés.
+- Vérifié par `npm run shot` en bureau 1600×900, ultra-large 2560×1080 et mobile paysage 844×390. **Non vérifié** : vrai appareil Android/iOS, mobile en portrait, performances sur matériel d'entrée de gamme.

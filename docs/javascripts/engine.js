@@ -213,7 +213,7 @@
 
   /** Musique : no-op si music.js n'est pas chargé (tests Node). */
   function music() {
-    return window.OctoMusic || { unlock: function () {}, setMood: function () {}, hit: function () {}, victory: function () {}, toggle: function () { return false; }, isMuted: function () { return false; } };
+    return window.OctoMusic || { unlock: function () {}, setMood: function () {}, setBattle: function () {}, hit: function () {}, victory: function () {}, toggle: function () { return false; }, isMuted: function () { return false; } };
   }
 
   /* ---------- Interface de jeu (HTML en surimpression du canvas) ---------- */
@@ -367,7 +367,7 @@
       canvas: canvas, width: W, height: H, global: false,
       background: [13, 17, 23], crisp: true, texFilter: "nearest",
       focus: false, debug: false, touchToMouse: false,
-      pixelDensity: Math.min(6, Math.max(1, window.innerHeight * dpr / H))
+      pixelDensity: Math.min(4, Math.max(1, window.innerHeight * dpr / H)) // plafonné : 4K et téléphones ne coûtent pas plus de fill-rate
     });
     canvas.style.width = "100%"; canvas.style.height = "100%";
     window.OctoSprites.registerAll(k);
@@ -433,7 +433,8 @@
 
     function enter(name, def, isLevel) {
       cur.name = name; cur.def = def; cur.ctrl = null;
-      music().setMood(isLevel ? (def.mood != null ? def.mood : 0.5) : 0.1);
+      music().setMood(isLevel && def.mood != null ? def.mood : 0);
+      music().setBattle(isLevel && !!def.combat); // combat : musique épique, seulement pour les niveaux qui le demandent
       var ctx = { go: goTo, host: host, name: name, reserve: isLevel ? 0.4 : 0 };
       cur.ctrl = def.scene(k, helpers, ctx);
       if (isLevel) ui.showLevel(def); else { ui.hide(); canvas.focus(); }
