@@ -16,6 +16,11 @@ export default [
     rules: { ...noEval, "no-unused-vars": ["warn", { args: "none" }] }
   },
   {
+    files: ["docs/sw.js"],
+    languageOptions: { sourceType: "script", globals: globals.serviceworker },
+    rules: noEval
+  },
+  {
     files: ["dev/**/*.mjs", "dev/**/*.js", "eslint.config.js"],
     languageOptions: { sourceType: "module", globals: { ...globals.node, ...globals.browser } },
     rules: noEval
