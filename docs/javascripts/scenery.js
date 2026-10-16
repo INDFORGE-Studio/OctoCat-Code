@@ -44,7 +44,7 @@
     });
 
     // ---------- végétation moyenne : arbres corail, palmiers violets ----------
-    [[34, "tree", 2.6], [182, "palm", 2.4], [392, "tree", 2], [598, "palm", 2.4]].forEach(function (t) {
+    [[34, "tree", 2.6], [262, "palm", 2.4], [392, "tree", 2], [598, "palm", 2.4]].forEach(function (t) {
       k.add([k.sprite(t[1]), k.pos(t[0], GROUND_Y + 2), k.anchor("bot"), k.scale(t[2]), k.z(3)]);
     });
 

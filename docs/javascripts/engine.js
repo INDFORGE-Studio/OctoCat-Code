@@ -213,8 +213,10 @@
     if (typeof window.kaplay !== "function") return null;
     var W = 600, H = 250, dpr = window.devicePixelRatio || 1, density = Math.min(dpr, 2);
     if (full) { // plein écran : hauteur logique fixe, largeur selon le format de la fenêtre
-      H = 288;
-      W = Math.max(200, Math.round(H * window.innerWidth / window.innerHeight));
+      // le monde fait 600 de large : on le fait tenir en entier (plus de ciel au-dessus sur les écrans plus hauts)
+      var aspect = window.innerWidth / window.innerHeight;
+      H = Math.round(Math.min(360, Math.max(250, 600 / aspect)));
+      W = Math.max(200, Math.round(H * aspect));
       density = Math.min(6, Math.max(1, window.innerHeight * dpr / H)); // ~1 pixel logique = n pixels écran entiers
     }
     var k = window.kaplay({
