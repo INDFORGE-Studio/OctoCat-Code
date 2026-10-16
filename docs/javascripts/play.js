@@ -281,9 +281,10 @@
     }
 
     function slash(p) {
-      var s = k.add([k.sprite("slash"), k.pos(0, 0), k.anchor("left"), k.scale(ab.whip ? 2.1 : 1.6, 1.6), k.opacity(0.95), k.z(10)]);
-      var age = 0, face = p.facing;
-      s.flipX = face < 0;
+      // croissant dessiné vers la droite ; vers la gauche on inverse l'échelle (le flipX d'un sprite ancré à gauche ne le déplaçait pas)
+      var face = p.facing, sx = ab.whip ? 2.1 : 1.6;
+      var s = k.add([k.sprite("slash"), k.pos(0, 0), k.anchor("left"), k.scale(face < 0 ? -sx : sx, 1.6), k.opacity(0.95), k.z(10), "slash"]);
+      var age = 0;
       s.onUpdate(function () {
         age += k.dt();
         s.pos.x = sim.player.x + face * 4; s.pos.y = (brawl ? sim.player.y - sim.player.jz : sim.player.y) - 20;
@@ -488,7 +489,7 @@
     });
 
     var ctrl = {
-      sim: sim, input: input,
+      sim: sim, input: input, k: k,
       skip: function () { if (!ended) { ended = true; endT = 0.5; } },
       destroy: function () {
         destroyed = true; input.destroy(); pad.destroy();

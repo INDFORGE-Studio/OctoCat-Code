@@ -76,12 +76,12 @@
     return b.outline(OUT);
   }
 
-  function slashBuf() { // croissant de lumière (tourné vers la droite)
+  function slashBuf() { // croissant de lumière bombé vers la droite (le jeu l'inverse pour frapper à gauche)
     var b = new Buf(30, 22);
     for (var y = 0; y < 22; y++) {
       for (var x = 0; x < 30; x++) {
-        var ox = (x - 4) / 24, oy = (y - 11) / 11, ix = (x - 10) / 22, iy = (y - 11) / 10;
-        if (ox * ox + oy * oy <= 1 && ix * ix + iy * iy > 1 && x > 4) b.set(x, y, x > 18 ? "#ffffff" : "#bfe9ff");
+        var oy = (y - 10.5) / 11, ox = (x - 0) / 29, ix = (x + 9) / 29; // ellipse extérieure et ellipse intérieure décalée vers la gauche
+        if (ox * ox + oy * oy <= 1 && ix * ix + oy * oy > 1) b.set(x, y, x > 21 ? "#ffffff" : x > 12 ? "#d6f3ff" : "#8fd0ff");
       }
     }
     return b;
