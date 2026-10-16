@@ -1,216 +1,121 @@
-/* Niveau 3 — L'Arène du Glitch Gardien (combat de fin de zone)
- * Énigme : une boucle qui frappe le Gardien tant qu'il lui reste des points de vie (v_pv = 5).
- * Chaque tour de boucle = un coup d'épée : la scène rejoue exactement le nombre de tours exécutés.
- * Combat => `combat: true` : la musique passe en mode épique pendant tout le niveau.
+/* Niveau 3 — La Mine des Opérations (arithmétique)
+ * Trajet : plateformes à la Castlevania (fouet, bougies, chauves-souris, pics). Énigme : calculer la charge de l'ascenseur.
  */
 (function () {
   "use strict";
 
-  var OCTO_X = 70, BOSS_X = 330, S = 3, BOSS_S = 4, HP = 5;
+  var CASES = [[6, 25], [3, 40], [10, 15], [1, 80], [0, 50]];
 
   window.gameEngine.registerLevel({
     id: 3,
     zone: 1,
-    combat: true, // musique épique et intense
-    mood: 0,
-    title: "L'Arène du Glitch Gardien",
-    alt: "Une arène : l'OctoCat à gauche fait face au Glitch Gardien, un gros monstre rouge, devant un portail verrouillé.",
+    mood: 0.2,
+    title: "La Mine des Opérations",
+    alt: "Une mine : un ascenseur chargé de caisses mène vers le portail.",
+
+    run: {
+      mode: "platform", theme: "mine", abilities: { whip: true },
+      course: [
+        { t: "flat", n: 9, candles: [5] },
+        { t: "flat", n: 8, fly: [4], bits: [2, 3] },
+        { t: "gap", n: 2 },
+        { t: "flat", n: 8, en: [3], candles: [6], cp: 1 },
+        { t: "flat", n: 7, spikes: [3], bits: [1, 2] },
+        { t: "up", n: 1 }, { t: "flat", n: 7, tough: [3], candles: [1] },
+        { t: "down", n: 1 }, { t: "gap", n: 2 },
+        { t: "flat", n: 9, fly: [3, 6], en: [8], cp: 0 },
+        { t: "up", n: 2 }, { t: "flat", n: 6, spikes: [2, 3], bits: [4] },
+        { t: "down", n: 2 }, { t: "flat", n: 4, candles: [2] },
+        { t: "end", n: 9 }
+      ]
+    },
 
     starter:
-      "# Le Glitch Gardien a 5 points de vie (v_pv).\n" +
-      "# Chaque tour de boucle = un coup d'épée de l'OctoCat.\n" +
-      "# Frappe tant qu'il lui reste des points de vie !\n" +
+      "# Les variables v_caisses et v_poids_caisse existent déjà.\n" +
+      "# L'ascenseur démarre avec la charge totale :\n" +
+      "# nombre de caisses × poids d'une caisse.\n" +
       "\n" +
-      "v_pv = 5\n" +
-      "\n" +
-      "while ???:\n" +
-      "    v_pv = v_pv - 1",
+      "v_charge = ???",
 
     briefing: {
-      title: "L'Arène du Glitch Gardien",
-      lore: "Le dernier Glitch de la forêt garde le chemin du prochain monde. Il se régénère à chaque coup... sauf si tu frappes en boucle, sans jamais t'arrêter avant qu'il tombe.",
-      lesson: "Une boucle répète des instructions. while (« tant que ») recommence tant que sa condition est vraie ; for répète un nombre de fois connu. Attention : si la condition ne devient jamais fausse, la boucle tourne sans fin !",
+      title: "La Mine des Opérations",
+      lore: "Au fond de la mine, un ascenseur rouillé ne démarre que si on lui annonce la charge exacte de ses caisses. Les Glitches ont effacé le calcul du contremaître.",
+      lesson: "Un ordinateur calcule avec + (addition), - (soustraction), * (multiplication), / (division) et % (reste de la division). On peut utiliser des variables dans un calcul. La multiplication passe avant l'addition ; les parenthèses changent l'ordre.",
       examples: {
-        "Pseudo-code": "tant que v_vie > 0 faire\n  v_vie = v_vie - 1\nfin tant que",
-        "Python": "while v_vie > 0:\n    v_vie = v_vie - 1\n\n# ou, pour un nombre de tours connu :\nfor i in range(3):\n    v_vie = v_vie - 1",
-        "JavaScript": "while (v_vie > 0) {\n  v_vie = v_vie - 1;\n}\n\nfor (let i = 0; i < 3; i++) {\n  v_vie = v_vie - 1;\n}"
+        "Pseudo-code": "v_surface = v_largeur * v_hauteur",
+        "Python": "v_surface = v_largeur * v_hauteur\nv_reste = 17 % 5   # 2",
+        "JavaScript": "let v_surface = v_largeur * v_hauteur;\nlet v_reste = 17 % 5;   // 2"
       },
       tips: [
-        "La condition est testée avant chaque tour : quand elle devient fausse, la boucle s'arrête.",
-        "Une ligne du corps de la boucle doit faire évoluer la condition, sinon elle ne s'arrête jamais.",
-        "Compte les tours : 5 points de vie = 5 coups, ni 4, ni 6."
+        "* multiplie ; / divise ; % donne le reste de la division.",
+        "2 + 3 * 4 vaut 14 : on multiplie d'abord. (2 + 3) * 4 vaut 20.",
+        "Ton calcul doit marcher avec n'importe quel nombre de caisses, pas seulement celui que tu vois."
       ],
-      goal: "complète la boucle pour frapper le Gardien jusqu'à ce que v_pv tombe à 0, en 5 coups exactement."
+      goal: "calcule v_charge = nombre de caisses × poids d'une caisse."
     },
 
     hints: [
-      "while est suivi d'une condition. La boucle continue tant que cette condition est vraie.",
-      "Tant que le Gardien a des points de vie : compare v_pv à 0 avec « strictement supérieur ».",
-      "La solution : while v_pv > 0:"
+      "La charge totale, c'est le nombre de caisses multiplié par le poids d'une caisse.",
+      "Le signe de la multiplication est *. Utilise les deux variables existantes.",
+      "v_charge = v_caisses * v_poids_caisse"
     ],
 
     validate: function (code, engine) {
-      if (!code.trim()) return { ok: false, messages: ["Aucun code détecté : l'éditeur est vide."] };
-      if (/\?\?\?/.test(code)) return { ok: false, messages: ["Il reste des « ??? » : écris la condition de ta boucle à la place."] };
-
-      var r = engine.interpreter.run(code);
-      if (r.errors.length) {
-        var loopy = r.errors.some(function (e) { return /tours de boucle/.test(e.msg); });
-        return {
-          ok: false,
-          messages: r.errors.map(function (e) { return "Ligne " + e.line + " — " + (/tours de boucle/.test(e.msg) ? "boucle infinie : " : "SyntaxError : ") + e.msg; }),
-          data: { hits: loopy ? HP : 0, fumble: true }
-        };
-      }
-      var pv = r.vars.v_pv, hits = r.loops;
-      if (typeof pv !== "number") return { ok: false, messages: ["NameError : la variable v_pv a disparu (elle doit rester un nombre)."], data: { hits: 0, fumble: true } };
-      if (hits === 0) {
-        return { ok: false, messages: ["Aucun coup n'a été porté : la boucle n'a fait aucun tour. Sa condition est-elle vraie au départ ?"], data: { hits: 0, fumble: true } };
-      }
-      if (pv > 0) {
-        return { ok: false, messages: ["Le Gardien a encore " + pv + " PV : tu as frappé " + hits + " fois, il en fallait " + HP + "."], data: { hits: hits, fumble: false } };
-      }
-      if (pv < 0 || hits > HP) {
-        return { ok: false, messages: ["Tu as frappé " + hits + " fois alors qu'il y avait " + HP + " PV (v_pv = " + pv + ") : un coup de trop ! Vérifie ta condition (> ou >= ?)."], data: { hits: HP, fumble: false } };
-      }
-      if (hits !== HP) {
-        return { ok: false, messages: ["v_pv vaut 0 mais en " + hits + " coup(s) seulement : le combat doit durer " + HP + " tours de boucle."], data: { hits: hits, fumble: false } };
-      }
-      return { ok: true, messages: ["La boucle a tourné " + hits + " fois : v_pv = " + pv + "  ✓"], data: { hits: hits } };
+      return OctoPuzzle.validateCases(code, engine, {
+        name: "v_charge", type: "number", okMessage: "v_charge = v_caisses * v_poids_caisse",
+        cases: CASES.map(function (c) { return { env: { v_caisses: c[0], v_poids_caisse: c[1] }, expect: c[0] * c[1] }; })
+      });
     },
 
-    scene: function (k, h, ctx) {
-      var sc = OctoScenery.build(k, h, { portalOpen: false, reserve: ctx.reserve });
-      var rgb = sc.rgb, BASE_Y = sc.BASE_Y, PORTAL_X = sc.PORTAL_X;
-
-      var octoShadow = sc.shadow(OCTO_X, 0.85);
-      var bossShadow = sc.shadow(BOSS_X, 1.6);
-      var boss = k.add([k.sprite("glitch", { anim: "idle" }), k.pos(BOSS_X, BASE_Y), k.anchor("bot"), k.scale(BOSS_S),
-        k.color(), k.opacity(1), k.z(8)]);
-      var octo = k.add([k.sprite("octo", { anim: "idle" }), k.pos(OCTO_X, BASE_Y), k.anchor("bot"), k.scale(S),
-        k.color(), k.opacity(1), k.rotate(0), k.z(9)]);
-
-      // HUD : titre, ligne de code d'état et barre de vie du Gardien (5 cases)
-      k.add([k.text("ARENE DU GARDIEN - NIVEAU 3", { size: 11, font: "monospace" }), k.pos(10, 8), k.color(rgb("#e6edf3")), k.fixed(), k.z(31)]);
-      var pvTxt = k.add([k.text("v_pv = " + HP, { size: 14, font: "monospace" }), k.pos(10, 24), k.color(rgb("#f85149")), k.fixed(), k.z(31)]);
-      var pips = [];
-      for (var i = 0; i < HP; i++) {
-        pips.push(k.add([k.rect(14, 8), k.pos(130 + i * 18, 27), k.color(rgb("#f85149")), k.fixed(), k.z(31)]));
-      }
-      var banner = k.add([k.text("", { size: 18, font: "monospace" }), k.pos(sc.viewW / 2, 70), k.anchor("center"),
-        k.color(rgb("#ffffff")), k.opacity(0), k.fixed(), k.z(32)]);
-
-      var bob = 0;
-      sc.onFrame(function (t) {
-        if (!boss.__locked) { bob = Math.abs(Math.sin(t * 2.4)) * 6; boss.pos.y = BASE_Y - bob; }
-        octoShadow.pos.x = octo.pos.x;
-        octoShadow.opacity = 0.6 * octo.opacity;
-        bossShadow.opacity = boss.exists() ? 0.6 * boss.opacity * (1 - bob / 16) : 0;
-      });
-
-      function showPv(n) {
-        pvTxt.text = "v_pv = " + n;
-        pips.forEach(function (p, idx) { p.opacity = idx < n ? 1 : 0.18; });
-      }
-
-      function resetState() {
-        octo.pos.x = OCTO_X; octo.pos.y = BASE_Y; octo.opacity = 1; octo.scale = k.vec2(S, S); octo.angle = 0;
-        octo.color = k.Color.WHITE; octo.play("idle");
-        boss.pos.x = BOSS_X; boss.__locked = false; boss.color = k.Color.WHITE; boss.opacity = 1; boss.scale = k.vec2(BOSS_S, BOSS_S); boss.play("idle");
-        sc.setPortal(false); banner.opacity = 0; showPv(HP);
-      }
-      resetState();
-
-      /** Un coup d'épée : l'OctoCat fonce, touche, recule. */
-      function strike(left) {
-        var hitX = BOSS_X - 100;
-        octo.play("run");
-        return h.tween(0.16, function (e) { octo.pos.x = OCTO_X + (hitX - OCTO_X) * e; }, function (p) { return p; })
-          .then(function () {
-            k.shake(7);
-            boss.__locked = true; boss.play("hurt"); boss.color = rgb("#ffffff");
-            showPv(left);
-            sc.burst(BOSS_X - 40, BASE_Y - 70, ["#ffffff", "#e3b341", "#f85149"], 14);
-            sc.floatText("-1", BOSS_X, BASE_Y - 150, "#e3b341");
-            return h.tween(0.16, function (e) { octo.pos.x = hitX - (hitX - OCTO_X) * e; boss.pos.x = BOSS_X + 8 * (1 - e); boss.pos.y = BASE_Y; }, function (p) { return p; });
-          })
-          .then(function () { boss.color = k.Color.WHITE; boss.__locked = false; boss.play("idle"); octo.play("idle"); return h.wait(0.08); });
-      }
-
-      return {
-        reset: resetState,
-
-        success: function (result) {
-          var chain = Promise.resolve();
-          for (var n = 1; n <= result.data.hits; n++) {
-            (function (left) { chain = chain.then(function () { return strike(left); }); })(HP - n);
-          }
-          return chain
-            .then(function () { // le Gardien s'effondre
-              boss.__locked = true; boss.play("hurt");
-              k.shake(12);
-              sc.burst(BOSS_X, BASE_Y - 80, ["#f85149", "#e3b341", "#ffffff", "#39c5cf"], 40);
-              return h.tween(0.7, function (e) {
-                boss.opacity = 1 - e; boss.scale = k.vec2(BOSS_S + e * 2.2, BOSS_S * (1 - e * 0.85)); boss.pos.y = BASE_Y;
-              });
-            })
-            .then(function () {
-              boss.destroy();
-              octo.play("run");
-              return h.tween(0.9, function (e) { octo.pos.x = OCTO_X + (PORTAL_X - 60 - OCTO_X) * e; }, function (p) { return p; });
-            })
-            .then(function () {
-              octo.play("success");
-              sc.portal.play("opening");
-              k.shake(4);
-              return h.wait(0.35);
-            })
-            .then(function () {
-              sc.setPortal(true);
-              banner.text = "GARDIEN VAINCU"; banner.opacity = 1;
-              sc.burst(PORTAL_X, sc.GROUND_Y - 60, ["#58a6ff", "#39c5cf", "#3fb950", "#bc8cff"], 28);
-              return h.wait(0.5);
-            })
-            .then(function () {
-              octo.play("run");
-              return h.tween(0.7, function (e) {
-                octo.pos.x = PORTAL_X - 60 + 60 * e;
-                octo.opacity = 1 - e;
-                var s = S * (1 - 0.6 * e); octo.scale = k.vec2(s, s);
+    scene: OctoPuzzle.scene({
+      title: "MINE DES OPERATIONS - NIVEAU 3",
+      wash: ["#0b0716", 0.28],
+      lines: [{ text: "v_charge = ???", color: "#d29922" }, { text: "v_caisses = 6   v_poids_caisse = 25", color: "#58a6ff" }],
+      decorate: function (k, sc, h, hud, e) {
+        var rgb = e.rgb, BASE_Y = sc.BASE_Y, CX = 380, parts = [], crates = [];
+        // puits de l'ascenseur
+        [CX - 46, CX + 40].forEach(function (x) { k.add([k.rect(6, 190), k.pos(x, BASE_Y - 190), k.color(rgb("#4a3a63")), k.z(6.5)]); });
+        k.add([k.rect(98, 6), k.pos(CX - 48, BASE_Y - 190), k.color(rgb("#4a3a63")), k.z(6.5)]);
+        var cage = k.add([k.rect(84, 8), k.pos(CX - 42, BASE_Y - 8), k.color(rgb("#8b949e")), k.z(7)]);
+        var rope = k.add([k.rect(2, 150), k.pos(CX - 1, BASE_Y - 160), k.color(rgb("#6e7681")), k.z(6.9)]);
+        parts.push(cage);
+        // 6 caisses (3 × 2)
+        for (var i = 0; i < 6; i++) {
+          var c = k.add([k.rect(22, 20), k.pos(CX - 38 + (i % 3) * 26, BASE_Y - 28 - Math.floor(i / 3) * 22), k.color(rgb("#a1713b")), k.opacity(0), k.z(7.1)]);
+          crates.push(c);
+        }
+        var gauge = k.add([k.text("", { size: 11, font: "monospace" }), k.pos(CX, BASE_Y - 100), k.anchor("center"), k.color(rgb("#ffe08a")), k.z(7.3)]);
+        return {
+          reveal: function (result) {
+            var n = 6, per = 25, chain = Promise.resolve();
+            for (var j = 0; j < n; j++) {
+              (function (idx) {
+                chain = chain.then(function () {
+                  crates[idx].opacity = 1; gauge.text = ((idx + 1) * per) + " KG";
+                  sc.burst(crates[idx].pos.x + 11, crates[idx].pos.y, ["#e3b341", "#ffffff"], 4);
+                  return h.wait(0.13);
+                });
+              })(j);
+            }
+            return chain.then(function () {
+              hud.set(0, "v_charge = " + result.data.value, "#3fb950");
+              gauge.text = result.data.value + " KG  OK";
+              return h.wait(0.3);
+            }).then(function () {
+              return h.tween(0.7, function (t) { // l'ascenseur monte : le chemin se dégage
+                var dy = -100 * t;
+                cage.pos.y = BASE_Y - 8 + dy; rope.pos.y = BASE_Y - 160 + dy * 0.5;
+                crates.forEach(function (c2, idx) { c2.pos.y = BASE_Y - 28 - Math.floor(idx / 3) * 22 + dy; });
+                gauge.pos.y = BASE_Y - 100 + dy;
               });
             });
-        },
-
-        fail: function (result) {
-          var d = (result && result.data) || { hits: 0, fumble: true };
-          var hits = Math.min(d.hits || 0, HP), chain = Promise.resolve();
-          if (!d.fumble) { // la boucle a bien tourné mais pas comme il fallait : on rejoue les coups, puis le Gardien riposte
-            for (var n = 1; n <= hits; n++) {
-              (function (left) { chain = chain.then(function () { return strike(left); }); })(Math.max(0, HP - n));
-            }
+          },
+          reset: function () {
+            cage.pos.y = BASE_Y - 8; rope.pos.y = BASE_Y - 160; gauge.text = ""; gauge.pos.y = BASE_Y - 100;
+            crates.forEach(function (c2, idx) { c2.opacity = 0; c2.pos.y = BASE_Y - 28 - Math.floor(idx / 3) * 22; });
           }
-          return chain.then(function () {
-            k.shake(14);
-            boss.__locked = true;
-            boss.play("attack");
-            octo.play("fail");
-            sc.floatText("ERREUR", octo.pos.x, octo.pos.y - 84, "#f85149");
-            var bx0 = boss.pos.x;
-            return h.tween(0.24, function (e) { boss.pos.x = bx0 - 170 * e; boss.pos.y = BASE_Y - Math.sin(e * Math.PI) * 22; }, function (p) { return p * p; })
-              .then(function () {
-                octo.color = rgb("#f85149"); octo.angle = -14;
-                sc.burst(octo.pos.x + 20, octo.pos.y - 36, ["#f85149", "#d29922"], 14);
-                k.shake(9);
-                return h.tween(0.25, function (e) { octo.pos.x = OCTO_X - 26 * e; });
-              })
-              .then(function () { return h.wait(0.25); })
-              .then(function () {
-                return h.tween(0.5, function (e) { boss.pos.x = bx0 - 170 * (1 - e); octo.pos.x = OCTO_X - 26 * (1 - e); });
-              })
-              .then(function () { resetState(); });
-          });
-        }
-      };
-    }
+        };
+      }
+    })
   });
 })();

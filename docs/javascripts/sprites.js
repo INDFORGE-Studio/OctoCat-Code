@@ -671,7 +671,10 @@
         idle: { from: 0, to: 1, loop: true, speed: 2 },
         run: { from: 2, to: 5, loop: true, speed: 12 },
         success: { from: 6, to: 7, loop: true, speed: 6 },
-        fail: { from: 8, to: 9, loop: true, speed: 6 }
+        fail: { from: 8, to: 9, loop: true, speed: 6 },
+        jump: { from: 4, to: 4 },
+        atk: { from: 5, to: 5 },
+        hurt: { from: 8, to: 8 }
       }
     });
     k.loadSprite("glitch", sheet([glitchBuf("idle", 7), glitchBuf("idle", 31), glitchBuf("attack", 5), glitchBuf("hurt", 3)], 24, 24), {
@@ -716,5 +719,5 @@
     k.loadSprite("vignette", vignetteSprite());
   }
 
-  window.OctoSprites = { registerAll: registerAll, palette: C };
+  window.OctoSprites = { registerAll: registerAll, palette: C, Buf: Buf, single: single, sheet: sheet, seeded: seeded };
 })();

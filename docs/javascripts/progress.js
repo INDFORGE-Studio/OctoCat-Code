@@ -10,8 +10,15 @@
   // Registre des niveaux. `path` est relatif à la racine du site.
   var LEVELS = [
     { id: 1, zone: 1, title: "La Forêt des Syntaxes", path: "niveau-1/" },
-    { id: 2, zone: 1, title: "Le Pont des Booléens", path: "niveau-2/" },
-    { id: 3, zone: 1, title: "L'Arène du Glitch Gardien", path: "niveau-3/" }
+    { id: 2, zone: 1, title: "Le Village des Chaînes", path: "niveau-2/" },
+    { id: 3, zone: 1, title: "La Mine des Opérations", path: "niveau-3/" },
+    { id: 4, zone: 1, title: "Le Dojo des Torches", path: "niveau-4/" },
+    { id: 5, zone: 1, title: "Le Pont des Booléens", path: "niveau-5/" },
+    { id: 6, zone: 1, title: "Le Marché des Cristaux", path: "niveau-6/" },
+    { id: 7, zone: 1, title: "La Forge des Répétitions", path: "niveau-7/" },
+    { id: 8, zone: 1, title: "Le Temple des Cumuls", path: "niveau-8/" },
+    { id: 9, zone: 1, title: "Le Tri des Glitches", path: "niveau-9/" },
+    { id: 10, zone: 1, title: "L'Arène du Glitch Gardien", path: "niveau-10/" }
   ];
 
   var ACHIEVEMENTS = {
@@ -94,6 +101,9 @@
       write(s);
       Progress.grant("polyglot");
     },
+
+    /** Déverrouille tous les niveaux (démonstration : ?unlock=all dans l'adresse). */
+    unlockAll: function () { var s = read(); s.unlocked = LEVELS.length; write(s); },
 
     reset: function () { write(defaults()); }
   };

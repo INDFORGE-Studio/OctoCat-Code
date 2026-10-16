@@ -11,7 +11,7 @@ export default [
     files: ["docs/javascripts/**/*.js"],
     languageOptions: {
       sourceType: "script",
-      globals: { ...globals.browser, kaplay: "readonly", OctoProgress: "writable", OctoSprites: "writable", OctoScenery: "writable", gameEngine: "writable" }
+      globals: { ...globals.browser, kaplay: "readonly", OctoProgress: "writable", OctoSprites: "writable", OctoScenery: "writable", OctoPuzzle: "writable", OctoPlay: "writable", OctoSim: "writable", OctoFX: "writable", OctoMusic: "writable", gameEngine: "writable" }
     },
     rules: { ...noEval, "no-unused-vars": ["warn", { args: "none" }] }
   },

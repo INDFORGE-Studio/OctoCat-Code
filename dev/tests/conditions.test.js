@@ -1,27 +1,11 @@
 // Tests des booléens, des conditions (if / sinon) et du niveau 2.
 import test from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import path from "node:path";
-import vm from "node:vm";
-import { fileURLToPath } from "node:url";
 
-const JS = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../docs/javascripts");
+import { loadGame as load } from "./loader.mjs";
 
-function loadGame() {
-  const ctx = {
-    document: { readyState: "complete", querySelectorAll: () => [], addEventListener() {} },
-    console, Math, JSON, Object, Array, URL, Promise, setTimeout, clearTimeout
-  };
-  ctx.window = ctx;
-  vm.createContext(ctx);
-  for (const f of ["engine.js", "level1.js", "level2.js", "level3.js"]) {
-    vm.runInContext(fs.readFileSync(path.join(JS, f), "utf8"), ctx, { filename: f });
-  }
-  return ctx.gameEngine;
-}
+const { engine } = load();
 
-const engine = loadGame();
 const run = (code, env) => engine.interpreter.run(code, env);
 const NL = "\n";
 const lines = (...l) => l.join(NL);
@@ -73,8 +57,8 @@ test("if / sinon en Python, JavaScript et pseudo-code", () => {
   assert.equal(nested.vars.b, 11); // l'instruction après le bloc est bien exécutée
 });
 
-test("niveau 2 : la condition doit être juste pour toutes les énergies", () => {
-  const v = (code) => engine.levels[2].validate(code, engine);
+test("niveau 5 : la condition doit être juste pour toutes les énergies", () => {
+  const v = (code) => engine.levels[5].validate(code, engine);
   assert.equal(v("").ok, false);
   assert.match(v(lines("if ???:", "    v_pont = 1")).messages[0], /\?\?\?/);
   assert.match(v('v_pont = "solide"').messages[0], /trop faible/);
@@ -123,8 +107,8 @@ test("boucles : garde-fou et erreurs lisibles", () => {
   assert.match(run("tant que 1 < 2 faire\n  a = 1").errors[0].msg, /fin tant que/);
 });
 
-test("niveau 3 : la boucle doit frapper exactement 5 fois", () => {
-  const v = (code) => engine.levels[3].validate(code, engine);
+test("niveau 10 : la boucle doit frapper exactement 5 fois", () => {
+  const v = (code) => engine.levels[10].validate(code, engine);
   const body = "    v_pv = v_pv - 1";
   assert.equal(v("").ok, false);
   assert.match(v(lines("v_pv = 5", "while ???:", body)).messages[0], /\?\?\?/);

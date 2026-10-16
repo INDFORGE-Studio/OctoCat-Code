@@ -55,8 +55,19 @@ extra_javascript:
   - javascripts/pwa.js
   - javascripts/music.js
   - javascripts/fx.js
+  - javascripts/sprites-run.js
+  - javascripts/playsim.js
+  - javascripts/play.js
+  - javascripts/puzzle.js
   - javascripts/engine.js
   - javascripts/hub.js
   - javascripts/level1.js
   - javascripts/level2.js
   - javascripts/level3.js
+  - javascripts/level4.js
+  - javascripts/level5.js
+  - javascripts/level6.js
+  - javascripts/level7.js
+  - javascripts/level8.js
+  - javascripts/level9.js
+  - javascripts/level10.js

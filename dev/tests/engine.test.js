@@ -2,27 +2,11 @@
 // Les scripts du site sont des IIFE de navigateur : on les charge dans un contexte vm avec un faux `window`.
 import test from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import path from "node:path";
-import vm from "node:vm";
-import { fileURLToPath } from "node:url";
 
-const JS = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../docs/javascripts");
+import { loadGame as load } from "./loader.mjs";
 
-function loadGame() {
-  const ctx = {
-    document: { readyState: "complete", querySelectorAll: () => [], addEventListener() {} },
-    console, Math, JSON, Object, Array, URL, Promise, setTimeout, clearTimeout
-  };
-  ctx.window = ctx;
-  vm.createContext(ctx);
-  for (const f of ["engine.js", "level1.js", "level2.js"]) {
-    vm.runInContext(fs.readFileSync(path.join(JS, f), "utf8"), ctx, { filename: f });
-  }
-  return ctx.gameEngine;
-}
+const { engine } = load();
 
-const engine = loadGame();
 const run = (code) => engine.interpreter.run(code);
 
 test("interpréteur : affectations simples (pseudo-code, Python, JavaScript)", () => {
