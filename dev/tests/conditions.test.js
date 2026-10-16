@@ -15,7 +15,7 @@ function loadGame() {
   };
   ctx.window = ctx;
   vm.createContext(ctx);
-  for (const f of ["engine.js", "level1.js", "level2.js"]) {
+  for (const f of ["engine.js", "level1.js", "level2.js", "level3.js"]) {
     vm.runInContext(fs.readFileSync(path.join(JS, f), "utf8"), ctx, { filename: f });
   }
   return ctx.gameEngine;
@@ -50,7 +50,7 @@ test("erreurs lisibles sur les conditions", () => {
   assert.match(run("a = true + 1").errors[0].msg, /booléen/);
   assert.match(run("true = 3").errors[0].msg, /réservé/);
   assert.match(run(lines("if x:", "    y = 1")).errors[0].msg, /pas défini/);
-  assert.match(run(lines("if 1 > 0", "    y = 1")).errors[0].msg, /condition mal écrite/);
+  assert.match(run(lines("if 1 > 0", "    y = 1")).errors[0].msg, /mal écrite/);
   assert.match(run(lines("if 1 > 0:", "y = 1")).errors[0].msg, /vide/);
   assert.match(run(lines("else:", "    y = 1")).errors[0].msg, /sans « if/);
   assert.match(run(lines("if (1 > 0) {", "  y = 1")).errors[0].msg, /accolade/);
@@ -91,4 +91,59 @@ test("niveau 2 : la condition doit être juste pour toutes les énergies", () =>
     lines("if v_energie > 49:", '    v_pont = "solide"', "else:", '    v_pont = "fragile"'),
     lines("if not (v_energie < 50):", '    v_pont = "solide"')
   ]) assert.equal(v(ok).ok, true, ok);
+});
+
+test("boucles while / for en Python, JavaScript et pseudo-code", () => {
+  assert.equal(run(lines("n = 0", "while n < 5:", "    n = n + 1")).vars.n, 5);
+  assert.equal(run(lines("n = 0", "while n < 5:", "    n = n + 1")).loops, 5);
+  assert.equal(run(lines("n = 0", "while (n < 3) {", "  n += 1;", "}")).vars.n, 3);
+  assert.equal(run(lines("n = 0", "tant que n < 4 faire", "  n = n + 1", "fin tant que")).vars.n, 4);
+  assert.equal(run(lines("s = 0", "for i in range(4):", "    s = s + i")).vars.s, 6); // 0+1+2+3
+  assert.equal(run(lines("s = 0", "for i in range(1, 4):", "    s = s + i")).vars.s, 6); // 1+2+3
+  assert.equal(run(lines("s = 0", "for (let i = 0; i < 4; i++) {", "  s = s + i;", "}")).vars.s, 6);
+  assert.equal(run(lines("s = 0", "for (let i = 1; i <= 3; i++) {", "  s = s + i;", "}")).vars.s, 6);
+  assert.equal(run(lines("s = 0", "pour i de 1 a 3 faire", "  s = s + i", "fin pour")).vars.s, 6);
+  assert.equal(run("n = 0\nwhile n < 3: n = n + 1").vars.n, 3); // une seule ligne
+  const nested = run(lines("t = 0", "for i in range(3):", "    for j in range(2):", "        t = t + 1", "    if i == 1:", "        t = t + 10"));
+  assert.equal(nested.errors.length, 0);
+  assert.equal(nested.vars.t, 16);
+  assert.equal(run(lines("n = 0", "while n < 3:", "    n = n + 1", "m = n * 2")).vars.m, 6); // instruction après la boucle
+});
+
+test("boucles : garde-fou et erreurs lisibles", () => {
+  const inf = run(lines("n = 0", "while true:", "    n = n + 1"));
+  assert.match(inf.errors[0].msg, /tours de boucle/);
+  assert.equal(inf.errors[0].line, 2);
+  assert.match(run(lines("n = 0", "while n >= 0:", "    n = n + 1")).errors[0].msg, /tours de boucle/);
+  assert.match(run("for i in range(1, 2, 3):\n    a = 1").errors[0].msg, /range/);
+  assert.match(run("for i in range('x'):\n    a = 1").errors[0].msg, /nombres/);
+  assert.match(run("while n < 3:\n    n = 1").errors[0].msg, /pas défini/);
+  assert.match(run("while 1 < 2\n    a = 1").errors[0].msg, /mal écrite/);
+  assert.match(run("while (1 < 2) {\n  a = 1").errors[0].msg, /accolade/);
+  assert.match(run("tant que 1 < 2 faire\n  a = 1").errors[0].msg, /fin tant que/);
+});
+
+test("niveau 3 : la boucle doit frapper exactement 5 fois", () => {
+  const v = (code) => engine.levels[3].validate(code, engine);
+  const body = "    v_pv = v_pv - 1";
+  assert.equal(v("").ok, false);
+  assert.match(v(lines("v_pv = 5", "while ???:", body)).messages[0], /\?\?\?/);
+  assert.match(v(lines("v_pv = 5", "while true:", body)).messages[0], /boucle infinie/);
+  assert.match(v(lines("v_pv = 5", "while v_pv < 0:", body)).messages[0], /Aucun coup/);
+  assert.match(v(lines("v_pv = 5", "while v_pv > 2:", body)).messages[0], /encore 2 PV/);
+  assert.match(v(lines("v_pv = 5", "while v_pv >= 0:", body)).messages[0], /coup de trop/);
+  assert.match(v(lines("v_pv = 5", "v_pv = 0")).messages[0], /Aucun coup/);
+  assert.match(v(lines("v_pv = 5", "while v_pv > 0", body)).messages[0], /SyntaxError/);
+  assert.equal(v(lines("v_pv = 5", "while v_pv >= 0:", body)).data.hits, 5);
+  for (const ok of [
+    lines("v_pv = 5", "while v_pv > 0:", body),
+    lines("v_pv = 5", "while v_pv != 0:", body),
+    lines("v_pv = 5", "for i in range(5):", body),
+    lines("v_pv = 5", "for (let i = 0; i < 5; i++) {", "  v_pv = v_pv - 1;", "}"),
+    lines("v_pv = 5", "tant que v_pv > 0 faire", "  v_pv = v_pv - 1", "fin tant que")
+  ]) {
+    const r = v(ok);
+    assert.equal(r.ok, true, ok);
+    assert.equal(r.data.hits, 5);
+  }
 });

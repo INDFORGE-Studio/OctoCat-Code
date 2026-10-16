@@ -10,7 +10,8 @@
   // Registre des niveaux. `path` est relatif à la racine du site.
   var LEVELS = [
     { id: 1, zone: 1, title: "La Forêt des Syntaxes", path: "niveau-1/" },
-    { id: 2, zone: 1, title: "Le Pont des Booléens", path: "niveau-2/" }
+    { id: 2, zone: 1, title: "Le Pont des Booléens", path: "niveau-2/" },
+    { id: 3, zone: 1, title: "L'Arène du Glitch Gardien", path: "niveau-3/" }
   ];
 
   var ACHIEVEMENTS = {

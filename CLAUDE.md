@@ -68,6 +68,7 @@ Statut : ✅ écrit · 🔶 écrit mais non vérifié · ⬜ à faire
 ### Étape 4 — Level design du Vertical Slice
 - ✅ `docs/index.md` (hub + narration), `docs/niveau-1.md`, `docs/javascripts/level1.js` (`v_speed = 200`).
 - ✅ Niveau 2 « Le Pont des Booléens » jouable (`level2.js`) : booléens, comparaisons, `et/ou/non`, `if / elif / else` (Python, JavaScript, pseudo-code `si … alors … sinon … fin si`). Le validateur exécute le code du joueur avec 7 valeurs de `v_energie` (0…100) : la condition doit être juste partout.
+- ✅ Niveau 3 « L'Arène du Glitch Gardien » jouable (`level3.js`, `combat: true` → musique épique) : boucles `while` / `for` (Python, JavaScript, pseudo-code `tant que … faire … fin tant que`, `pour i de 1 a 5 faire`). Le nombre de tours de boucle exécutés (`result.loops`) = nombre de coups rejoués dans la scène ; garde-fou à 2000 tours.
 - ✅ Test bout en bout sur le vrai site : échec → réussite → redirection `/niveau-2/` → déblocage → verrou si `localStorage` vide ; onglets Python/JS → langage mémorisé.
 
 ## 5. Définition de « terminé » (DoD)
@@ -176,4 +177,4 @@ Toujours penser à toutes les plateformes. Déjà en place :
 
 ## 16. Interpréteur : ce qu'il sait faire
 
-Affectations (`=`, `+=`, `-=`, `*=`, `/=`, `let/const/var`), nombres, chaînes, booléens (`true/false/True/False/vrai/faux`), `+ - * / %`, comparaisons (`== != < > <= >=`, chaînées comme en Python), `and/or/not`, `&&/||/!`, `et/ou/non`, parenthèses, conditions `if / elif / else` (3 écritures, imbriquées possibles). Pas encore : boucles, fonctions, tableaux (zones 2/3). Toujours un parseur à liste blanche : jamais d'`eval`.
+Affectations (`=`, `+=`, `-=`, `*=`, `/=`, `let/const/var`), nombres, chaînes, booléens (`true/false/True/False/vrai/faux`), `+ - * / %`, comparaisons (`== != < > <= >=`, chaînées comme en Python), `and/or/not`, `&&/||/!`, `et/ou/non`, parenthèses, conditions `if / elif / else` et boucles `while` / `for i in range(…)` / `for (let i = 0; i < n; i++)` / `tant que … faire` / `pour i de a a b faire` (3 écritures, imbrication possible, 2000 tours max). Pas encore : fonctions, tableaux (zones 2/3). Toujours un parseur à liste blanche : jamais d'`eval`.

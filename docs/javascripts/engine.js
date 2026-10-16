@@ -19,7 +19,8 @@
   /* ======================================================================
    * 1. Mini-interpréteur sécurisé
    * Sous-ensemble commun à Python / JavaScript / pseudo-code : affectations de variables, nombres,
-   * chaînes, booléens, + - * / %, comparaisons, et/ou/non, parenthèses et conditions if / sinon.
+   * chaînes, booléens, + - * / %, comparaisons, et/ou/non, parenthèses, conditions if / sinon
+   * et boucles while / for (plafonnées à 2000 tours).
    * Jamais d'eval ni de Function : parseur à liste blanche.
    * ==================================================================== */
 
@@ -186,8 +187,38 @@
   }
 
   /** Reconnaît un en-tête de condition ; renvoie { style, kind: if|elif|else|end, cond, rest } ou null. */
+  /** Découpe « a, b » au niveau supérieur (hors parenthèses). */
+  function splitArgs(src) {
+    var out = [], depth = 0, cur = "";
+    for (var i = 0; i < src.length; i++) {
+      var ch = src[i];
+      if (ch === "(") depth++;
+      if (ch === ")") depth--;
+      if (ch === "," && depth === 0) { out.push(cur.trim()); cur = ""; continue; }
+      cur += ch;
+    }
+    out.push(cur.trim());
+    return out;
+  }
+
   function classify(text) {
     var m;
+    // boucles
+    if ((m = /^while\s*(\(.*\))\s*\{\s*$/.exec(text))) return { style: "js", kind: "while", cond: m[1] };
+    if ((m = /^for\s*\(\s*(?:let|var|const)?\s*([A-Za-z_]\w*)\s*=\s*(.+?)\s*;\s*([A-Za-z_]\w*)\s*(<=|<)\s*(.+?)\s*;\s*([A-Za-z_]\w*)\s*(?:\+\+|\+=\s*1)\s*\)\s*\{\s*$/.exec(text)) && m[3] === m[1] && m[6] === m[1]) {
+      return { style: "js", kind: "for", name: m[1], from: m[2], to: m[5], inclusive: m[4] === "<=" };
+    }
+    if ((m = /^tant\s+que\s+(.+?)\s+faire\s*$/i.exec(text))) return { style: "fr", kind: "while", cond: m[1] };
+    if ((m = /^pour\s+([A-Za-z_]\w*)\s+de\s+(.+?)\s+[aà]\s+(.+?)\s+faire\s*$/i.exec(text))) {
+      return { style: "fr", kind: "for", name: m[1], from: m[2], to: m[3], inclusive: true };
+    }
+    if ((m = /^while\s+(.+?)\s*:\s*(.*)$/.exec(text))) return { style: "py", kind: "while", cond: m[1], rest: m[2] };
+    if ((m = /^for\s+([A-Za-z_]\w*)\s+in\s+range\s*\((.*)\)\s*:\s*(.*)$/.exec(text))) {
+      var args = splitArgs(m[2]);
+      if (args.length === 1 && args[0]) return { style: "py", kind: "for", name: m[1], from: "0", to: args[0], inclusive: false, rest: m[3] };
+      if (args.length === 2) return { style: "py", kind: "for", name: m[1], from: args[0], to: args[1], inclusive: false, rest: m[3] };
+      return { style: "py", kind: "for", name: m[1], bad: "range() attend un ou deux nombres : range(5) ou range(1, 6).", rest: m[3] };
+    }
     if ((m = /^if\s*(\(.*\))\s*\{\s*$/.exec(text))) return { style: "js", kind: "if", cond: m[1] };
     if ((m = /^\}\s*else\s+if\s*(\(.*\))\s*\{\s*$/.exec(text))) return { style: "js", kind: "elif", cond: m[1] };
     if (/^\}\s*else\s*\{\s*$/.test(text)) return { style: "js", kind: "else" };
@@ -195,7 +226,7 @@
     if ((m = /^si\s+(.+?)\s+alors\s*$/i.exec(text))) return { style: "fr", kind: "if", cond: m[1] };
     if ((m = /^sinon\s+si\s+(.+?)\s+alors\s*$/i.exec(text))) return { style: "fr", kind: "elif", cond: m[1] };
     if (/^sinon\s*:?\s*$/i.test(text)) return { style: "fr", kind: "else" };
-    if (/^fin\s*si\s*$/i.test(text)) return { style: "fr", kind: "end" };
+    if (/^fin\s*(si|tant\s*que|pour)\s*$/i.test(text)) return { style: "fr", kind: "end" };
     if ((m = /^if\s+(.+?)\s*:\s*(.*)$/.exec(text))) return { style: "py", kind: "if", cond: m[1], rest: m[2] };
     if ((m = /^elif\s+(.+?)\s*:\s*(.*)$/.exec(text))) return { style: "py", kind: "elif", cond: m[1], rest: m[2] };
     if ((m = /^else\s*:\s*(.*)$/.exec(text))) return { style: "py", kind: "else", rest: m[1] };
@@ -216,11 +247,11 @@
           return;
         }
         var cmp = /^[A-Za-z_]\w*\s*==/.exec(stmt);
-        var cond = /^(if|si|elif|else|sinon)\b/i.test(stmt);
+        var cond = /^(if|si|elif|else|sinon|while|for|tant|pour)\b/i.test(stmt);
         errors.push({
           line: n,
           msg: cmp ? "« == » compare deux valeurs ; pour donner une valeur à une variable, utilise un seul « = »."
-            : cond ? "condition mal écrite : en Python termine la ligne par « : », en JavaScript écris if (…) {, en pseudo-code si … alors."
+            : cond ? "ligne de bloc mal écrite : en Python termine par « : », en JavaScript écris if (…) { ou while (…) {, en pseudo-code si … alors / tant que … faire."
               : "instruction non reconnue : « " + stmt + " »"
         });
       });
@@ -232,12 +263,42 @@
       while (i < lines.length && !isStop(lines[i])) {
         var L = lines[i], h = classify(L.text);
         if (h && h.kind === "if") nodes.push(parseIf());
+        else if (h && (h.kind === "while" || h.kind === "for")) nodes.push(parseLoop());
         else if (h) {
           errors.push({ line: L.n, msg: h.kind === "end" ? "« " + L.text + " » ferme un bloc qui n'a jamais été ouvert." : "« " + L.text.split(/\s|:|\{/)[0] + " » sans « if / si » avant." });
           i++;
         } else { nodes.push.apply(nodes, simple(L.text, L.n)); i++; }
       }
       return nodes;
+    }
+
+    function isFrStop(x) {
+      var c = classify(x.text);
+      return !!c && c.style === "fr" && (c.kind === "else" || c.kind === "elif" || c.kind === "end");
+    }
+
+    function parseLoop() {
+      var hl = lines[i], h = classify(hl.text), style = h.style, indent0 = hl.indent, body, c;
+      i++;
+      if (style === "py") {
+        if (h.rest) body = simple(h.rest, hl.n);
+        else {
+          body = seq(function (x) { return x.indent <= indent0; });
+          if (!body.length) errors.push({ line: hl.n, msg: "le bloc est vide : écris au moins une instruction, indentée, sous cette ligne." });
+        }
+      } else if (style === "js") {
+        body = seq(function (x) { return x.text.charAt(0) === "}"; });
+        c = lines[i] ? classify(lines[i].text) : null;
+        if (c && c.style === "js" && c.kind === "end") i++;
+        else errors.push({ line: hl.n, msg: "accolade fermante « } » manquante pour cette boucle." });
+      } else {
+        body = seq(isFrStop);
+        c = lines[i] ? classify(lines[i].text) : null;
+        if (c && c.style === "fr" && c.kind === "end") i++;
+        else errors.push({ line: hl.n, msg: "« fin tant que » / « fin pour » manquant pour cette boucle." });
+      }
+      if (h.bad) { errors.push({ line: hl.n, msg: h.bad }); return { type: "noop" }; }
+      return { type: h.kind, line: hl.n, cond: h.cond, name: h.name, from: h.from, to: h.to, inclusive: h.inclusive, body: body };
     }
 
     function parseIf() {
@@ -256,7 +317,7 @@
         } else if (style === "js") {
           body = seq(function (x) { return x.text.charAt(0) === "}"; });
         } else {
-          body = seq(function (x) { var c = classify(x.text); return !!c && c.style === "fr" && c.kind !== "if"; });
+          body = seq(isFrStop);
         }
         if (inElse) node.other = body; else { cur.body = body; node.branches.push(cur); }
 
@@ -283,8 +344,39 @@
     return seq(function () { return false; });
   }
 
+  var MAX_LOOPS = 2000; // garde-fou : une boucle qui ne s'arrête jamais ne fige pas la page
+
+  function tick(tally, line) {
+    tally.loops++;
+    if (tally.loops > MAX_LOOPS) throw { limit: true, line: line };
+  }
+
   function exec(nodes, vars, errors, tally) {
     nodes.forEach(function (nd) {
+      if (nd.type === "noop") return;
+      if (nd.type === "while") {
+        for (;;) {
+          var go;
+          try { go = truthy(evalExpr(nd.cond, vars)); }
+          catch (e) { errors.push({ line: nd.line, msg: e.message }); return; }
+          if (!go) return;
+          tick(tally, nd.line);
+          exec(nd.body, vars, errors, tally);
+        }
+      }
+      if (nd.type === "for") {
+        var from, to;
+        try { from = evalExpr(nd.from, vars); to = evalExpr(nd.to, vars); }
+        catch (e) { errors.push({ line: nd.line, msg: e.message }); return; }
+        if (typeof from !== "number" || typeof to !== "number") { errors.push({ line: nd.line, msg: "les bornes d'une boucle for doivent être des nombres." }); return; }
+        var last = nd.inclusive ? to : to - 1;
+        for (var n = from; n <= last; n++) {
+          vars[nd.name] = n;
+          tick(tally, nd.line);
+          exec(nd.body, vars, errors, tally);
+        }
+        return;
+      }
       if (nd.type === "assign") {
         try {
           var val = evalExpr(nd.expr, vars);
@@ -309,10 +401,14 @@
 
   /** Exécute `code` et renvoie { vars, errors:[{line, msg}], statements }. */
   function run(code, env) {
-    var vars = Object.assign({}, env || {}), errors = [], tally = { count: 0 };
-    exec(parseProgram(logicalLines(code), errors), vars, errors, tally);
+    var vars = Object.assign({}, env || {}), errors = [], tally = { count: 0, loops: 0 };
+    try { exec(parseProgram(logicalLines(code), errors), vars, errors, tally); }
+    catch (e) {
+      if (!e || !e.limit) throw e;
+      errors.push({ line: e.line, msg: "plus de " + MAX_LOOPS + " tours de boucle : elle ne s'arrête jamais ? Vérifie que sa condition finit par devenir fausse." });
+    }
     errors.sort(function (a, b) { return a.line - b.line; });
-    return { vars: vars, errors: errors, statements: tally.count };
+    return { vars: vars, errors: errors, statements: tally.count, loops: tally.loops };
   }
 
   /* ======================================================================
