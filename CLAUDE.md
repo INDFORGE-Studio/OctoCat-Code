@@ -50,7 +50,7 @@ Statut : ✅ écrit · 🔶 écrit mais non vérifié · ⬜ à faire
 ### Étape 2 — Assets & intégration KAPLAY
 - ✅ Charte GitHub Dark, pixel art procédural : OctoCat (idle/run/success/fail), Glitch, portail fermé/ouvert, arbres, sol.
 - ✅ Canvas 600×250 responsive (`aspect-ratio`, `width:100%`) — testé à 375 px, pas de scroll horizontal.
-- ⬜ Itération artistique sur les sprites (rendu à valider à l'œil) ; décor « Forêt des Syntaxes » plus riche.
+- ✅ Itération artistique n°1 : OctoCat/Glitch/portail redessinés (tampon de pixels + contour), ciel nocturne, lune, forêt en plans, brume, lucioles, torches, panneau. Texte canvas sans accents (police KAPLAY par défaut).
 - ⬜ Option : remplacer le procédural par des PNG spritesheet (changer uniquement `sprites.js`).
 
 ### Étape 3 — Interprétation & évaluation
