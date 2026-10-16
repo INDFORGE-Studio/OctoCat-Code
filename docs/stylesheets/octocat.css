@@ -314,3 +314,57 @@ html:has(.octo-fs), body:has(.octo-fs) { overscroll-behavior: none; }
 .octo-fs { touch-action: manipulation; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
 .octo-fs canvas { touch-action: none; user-select: none; -webkit-user-select: none; }
 .octo-mute { min-width: 44px; min-height: 44px; } /* cible tactile minimale */
+
+/* Phase « trajet » : boutons tactiles (téléphones, tablettes) et bouton « Passer le trajet ». */
+.octo-pad { position: absolute; inset: 0; pointer-events: none; display: none; z-index: 4; }
+.octo-pad.is-on { display: block; }
+.octo-pad__side { position: absolute; bottom: max(14px, env(safe-area-inset-bottom)); display: flex; gap: 12px; align-items: flex-end; }
+.octo-pad__side--left { left: max(14px, env(safe-area-inset-left)); }
+.octo-pad__side--right { right: max(14px, env(safe-area-inset-right)); }
+.octo-pad__btn {
+  pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none;
+  width: 64px; height: 64px; border-radius: 12px;
+  border: 2px solid rgba(240, 246, 252, 0.55); background: rgba(13, 17, 23, 0.55); color: #f0f6fc;
+  font: 24px/1 var(--octo-pixel, monospace); display: grid; place-items: center; padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.octo-pad__btn--round { border-radius: 50%; width: 68px; height: 68px; }
+.octo-pad__btn--hot { border-color: rgba(248, 81, 73, 0.8); }
+.octo-pad__btn.is-down { background: rgba(88, 166, 255, 0.55); }
+.octo-pad__btn--up, .octo-pad__btn--down { width: 52px; height: 52px; font-size: 18px; }
+.octo-skip {
+  position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 6;
+  padding: 0.6em 1em; border: 2px solid var(--octo-border, #30363d); border-radius: 4px;
+  background: rgba(13, 17, 23, 0.9); color: #e6edf3; font: 0.7em/1.2 var(--octo-pixel, monospace); cursor: pointer;
+}
+.octo-skip:hover { border-color: var(--octo-green, #3fb950); }
+
+/* Sélecteur de niveaux (accueil). */
+.octo-picker { position: absolute; left: max(12px, env(safe-area-inset-left)); bottom: max(12px, env(safe-area-inset-bottom)); z-index: 5; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.octo-picker__toggle {
+  padding: 0.55em 0.9em; border: 2px solid var(--octo-border, #30363d); border-radius: 4px;
+  background: rgba(13, 17, 23, 0.82); color: #e6edf3; font: 0.7em/1.2 var(--octo-pixel, monospace); cursor: pointer; min-height: 44px;
+}
+.octo-picker__toggle:hover, .octo-picker.is-open .octo-picker__toggle { border-color: var(--octo-green, #3fb950); }
+.octo-picker__panel {
+  display: none; flex-direction: column; gap: 4px; max-height: 70vh; overflow: auto;
+  padding: 10px; border: 2px solid var(--octo-border, #30363d); border-radius: 6px; background: rgba(13, 17, 23, 0.94);
+}
+.octo-picker.is-open .octo-picker__panel { display: flex; }
+.octo-picker__head { color: #ffe08a; font: 0.62em/1.4 var(--octo-pixel, monospace); padding: 2px 4px 6px; }
+.octo-picker__row {
+  text-align: left; padding: 0.6em 0.8em; border: 1px solid transparent; border-radius: 4px; background: transparent; color: #e6edf3;
+  font: 0.7em/1.3 var(--octo-pixel, monospace); cursor: pointer; min-height: 40px; white-space: nowrap;
+}
+.octo-picker__row:hover:not(:disabled) { border-color: var(--octo-green, #3fb950); background: rgba(63, 185, 80, 0.12); }
+.octo-picker__row.is-done { color: #7ee787; }
+.octo-picker__row.is-locked { color: #6e7681; cursor: not-allowed; }
+
+/* Téléphone en portrait : invite à passer en paysage. */
+.octo-rotate { display: none; position: absolute; inset: 0; z-index: 20; background: #0d1117; color: #f0f6fc; text-align: center; flex-direction: column; align-items: center; justify-content: center; gap: 0.6em; padding: 24px; }
+.octo-rotate__icon { margin: 0; font-size: 4em; color: #ffe08a; animation: octo-spin 2.4s ease-in-out infinite; }
+.octo-rotate__text { margin: 0; font: 0.9em/1.4 var(--octo-pixel, monospace); }
+.octo-rotate__sub { margin: 0; color: #8b949e; font: 0.8em/1.4 system-ui, sans-serif; }
+@keyframes octo-spin { 0%, 20% { transform: rotate(0); } 70%, 100% { transform: rotate(-90deg); } }
+@media (orientation: portrait) and (max-width: 700px) and (pointer: coarse) { .octo-rotate { display: flex; } }
+@media (prefers-reduced-motion: reduce) { .octo-rotate__icon { animation: none; } }

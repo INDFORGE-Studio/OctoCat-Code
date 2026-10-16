@@ -13,6 +13,22 @@
     zone: 1,
     mood: 0.35, // musique : joyeuse, avec une légère alerte (un Glitch rôde) ; `combat: true` = musique épique
     title: "La Forêt des Syntaxes",
+    run: {
+      mode: "platform", theme: "forest", abilities: {},
+      course: [
+        { t: "flat", n: 10, bits: [6, 7, 8] },
+        { t: "flat", n: 8, en: [5], bits: [2, 3] },
+        { t: "gap", n: 2 },
+        { t: "flat", n: 8, bits: [3, 4, 5], cp: 1 },
+        { t: "up", n: 1 }, { t: "flat", n: 7, en: [3, 5] },
+        { t: "down", n: 1 }, { t: "gap", n: 2 },
+        { t: "flat", n: 9, en: [4], bits: [1, 2, 6, 7] },
+        { t: "up", n: 2 }, { t: "flat", n: 5, bits: [1, 2, 3] },
+        { t: "down", n: 2 }, { t: "gap", n: 2 },
+        { t: "flat", n: 7, en: [3] },
+        { t: "end", n: 9 }
+      ]
+    },
     alt: "Une forêt nocturne : l'OctoCat à gauche, un Glitch au centre et un portail verrouillé à droite.",
 
     starter:

@@ -22,14 +22,26 @@ mkdocs build --strict && python tools/postbuild.py site
 
 | Chemin | Rôle |
 |---|---|
-| `mkdocs.yml` | Configuration MkDocs, CDN KAPLAY, scripts de niveau |
-| `docs/index.md`, `docs/niveau-N.md` | Hub et niveaux (cours + composant de jeu) |
+| `mkdocs.yml` | Configuration MkDocs, scripts du jeu (ordre significatif) |
+| `docs/index.md` | Page unique : le jeu plein écran |
 | `docs/javascripts/progress.js` | Persistance `localStorage`, verrous de niveau, succès |
 | `docs/javascripts/engine.js` | `window.gameEngine` : composant canvas/éditeur, interpréteur, validateurs |
 | `docs/javascripts/sprites.js`, `scenery.js` | Pixel art procédural (palette GitHub Dark) et décor partagé |
-| `docs/javascripts/hub.js` | Scène d'accueil jouable |
+| `docs/javascripts/hub.js` | Scène d'accueil jouable et sélecteur de niveaux |
+| `docs/javascripts/playsim.js`, `play.js`, `sprites-run.js` | Trajets au clavier entre les énigmes (plateformes et beat'em up) : simulation pure, rendu, tactile |
+| `docs/javascripts/puzzle.js` | Validation d'énigme sur plusieurs cas et scène d'énigme standard |
+| `docs/javascripts/music.js`, `fx.js`, `pwa.js`, `docs/sw.js` | Musique et sons synthétisés, post-traitement optionnel, cache hors ligne |
 | `tools/postbuild.py` | Garde post-build : site auto-contenu et budget de taille (GitHub Pages ≤ 1 Go) |
-| `docs/javascripts/levelN.js` | Énigme et scène d'un niveau |
+| `docs/javascripts/level1.js` … `level10.js` | Un niveau : trajet, briefing, énigme, validation, scène |
+
+## Les 10 niveaux
+
+Chaque niveau se joue en deux temps : un **trajet** au clavier (flèches ou WASD/ZQSD, Espace pour sauter, X pour frapper, C pour le shuriken ; boutons à l'écran sur mobile), mêlant plateformes à la Mario, fouet à la Castlevania, ninja à la Shinobi et beat'em up à la Double Dragon, puis une **énigme de code** à résoudre pour ouvrir le portail vers le niveau suivant : variables, texte, calculs, logique, conditions, boucles `for` et `while` (boss final).
+
+```bash
+npm install && npm run check     # lint, tests (dont un bot qui termine les 10 parcours), build strict
+node dev/run-check.mjs           # rejoue le vrai jeu dans Chromium : trajet, énigme ratée, énigme résolue, niveau suivant
+```
 
 Voir [`CLAUDE.md`](CLAUDE.md) pour le backlog et les consignes de travail du Lead Projet.
 

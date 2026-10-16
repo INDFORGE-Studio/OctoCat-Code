@@ -65,6 +65,7 @@
       if ((m = /^("([^"\\]|\\.)*"|'([^'\\]|\\.)*')/.exec(rest))) {
         tokens.push({ t: "str", v: m[0].slice(1, -1) }); i += m[0].length; continue;
       }
+      if ((m = /^(===|!==)/.exec(rest))) { tokens.push({ t: "op", v: m[0].slice(0, 2) }); i += 3; continue; } // comme en JavaScript
       if ((m = /^(==|!=|<=|>=|&&|\|\|)/.exec(rest))) { tokens.push({ t: "op", v: m[0] }); i += 2; continue; }
       if ("+-*/%()<>!".indexOf(rest[0]) >= 0) { tokens.push({ t: "op", v: rest[0] }); i++; continue; }
       if (rest[0] === "=") throw new Error("« = » donne une valeur à une variable ; pour comparer deux valeurs, utilise « == ».");
@@ -643,6 +644,12 @@
     canvas.setAttribute("aria-label", "OctoCat-Code : un jeu d'aventure pour apprendre à programmer");
     var stage = el("div", "octo-stage");
     stage.appendChild(canvas); host.appendChild(stage);
+    // téléphone en portrait : le jeu se joue en paysage
+    var rotate = el("div", "octo-rotate");
+    rotate.appendChild(el("p", "octo-rotate__icon", "↻"));
+    rotate.appendChild(el("p", "octo-rotate__text", "TOURNE TON APPAREIL"));
+    rotate.appendChild(el("p", "octo-rotate__sub", "Le jeu se joue en mode paysage."));
+    host.appendChild(rotate);
 
     // Hauteur logique selon le format de la fenêtre : le monde (600 de large) tient toujours en entier.
     var dpr = window.devicePixelRatio || 1;
@@ -657,6 +664,7 @@
     });
     canvas.style.width = "100%"; canvas.style.height = "100%";
     window.OctoSprites.registerAll(k);
+    if (window.OctoSprites.registerRun) window.OctoSprites.registerRun(k);
     var applyFx = window.OctoFX ? window.OctoFX.install(k) : function () {}; // post-traitement (halo, étalonnage)
     var helpers = {
       wait: function (s) { return wait(k, s); },
@@ -675,14 +683,18 @@
     document.addEventListener("keydown", unlockAudio);
 
     var P = window.OctoProgress, cur = { name: null, def: null, ctrl: null }, busy = false;
+    if (/[?&]unlock=all\b/.test(window.location.search)) P.unlockAll();
 
     function nextName(id) { return levels[id + 1] ? "level" + (id + 1) : "hub"; }
 
-    function goTo(name) {
-      if (/^level\d+$/.test(name) && !P.isUnlocked(parseInt(name.slice(5), 10))) name = "hub";
+    /** Navigation : "hub", "levelN" (trajet puis énigme ; opts.skip = directement l'énigme). */
+    function goTo(name, opts) {
+      var m = /^level(\d+)$/.exec(name), target = name;
+      if (m && !P.isUnlocked(parseInt(m[1], 10))) { name = "hub"; target = "hub"; m = null; }
+      else if (m && levels[m[1]] && levels[m[1]].run && !(opts && opts.skip)) target = "run" + m[1];
       busy = false;
       try { window.history.replaceState(null, "", name === "hub" ? window.location.pathname : "#" + name); } catch { /* ignoré */ }
-      k.go(name);
+      k.go(target);
     }
 
     var ui = createUI(host, {
@@ -719,7 +731,21 @@
       }
     });
 
+    function leave() { if (cur.ctrl && cur.ctrl.destroy) cur.ctrl.destroy(); cur.ctrl = null; }
+
+    /** Trajet au clavier (plateformes / beat'em up) avant l'énigme du niveau. */
+    function enterRun(def) {
+      leave();
+      cur.name = "run" + def.id; cur.def = null;
+      ui.hide();
+      music().setMood(0); music().setBattle(false);
+      applyFx();
+      cur.ctrl = window.OctoPlay.createRun(k, helpers, def, { finish: function () { goTo("level" + def.id, { skip: true }); } });
+      canvas.focus();
+    }
+
     function enter(name, def, isLevel) {
+      leave();
       cur.name = name; cur.def = def; cur.ctrl = null;
       music().setMood(isLevel && def.mood != null ? def.mood : 0);
       music().setBattle(isLevel && !!def.combat); // combat : musique épique, seulement pour les niveaux qui le demandent
@@ -730,12 +756,15 @@
     }
 
     Object.keys(scenes).forEach(function (name) { k.scene(name, function () { enter(name, scenes[name], false); }); });
-    Object.keys(levels).forEach(function (id) { k.scene("level" + id, function () { enter("level" + id, levels[id], true); }); });
+    Object.keys(levels).forEach(function (id) {
+      k.scene("level" + id, function () { enter("level" + id, levels[id], true); });
+      if (levels[id].run && window.OctoPlay) k.scene("run" + id, function () { enterRun(levels[id]); });
+    });
 
     // Reprise : #levelN rouvre le niveau (s'il est débloqué), sinon on démarre au menu.
     var start = /^#level\d+$/.test(window.location.hash) ? window.location.hash.slice(1) : "hub";
     if (/^level\d+$/.test(start) && !(levels[start.slice(5)] && P.isUnlocked(parseInt(start.slice(5), 10)))) start = "hub";
-    k.onLoad(function () { k.go(start); });
+    k.onLoad(function () { goTo(start); });
 
     // Le format de la fenêtre a changé : on recompose la vue.
     var timer = null;

@@ -137,6 +137,40 @@
     s.start(t, rnd() * 0.5); s.stop(t + dur + 0.02);
   }
 
+  /** Glissando d'un oscillateur (effets sonores). */
+  function sweep(type, f0, f1, t, dur, vol) {
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.03);
+  }
+
+  var lastSfx = {};
+  /** Effets sonores de jeu, synthétisés (aucun fichier) : jump, djump, land, bit, heart, hit, kill, stomp, hurt, swing, throw, checkpoint, finish. */
+  function playSfx(name) {
+    if (!running || !ctx) return;
+    var t = ctx.currentTime;
+    if (lastSfx[name] && t - lastSfx[name] < 0.04) return; // évite les rafales
+    lastSfx[name] = t;
+    switch (name) {
+      case "jump": sweep("square", 240, 560, t, 0.14, 0.07); break;
+      case "djump": sweep("square", 360, 820, t, 0.14, 0.07); break;
+      case "land": noise(t, 0.05, 0.05, "lowpass", 600, drumBus); break;
+      case "bit": tone("triangle", 988, t, 0.09, 0.09, master, 0.003); tone("triangle", 1319, t + 0.07, 0.16, 0.09, master, 0.003); break;
+      case "heart": [523, 659, 784].forEach(function (f, i) { tone("triangle", f, t + i * 0.07, 0.2, 0.09, master, 0.004); }); break;
+      case "swing": noise(t, 0.09, 0.07, "bandpass", 2600, drumBus); break;
+      case "hit": noise(t, 0.08, 0.12, "bandpass", 1400, drumBus); sweep("square", 220, 110, t, 0.09, 0.06); break;
+      case "kill": sweep("sawtooth", 400, 90, t, 0.22, 0.08); noise(t, 0.14, 0.09, "lowpass", 1800, drumBus); break;
+      case "stomp": sweep("square", 300, 120, t, 0.12, 0.09); break;
+      case "hurt": sweep("sawtooth", 200, 70, t, 0.28, 0.12); break;
+      case "throw": sweep("triangle", 1000, 500, t, 0.12, 0.07); break;
+      case "checkpoint": [392, 523, 659].forEach(function (f, i) { tone("triangle", f, t + i * 0.09, 0.3, 0.09, arpBus, 0.004); }); break;
+      case "finish": [523, 659, 784, 1047].forEach(function (f, i) { tone("triangle", f, t + i * 0.08, 0.5, 0.1, arpBus, 0.004); }); break;
+      default: break;
+    }
+  }
+
   function kick(t, vol, deep) {
     var o = ctx.createOscillator(), g = ctx.createGain();
     o.frequency.setValueAtTime(deep ? 150 : 110, t); o.frequency.exponentialRampToValueAtTime(deep ? 40 : 52, t + (deep ? 0.13 : 0.1));
@@ -321,6 +355,7 @@
       if (muted) halt(); else begin();
       return muted;
     },
+    sfx: playSfx,
     isMuted: function () { return muted; },
     isRunning: function () { return running; },
     /** Volume 0..1, mémorisé ; s'applique immédiatement. */

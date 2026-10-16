@@ -94,7 +94,31 @@
       k.onKeyPress("enter", enter);
       k.onKeyPress("space", enter);
 
-      return { reset: function () {} };
+      // sélecteur de niveaux : rejouer un niveau terminé ou reprendre là où l'on s'est arrêté
+      var state2 = P.get(), picker = document.createElement("div"), panel = document.createElement("div"), open = false;
+      picker.className = "octo-picker";
+      var toggle = document.createElement("button");
+      toggle.type = "button"; toggle.className = "octo-picker__toggle"; toggle.textContent = "▦ NIVEAUX";
+      toggle.setAttribute("aria-label", "Choisir un niveau");
+      panel.className = "octo-picker__panel";
+      var head = document.createElement("div");
+      head.className = "octo-picker__head"; head.textContent = "CHOISIS UN NIVEAU";
+      panel.appendChild(head);
+      P.levels.forEach(function (lv) {
+        var row = document.createElement("button");
+        row.type = "button";
+        var locked = lv.id > state2.unlocked, done = !!state2.completed[lv.id];
+        row.className = "octo-picker__row" + (locked ? " is-locked" : "") + (done ? " is-done" : "");
+        row.disabled = locked;
+        row.textContent = lv.id + "  " + lv.title + (done ? "  ✓" : locked ? "  🔒" : "");
+        row.addEventListener("click", function () { ctx.go("level" + lv.id); });
+        panel.appendChild(row);
+      });
+      toggle.addEventListener("click", function () { open = !open; picker.classList.toggle("is-open", open); });
+      picker.appendChild(panel); picker.appendChild(toggle);
+      ctx.host.appendChild(picker);
+
+      return { reset: function () {}, destroy: function () { picker.remove(); } };
     }
   });
 })();

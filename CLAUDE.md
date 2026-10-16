@@ -41,7 +41,7 @@ tools/postbuild.py          # garde post-build : site auto-contenu + budget de t
 .github/workflows/deploy.yml # build strict + garde sur chaque push, déploiement Pages depuis main
 ```
 
-Contrat d'un niveau : `validate(code, engine) → { ok, messages[], data }` et `scene(k, h) → { success(result), fail(result), reset() }`
+Contrat d'un niveau : `run` (parcours au clavier, voir §17), `validate(code, engine) → { ok, messages[], data }` et `scene(k, h, ctx) → { success(result), fail(result), reset() }`
 (les deux animations renvoient une `Promise`). Ajouter un niveau = un `.md` + un `levelN.js` + une entrée dans `OctoProgress.levels`, `nav` et `extra_javascript`. **Ne pas modifier le moteur pour un besoin propre à un seul niveau.**
 
 ## 4. Backlog (aligné sur le cahier des charges)
@@ -178,3 +178,26 @@ Toujours penser à toutes les plateformes. Déjà en place :
 ## 16. Interpréteur : ce qu'il sait faire
 
 Affectations (`=`, `+=`, `-=`, `*=`, `/=`, `let/const/var`), nombres, chaînes, booléens (`true/false/True/False/vrai/faux`), `+ - * / %`, comparaisons (`== != < > <= >=`, chaînées comme en Python), `and/or/not`, `&&/||/!`, `et/ou/non`, parenthèses, conditions `if / elif / else` et boucles `while` / `for i in range(…)` / `for (let i = 0; i < n; i++)` / `tant que … faire` / `pour i de a a b faire` (3 écritures, imbrication possible, 2000 tours max). Pas encore : fonctions, tableaux (zones 2/3). Toujours un parseur à liste blanche : jamais d'`eval`.
+
+## 17. Parcours : 10 niveaux, trajet au clavier puis énigme
+
+Chaque niveau = **trajet** (phase d'action, scène `run<N>`) → arrivée au terminal → **énigme de code** (scène `level<N>` : briefing, éditeur, portail). Résoudre l'énigme ouvre le portail vers le niveau suivant.
+
+| N | Niveau | Notion | Trajet |
+|---|---|---|---|
+| 1 | La Forêt des Syntaxes | variable numérique | Mario (plateformes, écrasement) |
+| 2 | Le Village des Chaînes | textes, `+` | Double Dragon (beat'em up) |
+| 3 | La Mine des Opérations | `+ - * / %` | Castlevania (fouet, bougies, chauves-souris, pics) |
+| 4 | Le Dojo des Torches | `and / or / not` | Shinobi (double saut, shuriken) |
+| 5 | Le Pont des Booléens | `if / else` | Mario |
+| 6 | Le Marché des Cristaux | `if / elif / else` | Double Dragon |
+| 7 | La Forge des Répétitions | `for` | Castlevania |
+| 8 | Le Temple des Cumuls | boucle + accumulateur | Shinobi |
+| 9 | Le Tri des Glitches | boucle + `if` + `%` | fouet + shuriken |
+| 10 | L'Arène du Glitch Gardien | `while` (boss, musique de combat) | Double Dragon, vagues épiques |
+
+- `docs/javascripts/playsim.js` : simulation **pure** (testée sous Node) — plateformes (`buildCourse` : langage de segments `flat/gap/up/down/float/end`), beat'em up (`createBrawl` : vagues qui verrouillent l'écran), et deux « bots ». `play.js` : rendu KAPLAY, clavier (flèches / WASD = ZQSD, Espace, X, C), boutons tactiles, effets, caméra, musique (tension près des ennemis, combat pendant les vagues) et sons (`OctoMusic.sfx`, synthétisés). `puzzle.js` : validation « sur plusieurs cas » + scène d'énigme standard. Sprites du trajet : `sprites-run.js`.
+- Ajouter un niveau : un `levelN.js` (`run`, `starter`, `briefing`, `hints`, `validate` via `OctoPuzzle.validateCases`, `scene: OctoPuzzle.scene({...})`), une entrée dans `OctoProgress.levels` et dans `extra_javascript`. Les tests (`levels`, `sim`) l'attrapent s'il est incomplet ou infaisable.
+- Garde-fous : `npm test` fait jouer chaque parcours par un bot (doit se terminer) et vérifie que le double saut est indispensable aux niveaux 4 et 8 ; `node dev/run-check.mjs [niveaux]` rejoue le vrai jeu dans Chromium avec le bot jusqu'à l'ouverture de l'énigme.
+- Accessibilité : après 3 chutes / 2 K.O., un bouton « Passer le trajet » apparaît. Tactile : boutons à l'écran (détection `pointer: coarse` ou premier toucher). `?unlock=all` déverrouille tous les niveaux (démonstration). Sélecteur de niveaux sur l'accueil.
+- Réglages de la physique dans `OctoSim.CFG` (saut max ≈ 80 px, portée ≈ 90 px) : les parcours respectent ces limites (vides ≤ 2 colonnes, ≤ 3 avec double saut ; marches ≤ 2 tuiles, ≤ 3 avec double saut).
