@@ -11,6 +11,7 @@
   window.gameEngine.registerLevel({
     id: 1,
     zone: 1,
+    mood: 0.6, // musique : le Glitch rend l'ambiance hostile
     title: "La Forêt des Syntaxes",
     alt: "Une forêt nocturne : l'OctoCat à gauche, un Glitch au centre et un portail verrouillé à droite.",
 
