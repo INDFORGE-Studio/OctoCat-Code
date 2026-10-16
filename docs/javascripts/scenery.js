@@ -18,7 +18,10 @@
     // Vue : hauteur fixe, largeur selon l'écran. Le bas de la vue reste aligné sur le bas du monde (y = 250) ;
     // si la vue est plus étroite que le monde (600), la caméra suit la cible, sinon elle se centre.
     var VW = k.width(), VH = k.height(), WORLD_W = 600, camTarget = null;
-    k.camPos(VW > WORLD_W ? WORLD_W / 2 : VW / 2, 250 - VH / 2);
+    // opts.reserve : part basse de l'écran laissée à l'interface (éditeur de code) ; le monde remonte d'autant
+    var reserve = opts.reserve || 0;
+    k.camPos(VW > WORLD_W ? WORLD_W / 2 : VW / 2, 250 + VH * reserve - VH / 2);
+    k.add([k.rect(3600, 900), k.pos(-1500, 250), k.color(rgb("#150e24")), k.z(4.5)]);   // sous le monde
 
     // ---------- ciel, nuages qui dérivent, canyon + cité ----------
     k.add([k.rect(3600, 700), k.pos(-1500, -640), k.color(rgb("#3a47b4")), k.z(-1)]);   // ciel au-dessus du décor

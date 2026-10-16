@@ -26,10 +26,7 @@ theme:
   # NB : ne pas activer `navigation.instant` — chaque niveau instancie son propre canvas KAPLAY.
 
 nav:
-  - Accueil: index.md
-  - "Zone 1 · Logique pure":
-      - "Niveau 1 · La Forêt des Syntaxes": niveau-1.md
-      - "Niveau 2 · Le Pont des Booléens": niveau-2.md
+  - Jeu: index.md
 
 markdown_extensions:
   - admonition

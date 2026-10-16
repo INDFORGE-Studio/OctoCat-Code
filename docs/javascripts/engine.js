@@ -1,15 +1,17 @@
-/* OctoCat-Code — Moteur de jeu : passerelle MkDocs ⇄ KAPLAY + sandbox de validation.
+/* OctoCat-Code — Moteur de jeu : une seule page, un canvas KAPLAY plein écran, des scènes.
  *
  * API publique : window.gameEngine
- *   registerLevel(def)      déclare un niveau (voir level1.js)
- *   mount()                 monte les <div class="octo-game" data-level="N"> de la page
- *   on(event, cb)           'compile' | 'success' | 'fail' | 'hint'
- *   interpreter.run(code)   mini-interpréteur sécurisé (aucun eval)
- *   validators.*            regex / qcm / keywords / assignment
+ *   registerScene(name, def)  scène autonome (le menu) : def.scene(k, h, ctx) -> { reset() }
+ *   registerLevel(def)        niveau jouable (voir level1.js)
+ *   on(event, cb)             'compile' | 'success' | 'fail' | 'hint'
+ *   interpreter.run(code)     mini-interpréteur sécurisé (aucun eval)
+ *   validators.*              regex / qcm / keywords / assignment
  *
  * Contrat d'un niveau :
- *   { id, title, starter, hints[], validate(code, engine) -> {ok, messages[], data},
- *     scene(k, h) -> { success(result): Promise, fail(result): Promise, reset() } }
+ *   { id, title, zone, starter, hints[], briefing{ title, lore, lesson, examples, tips[], goal },
+ *     validate(code, engine) -> {ok, messages[], data},
+ *     scene(k, h, ctx) -> { success(result): Promise, fail(result): Promise, reset() } }
+ * ctx = { go(sceneName), reserve (part basse de l'écran laissée à l'éditeur) }.
  */
 (function () {
   "use strict";
@@ -175,7 +177,8 @@
   };
 
   /* ======================================================================
-   * 3. Moteur : composant canvas + éditeur + passerelle KAPLAY
+   * 3. Moteur : une seule page, un seul canvas plein écran, plusieurs scènes
+   *    (hub + niveaux) et une interface de jeu en surimpression (briefing, éditeur, console).
    * ==================================================================== */
 
   var levels = {};
@@ -208,174 +211,95 @@
     });
   }
 
-  /** Initialise KAPLAY sur `canvas` et construit la scène `sceneFn(k, helpers)`. Renvoie null sans KAPLAY. */
-  function startKaplay(host, canvas, sceneFn, full) {
-    if (typeof window.kaplay !== "function") return null;
-    var W = 600, H = 250, dpr = window.devicePixelRatio || 1, density = Math.min(dpr, 2);
-    if (full) { // plein écran : hauteur logique fixe, largeur selon le format de la fenêtre
-      // le monde fait 600 de large : on le fait tenir en entier (plus de ciel au-dessus sur les écrans plus hauts)
-      var aspect = window.innerWidth / window.innerHeight;
-      H = Math.round(Math.min(360, Math.max(250, 600 / aspect)));
-      W = Math.max(200, Math.round(H * aspect));
-      density = Math.min(6, Math.max(1, window.innerHeight * dpr / H)); // ~1 pixel logique = n pixels écran entiers
-    }
-    var k = window.kaplay({
-      canvas: canvas, width: W, height: H, global: false,
-      background: [13, 17, 23], crisp: true, texFilter: "nearest",
-      focus: false, debug: false, touchToMouse: false,
-      pixelDensity: density
-    });
-    // Mode cadre : le ratio 600×250 est conservé par le CSS ; plein écran : le CSS remplit la fenêtre.
-    canvas.style.width = "100%"; canvas.style.height = full ? "100%" : "auto";
-    canvas.style.touchAction = "pan-y";
-    window.OctoSprites.registerAll(k);
-    var helpers = {
-      wait: function (s) { return wait(k, s); },
-      tween: function (d, fn, e) { return tween(k, d, fn, e); },
-      palette: window.OctoSprites.palette
-    };
-    var ctrl = null, ready = false;
-    k.scene("level", function () { ctrl = sceneFn(k, helpers); ready = true; });
-    k.onLoad(function () { k.go("level"); });
-    host.__kaplay = k;
-    return { k: k, ready: function () { return ready; }, ctrl: function () { return ctrl; } };
-  }
+  /* ---------- Interface de jeu (HTML en surimpression du canvas) ---------- */
 
-  /** Scène autonome (page d'accueil) : un canvas, pas d'éditeur. */
-  function mountScene(host) {
-    var name = host.getAttribute("data-scene");
-    var def = scenes[name];
-    if (!def) { host.textContent = "Scène « " + name + " » introuvable."; return; }
-    if (host.__octo) return;
-    host.__octo = true;
-    host.classList.add("octo-hero");
-    host.innerHTML = "";
-    var stage = el("div", "octo-stage");
-    var canvas = el("canvas", "octo-canvas");
-    canvas.setAttribute("role", "img");
-    canvas.setAttribute("aria-label", def.alt || ("Scène " + name));
-    stage.appendChild(canvas);
-    host.appendChild(stage);
-    var handle = startKaplay(host, canvas, function (k, h) {
-      return def.scene(k, h, {
-        go: function (url) { window.location.href = new URL(url, window.location.href).href; },
-        host: host
-      });
-    }, host.hasAttribute("data-fullscreen"));
-    if (host.hasAttribute("data-fullscreen")) { // le format de la fenêtre a changé : on recompose la vue
-      var ratio = window.innerWidth / window.innerHeight, timer = null;
-      window.addEventListener("resize", function () {
-        window.clearTimeout(timer);
-        timer = window.setTimeout(function () {
-          if (Math.abs(window.innerWidth / window.innerHeight / ratio - 1) > 0.06) window.location.reload();
-        }, 400);
-      });
-    }
-    if (!handle) host.appendChild(el("p", "octo-hero__error", "La scène animée n'a pas pu être chargée."));
-    mounted.push(host);
-  }
-
-  function mountGame(host) {
-    var id = parseInt(host.getAttribute("data-level"), 10);
-    var def = levels[id];
-    if (!def) { host.textContent = "Niveau " + id + " introuvable."; return; }
-    if (host.__octo) return;
-    host.__octo = true;
-
-    var next = host.getAttribute("data-next");
-    var P = window.OctoProgress;
-
-    // --- DOM (composant réutilisable) ---
-    host.classList.add("octo-frame");
-    host.innerHTML = "";
-    var bar = el("div", "octo-titlebar");
-    bar.appendChild(el("span", "octo-titlebar__name", "🐙 Niveau " + id + " — " + def.title));
-    bar.appendChild(el("span", "octo-titlebar__tag", "Zone " + (def.zone || 1)));
-    var stage = el("div", "octo-stage");
-    var canvas = el("canvas", "octo-canvas");
-    canvas.setAttribute("role", "img");
-    canvas.setAttribute("aria-label", def.alt || ("Scène du niveau " + id));
-    stage.appendChild(canvas);
+  function createUI(host, hooks) {
+    var root = el("div", "octo-ui");
+    // --- fenêtre de briefing / dialogue ---
+    var dialog = el("div", "octo-dialog"), card = el("div", "octo-dialog__card");
+    dialog.appendChild(card);
+    // --- panneau de code ---
+    var panel = el("div", "octo-panel");
+    var bar = el("div", "octo-panel__bar"), title = el("span", "octo-panel__title"), goal = el("span", "octo-panel__goal");
+    bar.appendChild(title); bar.appendChild(goal);
     var editor = el("textarea", "octo-editor");
     editor.spellcheck = false;
     editor.setAttribute("autocapitalize", "off");
     editor.setAttribute("aria-label", "Éditeur de code");
-    editor.value = def.starter;
-    editor.rows = Math.max(4, def.starter.split("\n").length + 1);
     var actions = el("div", "octo-actions");
     var bCompile = el("button", "octo-btn octo-btn--primary", "⚡ Compiler");
     var bReset = el("button", "octo-btn", "↺ Réinitialiser");
     var bHint = el("button", "octo-btn", "💡 Indice");
-    [bCompile, bReset, bHint].forEach(function (b) { b.type = "button"; actions.appendChild(b); });
+    var bBrief = el("button", "octo-btn", "📜 Briefing");
+    var bMenu = el("button", "octo-btn octo-btn--right", "⌂ Menu");
+    [bCompile, bReset, bHint, bBrief, bMenu].forEach(function (b) { b.type = "button"; actions.appendChild(b); });
     var konsole = el("pre", "octo-console");
     konsole.setAttribute("aria-live", "polite");
-    host.appendChild(bar); host.appendChild(stage); host.appendChild(editor);
-    host.appendChild(actions); host.appendChild(konsole);
+    panel.appendChild(bar); panel.appendChild(editor); panel.appendChild(actions); panel.appendChild(konsole);
+    root.appendChild(dialog); root.appendChild(panel);
+    host.appendChild(root);
+
+    var hintIdx = 0, def = null;
 
     function log(text, kind) {
-      var line = el("div", "octo-console__line" + (kind ? " octo-console__line--" + kind : ""), text);
-      konsole.appendChild(line);
+      konsole.appendChild(el("div", "octo-console__line" + (kind ? " octo-console__line--" + kind : ""), text));
       konsole.scrollTop = konsole.scrollHeight;
     }
-    log("// Écris ta solution puis clique sur « Compiler » (Ctrl+Entrée).", "dim");
 
-    // --- KAPLAY ---
-    var busy = false, hintIdx = 0;
-    var stageHandle = startKaplay(host, canvas, def.scene);
-    if (!stageHandle) log("✗ KAPLAY n'a pas pu être chargé. La scène est indisponible.", "err");
-    // `ctrl` / `ready` sont lus à chaque clic : la scène démarre après le chargement des sprites.
-    function ctrlOf() { return stageHandle && stageHandle.ready() ? stageHandle.ctrl() : null; }
+    function show(node, on) { node.classList.toggle("is-open", !!on); }
 
-    function setBusy(b) { busy = b; bCompile.disabled = b; bReset.disabled = b; }
-
-    function compile() {
-      if (busy) return;
-      emit("compile", { level: id });
-      konsole.innerHTML = "";
-      log("$ octo-compile niveau-" + id, "dim");
-      var result;
-      try { result = def.validate(editor.value, api); }
-      catch (e) { result = { ok: false, messages: ["Erreur interne du validateur : " + e.message] }; }
-
-      (result.messages || []).forEach(function (m) { log(m, result.ok ? "ok" : "err"); });
-      setBusy(true);
-      if (result.ok) {
-        var gained = P.complete(id);
-        log("✔ Compilation réussie.", "ok");
-        gained.forEach(function (key) { log("🏆 Succès débloqué : " + P.achievements[key].title, "gold"); });
-        emit("success", { level: id, result: result });
-        var anim = ctrlOf() ? ctrlOf().success(result) : Promise.resolve();
-        anim.then(function () {
-          if (next) {
-            log("→ Ouverture du portail vers le niveau suivant…", "dim");
-            window.setTimeout(function () { window.location.href = new URL(next, window.location.href).href; }, 400);
-          } else {
-            log("★ Chapitre terminé !", "gold");
-            setBusy(false);
-          }
+    function openBriefing(then) {
+      var b = def.briefing || {};
+      card.textContent = "";
+      card.appendChild(el("h2", "octo-dialog__title", b.title || def.title));
+      if (b.lore) card.appendChild(el("p", "octo-dialog__lore", b.lore));
+      if (b.lesson) card.appendChild(el("p", "octo-dialog__text", b.lesson));
+      if (b.examples) {
+        var tabs = el("div", "octo-tabs"), code = el("pre", "octo-dialog__code");
+        Object.keys(b.examples).forEach(function (name, i) {
+          var t = el("button", "octo-tab" + (i === 0 ? " is-on" : ""), name);
+          t.type = "button";
+          t.addEventListener("click", function () {
+            Array.prototype.forEach.call(tabs.children, function (x) { x.classList.remove("is-on"); });
+            t.classList.add("is-on"); code.textContent = b.examples[name];
+            if (name === "Python" || name === "JavaScript") window.OctoProgress.setLanguage(name);
+          });
+          tabs.appendChild(t);
+          if (i === 0) code.textContent = b.examples[name];
         });
-      } else {
-        P.recordFail(id);
-        log("✗ Compilation échouée.", "err");
-        emit("fail", { level: id, result: result });
-        var f = ctrlOf() ? ctrlOf().fail(result) : Promise.resolve();
-        f.then(function () { setBusy(false); });
+        card.appendChild(tabs); card.appendChild(code);
       }
+      (b.tips || []).forEach(function (t) { card.appendChild(el("p", "octo-dialog__tip", "▸ " + t)); });
+      if (b.goal) card.appendChild(el("p", "octo-dialog__goal", "OBJECTIF : " + b.goal));
+      var go = el("button", "octo-btn octo-btn--primary", def.comingSoon ? "◂ RETOUR AU MENU" : "COMMENCER ▶");
+      go.type = "button";
+      go.addEventListener("click", function () {
+        show(dialog, false);
+        if (def.comingSoon) hooks.menu(); else { show(panel, true); editor.focus(); }
+        if (then) then();
+      });
+      card.appendChild(go);
+      show(dialog, true);
+      go.focus();
     }
 
-    bCompile.addEventListener("click", compile);
+    function setBusy(b) { bCompile.disabled = b; bReset.disabled = b; }
+
+    bCompile.addEventListener("click", function () { hooks.compile(); });
+    bMenu.addEventListener("click", function () { hooks.menu(); });
     bReset.addEventListener("click", function () {
-      editor.value = def.starter; konsole.innerHTML = "";
+      editor.value = def.starter; konsole.textContent = "";
       log("// Code réinitialisé.", "dim");
-      if (ctrlOf() && ctrlOf().reset) ctrlOf().reset();
+      hooks.reset();
     });
+    bBrief.addEventListener("click", function () { show(panel, false); openBriefing(function () { show(panel, true); }); });
     bHint.addEventListener("click", function () {
       var hints = def.hints || [];
       if (!hints.length) return;
       log("💡 Indice " + (hintIdx % hints.length + 1) + "/" + hints.length + " : " + hints[hintIdx % hints.length], "hint");
       hintIdx++;
-      P.grant("curious");
-      emit("hint", { level: id });
+      window.OctoProgress.grant("curious");
+      emit("hint", { level: def.id });
     });
     editor.addEventListener("keydown", function (e) {
       if (e.key === "Tab" && !e.shiftKey) { // indentation plutôt que perte de focus
@@ -384,23 +308,152 @@
         editor.value = editor.value.slice(0, s) + "  " + editor.value.slice(t);
         editor.selectionStart = editor.selectionEnd = s + 2;
       } else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault(); compile();
+        e.preventDefault(); hooks.compile();
       }
     });
 
-    mounted.push(host);
+    return {
+      log: log, setBusy: setBusy,
+      clearLog: function () { konsole.textContent = ""; },
+      code: function () { return editor.value; },
+      /** Hub : aucune interface. */
+      hide: function () { show(dialog, false); show(panel, false); def = null; },
+      /** Niveau : briefing d'abord, puis éditeur. */
+      showLevel: function (d) {
+        def = d; hintIdx = 0;
+        title.textContent = "NIVEAU " + d.id + " · " + d.title;
+        goal.textContent = (d.briefing && d.briefing.goal) || "";
+        editor.value = d.starter || "";
+        editor.rows = Math.max(4, (d.starter || "").split("\n").length + 1);
+        konsole.textContent = "";
+        log("// Écris ta solution puis clique sur « Compiler » (Ctrl+Entrée).", "dim");
+        setBusy(false); show(panel, false);
+        openBriefing();
+      }
+    };
+  }
+
+  /* ---------- Jeu : KAPLAY plein écran + scènes ---------- */
+
+  function startGame(host) {
+    if (typeof window.kaplay !== "function") {
+      host.appendChild(el("p", "octo-hero__error", "KAPLAY n'a pas pu être chargé : le jeu est indisponible."));
+      return null;
+    }
+    var canvas = el("canvas", "octo-canvas");
+    canvas.tabIndex = 0;
+    canvas.setAttribute("role", "img");
+    canvas.setAttribute("aria-label", "OctoCat-Code : un jeu d'aventure pour apprendre à programmer");
+    var stage = el("div", "octo-stage");
+    stage.appendChild(canvas); host.appendChild(stage);
+
+    // Hauteur logique selon le format de la fenêtre : le monde (600 de large) tient toujours en entier.
+    var dpr = window.devicePixelRatio || 1;
+    var aspect = window.innerWidth / window.innerHeight;
+    var H = Math.round(Math.min(360, Math.max(250, 600 / aspect)));
+    var W = Math.max(200, Math.round(H * aspect));
+    var k = window.kaplay({
+      canvas: canvas, width: W, height: H, global: false,
+      background: [13, 17, 23], crisp: true, texFilter: "nearest",
+      focus: false, debug: false, touchToMouse: false,
+      pixelDensity: Math.min(6, Math.max(1, window.innerHeight * dpr / H))
+    });
+    canvas.style.width = "100%"; canvas.style.height = "100%";
+    window.OctoSprites.registerAll(k);
+    var helpers = {
+      wait: function (s) { return wait(k, s); },
+      tween: function (d, fn, e) { return tween(k, d, fn, e); },
+      palette: window.OctoSprites.palette
+    };
+
+    var P = window.OctoProgress, cur = { name: null, def: null, ctrl: null }, busy = false;
+
+    function nextName(id) { return levels[id + 1] ? "level" + (id + 1) : "hub"; }
+
+    function goTo(name) {
+      if (/^level\d+$/.test(name) && !P.isUnlocked(parseInt(name.slice(5), 10))) name = "hub";
+      busy = false;
+      try { window.history.replaceState(null, "", name === "hub" ? window.location.pathname : "#" + name); } catch { /* ignoré */ }
+      k.go(name);
+    }
+
+    var ui = createUI(host, {
+      menu: function () { goTo("hub"); },
+      reset: function () { if (cur.ctrl && cur.ctrl.reset) cur.ctrl.reset(); },
+      compile: function () {
+        var def = cur.def;
+        if (busy || !def || !def.validate || !cur.ctrl) return;
+        emit("compile", { level: def.id });
+        ui.clearLog();
+        ui.log("$ octo-compile niveau-" + def.id, "dim");
+        var result;
+        try { result = def.validate(ui.code(), api); }
+        catch (e) { result = { ok: false, messages: ["Erreur interne du validateur : " + e.message] }; }
+        (result.messages || []).forEach(function (m) { ui.log(m, result.ok ? "ok" : "err"); });
+        busy = true; ui.setBusy(true);
+        if (result.ok) {
+          var gained = P.complete(def.id);
+          ui.log("✔ Compilation réussie.", "ok");
+          gained.forEach(function (key) { ui.log("🏆 Succès débloqué : " + P.achievements[key].title, "gold"); });
+          emit("success", { level: def.id, result: result });
+          cur.ctrl.success(result).then(function () {
+            ui.log(levels[def.id + 1] ? "→ Le portail s'ouvre vers le niveau suivant…" : "→ Retour au menu…", "dim");
+            window.setTimeout(function () { goTo(nextName(def.id)); }, 600);
+          });
+        } else {
+          P.recordFail(def.id);
+          ui.log("✗ Compilation échouée.", "err");
+          emit("fail", { level: def.id, result: result });
+          cur.ctrl.fail(result).then(function () { busy = false; ui.setBusy(false); });
+        }
+      }
+    });
+
+    function enter(name, def, isLevel) {
+      cur.name = name; cur.def = def; cur.ctrl = null;
+      var ctx = { go: goTo, host: host, name: name, reserve: isLevel ? 0.4 : 0 };
+      cur.ctrl = def.scene(k, helpers, ctx);
+      if (isLevel) ui.showLevel(def); else { ui.hide(); canvas.focus(); }
+    }
+
+    Object.keys(scenes).forEach(function (name) { k.scene(name, function () { enter(name, scenes[name], false); }); });
+    Object.keys(levels).forEach(function (id) { k.scene("level" + id, function () { enter("level" + id, levels[id], true); }); });
+
+    // Reprise : #levelN rouvre le niveau (s'il est débloqué), sinon on démarre au menu.
+    var start = /^#level\d+$/.test(window.location.hash) ? window.location.hash.slice(1) : "hub";
+    if (/^level\d+$/.test(start) && !(levels[start.slice(5)] && P.isUnlocked(parseInt(start.slice(5), 10)))) start = "hub";
+    k.onLoad(function () { k.go(start); });
+
+    // Le format de la fenêtre a changé : on recompose la vue.
+    var timer = null;
+    window.addEventListener("resize", function () {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(function () {
+        if (Math.abs(window.innerWidth / window.innerHeight / aspect - 1) > 0.06) window.location.reload();
+      }, 400);
+    });
+
+    host.__kaplay = k;
+    return { k: k, goTo: goTo };
+  }
+
+  function mountGame(host) {
+    if (host.__octo) return;
+    host.__octo = true;
+    host.classList.add("octo-hero");
+    host.innerHTML = "";
+    if (startGame(host)) mounted.push(host);
   }
 
   var api = {
-    version: "0.1.0",
+    version: "0.2.0",
     interpreter: { run: run, evalExpr: evalExpr },
     validators: validators,
     registerLevel: function (def) { levels[def.id] = def; },
     registerScene: function (name, def) { scenes[name] = def; },
     on: function (ev, cb) { (listeners[ev] = listeners[ev] || []).push(cb); return api; },
     mount: function () {
-      Array.prototype.forEach.call(document.querySelectorAll(".octo-game[data-level]"), mountGame);
-      Array.prototype.forEach.call(document.querySelectorAll(".octo-scene[data-scene]"), mountScene);
+      Array.prototype.forEach.call(document.querySelectorAll(".octo-scene[data-fullscreen]"), mountGame);
     },
     get levels() { return levels; },
     get mounted() { return mounted; }

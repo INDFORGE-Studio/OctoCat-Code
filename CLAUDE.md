@@ -127,3 +127,19 @@ Règles du projet (appliquées par `tools/postbuild.py`, qui fait échouer le bu
 - Les illustrations fournies par le PO (page d'accueil de Material for MkDocs) ne servent que de **référence d'ambiance**. Elles ne sont ni copiées, ni tracées, ni embarquées dans le dépôt.
 - **Passer en 2D / pixel art ne supprime pas le droit d'auteur** : c'est la ressemblance de l'expression protégée (composition, éléments distinctifs, textes) qui compte, pas la technique. Règle : composition originale (ici : paysage inversé, tours de notre invention — ziggourat de baies serveurs et flèche annulaire), aucun texte ni élément signature repris (le panneau « DOCS LIKE CODE » est remplacé par une enseigne « { } »).
 - Tout nouvel asset visuel est dessiné pour le projet (procédural ou création originale) ou issu d'une licence libre compatible, dont la source et la licence sont notées dans le dépôt.
+
+## 12. Environnement de développement (outils open source)
+
+Installés sur la machine de dev : Python 3.12, Node 24 LTS (winget, utilisateur), Playwright + Chromium (`%LOCALAPPDATA%\ms-playwright`).
+PATH à ajouter dans un shell neuf : le dossier `node-v24…` du paquet winget `OpenJS.NodeJS.LTS` et `…\Python312` (+ `Scripts`).
+
+| Commande | Rôle |
+|---|---|
+| `npm run lint` | ESLint ; `eval`, `new Function`, `setTimeout(chaîne)` interdits (le code du joueur n'est jamais exécuté) |
+| `npm test` | tests `node:test` : interpréteur, validateurs, validation du niveau 1 (`dev/tests/`) |
+| `npm run build` | `mkdocs build --strict` + `tools/postbuild.py` |
+| `npm run shot` | serve `site/` et enregistre des PNG dans `dev/shots/` (accueil, briefing, éditeur, échec, victoire ; vues bureau, ultra-large, mobile) ; échoue si la page lève une erreur |
+| `npm run check` | lint + tests + build (la CI fait la même chose avant publication) |
+
+Vérification visuelle : `npm run build && npm run shot`, puis lire les PNG. Ne pas utiliser le navigateur intégré de Claude (consigne du PO).
+`.editorconfig` et `.gitattributes` imposent UTF-8 et fins de ligne LF.
