@@ -9,6 +9,8 @@ Checks every built HTML page:
 Navigation links (canonical, alternate, next, prev, <a href>) are not loaded resources and are ignored.
 Also enforces a size budget (total site and per-file) well under the GitHub Pages limits.
 """
+import hashlib
+import json
 import re
 import sys
 from pathlib import Path
@@ -42,6 +44,32 @@ def site_base_path(config: Path) -> str:
     return path if path.endswith("/") else path + "/"
 
 
+def stamp_service_worker(site: Path) -> list[str]:
+    """Write the precache list and a content-hash version into sw.js; return problems (empty = OK).
+
+    Every built file except the worker itself, the 404 page, sitemaps and source maps is precached, so
+    the whole game is stored in the player's browser at first visit (instant loads, offline play)."""
+    sw = site / "sw.js"
+    if not sw.exists():
+        return ["sw.js missing from the build"]
+    skip = {"sw.js", "404.html"}
+    files = sorted(p for p in site.rglob("*") if p.is_file() and p.name not in skip
+                   and not p.name.startswith("sitemap") and p.suffix != ".map")
+    urls = ["./"] + [p.relative_to(site).as_posix() for p in files if p.name != "index.html" or p.parent != site]
+    digest = hashlib.sha256()
+    for p in files:
+        digest.update(p.relative_to(site).as_posix().encode())
+        digest.update(p.read_bytes())
+    src = sw.read_text(encoding="utf-8")
+    src, n1 = re.subn(r'var VERSION = "[^"]*";', f'var VERSION = "{digest.hexdigest()[:10]}";', src, count=1)
+    src, n2 = re.subn(r"var PRECACHE = .*?; /\* __PRECACHE__ \*/", lambda _: f"var PRECACHE = {json.dumps(urls)};", src, count=1)
+    if n1 != 1 or n2 != 1:
+        return ["sw.js: VERSION / PRECACHE markers not found"]
+    sw.write_bytes(src.encode("utf-8"))
+    print(f"postbuild: service worker precaches {len(urls)} files")
+    return []
+
+
 def main(root: str) -> int:
     site = Path(root).resolve()
     base = site_base_path(site.parent / "mkdocs.yml")
@@ -69,6 +97,8 @@ def main(root: str) -> int:
                 target = target / "index.html"
             if not target.exists():
                 errors.add(f"{rel_page}: missing local file {url}")
+
+    errors.update(stamp_service_worker(site))
 
     # --- size budget -------------------------------------------------------------------------
     # GitHub Pages limits (docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits):

@@ -371,6 +371,7 @@
     });
     canvas.style.width = "100%"; canvas.style.height = "100%";
     window.OctoSprites.registerAll(k);
+    var applyFx = window.OctoFX ? window.OctoFX.install(k) : function () {}; // post-traitement (halo, étalonnage)
     var helpers = {
       wait: function (s) { return wait(k, s); },
       tween: function (d, fn, e) { return tween(k, d, fn, e); },
@@ -436,6 +437,7 @@
       music().setMood(isLevel && def.mood != null ? def.mood : 0);
       music().setBattle(isLevel && !!def.combat); // combat : musique épique, seulement pour les niveaux qui le demandent
       var ctx = { go: goTo, host: host, name: name, reserve: isLevel ? 0.4 : 0 };
+      applyFx();
       cur.ctrl = def.scene(k, helpers, ctx);
       if (isLevel) ui.showLevel(def); else { ui.hide(); canvas.focus(); }
     }

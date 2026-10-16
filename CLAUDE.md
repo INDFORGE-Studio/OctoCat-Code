@@ -166,3 +166,10 @@ Toujours penser à toutes les plateformes. Déjà en place :
 - **Audio** : mode « lite » automatique (Android/iOS, ≤ 4 cœurs ou ≤ 4 Go) : moins d'oscillateurs, planificateur à 60 ms au lieu de 25 ms (batterie), suspension quand l'onglet est caché.
 - **Réseau** : site de ~3 Mo, aucune ressource externe, police et KAPLAY auto-hébergés.
 - Vérifié par `npm run shot` en bureau 1600×900, ultra-large 2560×1080 et mobile paysage 844×390. **Non vérifié** : vrai appareil Android/iOS, mobile en portrait, performances sur matériel d'entrée de gamme.
+
+## 15. Hébergement dans le navigateur du joueur (PWA) et qualité graphique
+
+- **Progression** : déjà 100 % locale (`localStorage`, `OctoProgress`) — aucun serveur, aucun compte.
+- **Jeu installé dans le navigateur** : `docs/sw.js` (service worker, cache d'abord) + `docs/manifest.webmanifest` (plein écran, paysage, icônes PNG générées par `dev/icons.mjs`). `tools/postbuild.py` réécrit `VERSION` (hash du contenu) et `PRECACHE` (tous les fichiers du site) à chaque build : 1re visite = tout est téléchargé une fois (~3 Mo), ensuite chargement instantané et jeu **hors ligne**. Une nouvelle version remplace l'ancien cache au rechargement suivant. Le worker est désactivé en local (sauf `?pwa=on`) pour ne jamais servir de fichiers périmés en développement. Vérifié par `npm run shot` (rechargement hors ligne).
+- **Qualité graphique** : `docs/javascripts/fx.js` = un passage plein écran WebGL (KAPLAY `usePostEffect`) : halo lumineux (bloom) sur torches, portail, yeux du Glitch, lucioles ; étalonnage (contraste en S, hautes lumières chaudes), vignettage, dithering. Niveaux auto : `high` (PC, portables, tablettes récentes) = bloom 16 échantillons ; `lite` (Android/iOS, ≤ 4 cœurs ou ≤ 4 Go) = étalonnage seul ; forçage `?quality=high|lite|off`, `SHOT_QUALITY=… npm run shot` pour comparer.
+- Rappel : Material for MkDocs n'apporte que l'enveloppe de la page ; le rendu du jeu vient de KAPLAY/WebGL et du pixel art procédural. Pistes suivantes : lumières dynamiques, parallaxe plus profonde, animations de feuillage, particules supplémentaires (toujours avec un palier `lite`).

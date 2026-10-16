@@ -48,6 +48,7 @@ const play = (code) => async (page) => {
   await page.click(".octo-panel .octo-btn--primary");
 };
 
+const QUALITY = process.env.SHOT_QUALITY ? `?quality=${process.env.SHOT_QUALITY}` : "";
 const SCENARIOS = {
   hub: { hash: "", wait: 1200 },
   "level1-brief": { hash: "#level1", wait: 1200 },
@@ -57,7 +58,7 @@ const SCENARIOS = {
 };
 
 const wanted = process.argv.slice(2).filter((a) => !a.startsWith("-"));
-const names = (wanted.length ? wanted : Object.keys(SCENARIOS)).filter((n) => n !== "audio");
+const names = (wanted.length ? wanted : Object.keys(SCENARIOS)).filter((n) => n !== "audio" && n !== "pwa");
 const browser = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required", "--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
 let failed = 0;
 
@@ -72,7 +73,7 @@ for (const [view, size] of Object.entries(VIEWS)) {
     page.on("pageerror", (e) => problems.push("pageerror: " + e.message));
     page.on("console", (m) => { if (m.type() === "error") problems.push("console: " + m.text()); });
     page.on("requestfailed", (r) => problems.push("requête échouée: " + r.url()));
-    await page.goto(URL_BASE + sc.hash, { waitUntil: "load" });
+    await page.goto(URL_BASE + QUALITY + sc.hash, { waitUntil: "load" });
     if (sc.hash) await page.evaluate(() => localStorage.clear());
     await ready(page);
     if (sc.act) await sc.act(page);
@@ -108,6 +109,27 @@ if (!wanted.length || wanted.includes("audio")) {
   console.log(`${ok && !problems.length ? "✓" : "✗"} audio : calme ${calm.s.bpm.toFixed(0)} BPM (rms ${calm.rms.toFixed(4)}) → alerte ${alert.bpm.toFixed(0)} BPM → combat ${fightS.s.bpm.toFixed(0)} BPM (rms ${fightS.rms.toFixed(4)})`);
   problems.forEach((m) => console.log("    " + m));
   failed += ok && !problems.length ? 0 : 1;
+}
+
+// PWA : après une première visite, le jeu se recharge entièrement hors ligne (cache du service worker).
+if (!wanted.length || wanted.includes("pwa")) {
+  const context = await browser.newContext({ viewport: VIEWS.desktop });
+  const page = await context.newPage();
+  const problems = [];
+  page.on("pageerror", (e) => problems.push("pageerror: " + e.message));
+  await page.goto(URL_BASE + "?pwa=on", { waitUntil: "load" });
+  await ready(page);
+  await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+  await page.waitForTimeout(1500); // le temps que le précache se termine
+  const cached = await page.evaluate(async () => (await (await caches.open((await caches.keys())[0])).keys()).length);
+  await context.setOffline(true);
+  await page.reload({ waitUntil: "load" });
+  await ready(page);
+  const ok = cached > 10 && !problems.length;
+  console.log(`${ok ? "✓" : "✗"} pwa : ${cached} fichiers en cache, rechargement hors ligne réussi`);
+  problems.forEach((m) => console.log("    " + m));
+  failed += ok ? 0 : 1;
+  await context.close();
 }
 
 await browser.close();

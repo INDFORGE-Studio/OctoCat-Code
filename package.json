@@ -4,7 +4,7 @@
   "description": "Outils de développement d'OctoCat-Code (lint, tests, captures). Rien de ceci n'est publié sur le site.",
   "type": "module",
   "scripts": {
-    "lint": "eslint docs/javascripts dev",
+    "lint": "eslint docs/javascripts docs/sw.js dev",
     "test": "node --test \"dev/tests/*.test.js\"",
     "build": "python -m mkdocs build --strict && python tools/postbuild.py site",
     "shot": "node dev/shot.mjs",

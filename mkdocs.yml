@@ -52,7 +52,9 @@ extra_javascript:
   - javascripts/progress.js
   - javascripts/sprites.js
   - javascripts/scenery.js
+  - javascripts/pwa.js
   - javascripts/music.js
+  - javascripts/fx.js
   - javascripts/engine.js
   - javascripts/hub.js
   - javascripts/level1.js
