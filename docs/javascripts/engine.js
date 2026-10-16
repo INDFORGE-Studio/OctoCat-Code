@@ -213,7 +213,7 @@
 
   /** Musique : no-op si music.js n'est pas chargé (tests Node). */
   function music() {
-    return window.OctoMusic || { unlock: function () {}, setMood: function () {}, setBattle: function () {}, hit: function () {}, victory: function () {}, toggle: function () { return false; }, isMuted: function () { return false; } };
+    return window.OctoMusic || { unlock: function () {}, setMood: function () {}, setBattle: function () {}, isRunning: function () { return false; }, setVolume: function () {}, getVolume: function () { return 0.8; }, hit: function () {}, victory: function () {}, toggle: function () { return false; }, isMuted: function () { return false; } };
   }
 
   /* ---------- Interface de jeu (HTML en surimpression du canvas) ---------- */
@@ -243,11 +243,31 @@
     panel.appendChild(bar); panel.appendChild(editor); panel.appendChild(actions); panel.appendChild(konsole);
     root.appendChild(dialog); root.appendChild(panel);
     // bouton son : la musique démarre au premier geste, ce bouton la coupe / la relance
+    var audio = el("div", "octo-audio");
     var mute = el("button", "octo-mute", music().isMuted() ? "♪ OFF" : "♪ ON");
     mute.type = "button";
     mute.setAttribute("aria-label", "Activer ou couper la musique");
-    mute.addEventListener("click", function () { mute.textContent = music().toggle() ? "♪ OFF" : "♪ ON"; mute.blur(); });
-    root.appendChild(mute);
+    function syncMute() { mute.textContent = music().isMuted() ? "♪ OFF" : "♪ ON"; }
+    mute.addEventListener("click", function () {
+      var m = music();
+      if (!m.isMuted() && !m.isRunning()) m.unlock(); // son « activé » mais pas encore démarré : ce clic le lance
+      else m.toggle();
+      syncMute(); mute.blur();
+    });
+    var vol = el("input", "octo-vol");
+    vol.type = "range"; vol.min = "0"; vol.max = "100"; vol.step = "5";
+    vol.value = String(Math.round(music().getVolume() * 100));
+    vol.setAttribute("aria-label", "Volume de la musique");
+    vol.addEventListener("input", function () {
+      var m = music();
+      m.setVolume(vol.value / 100);
+      if (m.isMuted() && vol.value > 0) m.toggle(); // toucher au volume rallume le son
+      else if (!m.isRunning() && !m.isMuted()) m.unlock();
+      syncMute();
+    });
+    vol.addEventListener("change", function () { vol.blur(); });
+    audio.appendChild(mute); audio.appendChild(vol);
+    root.appendChild(audio);
     host.appendChild(root);
 
     var hintIdx = 0, def = null;
@@ -367,7 +387,7 @@
       canvas: canvas, width: W, height: H, global: false,
       background: [13, 17, 23], crisp: true, texFilter: "nearest",
       focus: false, debug: false, touchToMouse: false,
-      pixelDensity: Math.min(4, Math.max(1, window.innerHeight * dpr / H)) // plafonné : 4K et téléphones ne coûtent pas plus de fill-rate
+      pixelDensity: Math.min(window.OctoFX && window.OctoFX.modest() ? 4 : 6, Math.max(1, window.innerHeight * dpr / H)) // net sur grands écrans ; plafonné à 4 sur appareils modestes
     });
     canvas.style.width = "100%"; canvas.style.height = "100%";
     window.OctoSprites.registerAll(k);
@@ -379,7 +399,8 @@
     };
 
     // les navigateurs n'autorisent le son qu'après un geste : le premier clic ou la première touche lance la musique
-    function unlockAudio() {
+    function unlockAudio(e) {
+      if (e && e.target && e.target.closest && e.target.closest(".octo-audio")) return; // les commandes du son gèrent leur propre clic
       music().unlock();
       document.removeEventListener("pointerdown", unlockAudio);
       document.removeEventListener("keydown", unlockAudio);

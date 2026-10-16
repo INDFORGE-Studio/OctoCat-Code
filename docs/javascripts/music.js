@@ -13,7 +13,7 @@
 (function () {
   "use strict";
 
-  var KEY = "octocat-code:music";
+  var KEY = "octocat-code:music:v2", VOL_KEY = "octocat-code:volume"; // v2 : repart de « son activé »
 
   /* ---------- théorie (pure, testée sous Node) ---------- */
 
@@ -78,7 +78,13 @@
   var lite = /Android|Mobi|iPhone|iPad/i.test(nav.userAgent || "") || (nav.hardwareConcurrency || 8) <= 4 || (nav.deviceMemory || 8) <= 4;
   var LOOKAHEAD = lite ? 0.3 : 0.15, EVERY = lite ? 60 : 25; // secondes d'avance / période du planificateur (ms)
 
-  try { muted = window.localStorage.getItem(KEY) === "off"; } catch { /* stockage indisponible */ }
+  var volume = 0.8; // 0..1, courbe quadratique (l'oreille perçoit le volume de façon logarithmique)
+  try {
+    muted = window.localStorage.getItem(KEY) === "off";
+    var saved = parseFloat(window.localStorage.getItem(VOL_KEY));
+    if (saved >= 0 && saved <= 1) volume = saved;
+  } catch { /* stockage indisponible */ }
+  function masterTarget() { return 0.6 * volume * volume; }
 
   function init() {
     var AC = window.AudioContext || window.webkitAudioContext;
@@ -257,7 +263,7 @@
     running = true;
     nextTime = ctx.currentTime + 0.1;
     master.gain.cancelScheduledValues(ctx.currentTime);
-    master.gain.setTargetAtTime(0.55, ctx.currentTime, 0.8); // fondu d'entrée
+    master.gain.setTargetAtTime(masterTarget(), ctx.currentTime, 0.8); // fondu d'entrée
     timer = window.setInterval(tick, EVERY);
   }
 
@@ -316,6 +322,14 @@
       return muted;
     },
     isMuted: function () { return muted; },
+    isRunning: function () { return running; },
+    /** Volume 0..1, mémorisé ; s'applique immédiatement. */
+    setVolume: function (v) {
+      volume = clamp(+v || 0, 0, 1);
+      try { window.localStorage.setItem(VOL_KEY, String(volume)); } catch { /* ignoré */ }
+      if (running && ctx) master.gain.setTargetAtTime(masterTarget(), ctx.currentTime, 0.05);
+    },
+    getVolume: function () { return volume; },
     state: function () {
       return { running: running, muted: muted, tension: tension, fight: fight, battle: battle, bpm: bpmFor(tension, fight), ctx: ctx ? ctx.state : "none" };
     },
