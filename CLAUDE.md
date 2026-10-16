@@ -43,12 +43,12 @@ Contrat d'un niveau : `validate(code, engine) → { ok, messages[], data }` et `
 Statut : ✅ écrit · 🔶 écrit mais non vérifié · ⬜ à faire
 
 ### Étape 1 — Architecture & MkDocs
-- 🔶 `mkdocs.yml` : Material, `pymdownx.superfences`, `pymdownx.tabbed`, CDN KAPLAY (`unpkg …/kaplay@3001.0.19`), scripts de niveau.
+- ✅ `mkdocs.yml` : Material, `pymdownx.superfences`, `pymdownx.tabbed`, CDN KAPLAY (`unpkg …/kaplay@3001.0.19`), scripts de niveau.
 - ✅ State management `localStorage` (niveaux débloqués, langage, succès) + verrou des niveaux (`data-octo-guard`) — testé navigateur (verrou, déblocage, succès).
-- ⬜ Vérifier `mkdocs build --strict` et `mkdocs serve` (Python non installé sur la machine de dev initiale).
+- ✅ `mkdocs build --strict` sans avertissement ; `mkdocs serve` testé (Python 3.12 + mkdocs 1.6, `mkdocs<2` épinglé).
 
 ### Étape 2 — Assets & intégration KAPLAY
-- 🔶 Charte GitHub Dark, pixel art procédural : OctoCat (idle/run/success/fail), Glitch, portail fermé/ouvert, arbres, sol.
+- ✅ Charte GitHub Dark, pixel art procédural : OctoCat (idle/run/success/fail), Glitch, portail fermé/ouvert, arbres, sol.
 - ✅ Canvas 600×250 responsive (`aspect-ratio`, `width:100%`) — testé à 375 px, pas de scroll horizontal.
 - ⬜ Itération artistique sur les sprites (rendu à valider à l'œil) ; décor « Forêt des Syntaxes » plus riche.
 - ⬜ Option : remplacer le procédural par des PNG spritesheet (changer uniquement `sprites.js`).
@@ -60,9 +60,9 @@ Statut : ✅ écrit · 🔶 écrit mais non vérifié · ⬜ à faire
 - ⬜ Zone 2/3 : étendre l'interpréteur (`if`, `while`, `for`, fonctions, tableaux) — **liste blanche uniquement**.
 
 ### Étape 4 — Level design du Vertical Slice
-- 🔶 `docs/index.md` (hub + narration), `docs/niveau-1.md`, `docs/javascripts/level1.js` (`v_speed = 200`).
-- 🔶 `niveau-2.md` en placeholder verrouillé.
-- ⬜ Test bout en bout : échec → réussite → redirection → déblocage du niveau 2 → verrou si `localStorage` vide.
+- ✅ `docs/index.md` (hub + narration), `docs/niveau-1.md`, `docs/javascripts/level1.js` (`v_speed = 200`).
+- ✅ `niveau-2.md` en placeholder verrouillé.
+- ✅ Test bout en bout sur le vrai site : échec → réussite → redirection `/niveau-2/` → déblocage → verrou si `localStorage` vide ; onglets Python/JS → langage mémorisé.
 
 ## 5. Définition de « terminé » (DoD)
 
@@ -85,6 +85,6 @@ Statut : ✅ écrit · 🔶 écrit mais non vérifié · ⬜ à faire
 
 ## 8. Notes d'environnement
 
-- Python/Node absents de la machine de dev initiale : `mkdocs build`/`serve` **jamais exécutés** → premier test réel à faire dès que Python est installé.
+- Python 3.12 installé via winget (utilisateur) ; lancer avec `python -m mkdocs …` (le dossier `Scripts` n'est pas dans le PATH). Node absent.
 - Les tests navigateur du composant ont été faits sur une page statique reproduisant le DOM de MkDocs, servie en localhost. Le Browser pane **caché** met en pause `requestAnimationFrame` : les animations KAPLAY ne se jouent que si le pane est affiché.
 - Commits : utiliser l'e-mail `noreply` GitHub (le push est refusé avec l'e-mail privé).
