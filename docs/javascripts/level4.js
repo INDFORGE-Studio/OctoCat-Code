@@ -81,10 +81,12 @@
         for (var i = 0; i < 4; i++) runes.push(k.add([k.rect(26, 3), k.pos(DX + 17, BASE_Y - 70 + i * 16), k.color(rgb("#f85149")), k.z(6.7)]));
         // tableau des lampes : clé (or), garde (rouge), porte
         k.add([k.rect(96, 44), k.pos(DX - 130, BASE_Y - 82), k.color(rgb("#1a1040")), k.opacity(0.85), k.z(6.5)]);
-        function lamp(x, color, label) {
-          var g = k.add([k.sprite("glow"), k.pos(x, BASE_Y - 64), k.anchor("center"), k.scale(1.1), k.color(rgb(color)), k.opacity(0.95), k.z(6.8)]);
+        function lamp(x, color, label) { // lampe en pixels nets : cadre, ampoule, reflet (la couleur de l'ampoule change)
+          k.add([k.rect(16, 16), k.pos(x - 8, BASE_Y - 72), k.color(rgb("#0d0a1f")), k.z(6.75)]);
+          var bulb = k.add([k.rect(12, 12), k.pos(x - 6, BASE_Y - 70), k.color(rgb(color)), k.z(6.8)]);
+          k.add([k.rect(3, 3), k.pos(x - 4, BASE_Y - 68), k.color(rgb("#ffffff")), k.opacity(0.7), k.z(6.85)]);
           k.add([k.text(label, { size: 8, font: "monospace" }), k.pos(x, BASE_Y - 46), k.anchor("center"), k.color(rgb("#e6edf3")), k.z(6.9)]);
-          return g;
+          return bulb;
         }
         var lKey = lamp(DX - 110, "#e3b341", "CLE"), lGuard = lamp(DX - 82, "#8b949e", "GARDE"), lDoor = lamp(DX - 54, "#f85149", "PORTE");
         return {

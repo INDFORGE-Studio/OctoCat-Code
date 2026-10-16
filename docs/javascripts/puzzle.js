@@ -76,11 +76,12 @@
       if (opts.wash) k.add([k.rect(sc.viewW + 100, sc.viewH + 100), k.pos(-50, -50), k.color(rgb(opts.wash[0])), k.opacity(opts.wash[1]), k.fixed(), k.z(29)]);
 
       // HUD (capitales sans accents : la police par défaut de KAPLAY n'a pas les accents)
+      // panneau sombre derrière le texte : lisible sur tous les décors, même clairs
+      k.add([k.rect(Math.min(sc.viewW, 286), 28 + (opts.lines || []).length * 16), k.pos(0, 0), k.color(rgb("#0d1117")), k.opacity(0.62), k.fixed(), k.z(30.5)]);
       k.add([k.text(opts.title, { size: 11, font: "monospace" }), k.pos(10, 8), k.color(rgb("#e6edf3")), k.fixed(), k.z(31)]);
       var lines = (opts.lines || []).map(function (l, i) {
         return k.add([k.text(l.text, { size: i === 0 ? 14 : 12, font: "monospace" }), k.pos(10, 24 + i * 16), k.color(rgb(l.color || "#d29922")), k.fixed(), k.z(31)]);
       });
-      if (lines.length > 2) k.add([k.rect(sc.viewW, 16 * (lines.length - 2)), k.pos(0, 40), k.color(rgb("#0d1117")), k.opacity(0.42), k.fixed(), k.z(30.5)]);
       var banner = k.add([k.text("", { size: 18, font: "monospace" }), k.pos(sc.viewW / 2, 70), k.anchor("center"), k.color(rgb("#ffffff")), k.opacity(0), k.fixed(), k.z(32)]);
       var hud = {
         set: function (i, text, color) { if (lines[i]) { lines[i].text = text; if (color) lines[i].color = rgb(color); } },

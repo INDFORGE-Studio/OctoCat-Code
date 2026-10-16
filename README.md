@@ -36,7 +36,7 @@ mkdocs build --strict && python tools/postbuild.py site
 
 ## Les 10 niveaux
 
-Chaque niveau se joue en deux temps : un **trajet** au clavier (flèches ou WASD/ZQSD, Espace pour sauter, X pour frapper, C pour le shuriken ; boutons à l'écran sur mobile), mêlant plateformes à la Mario, fouet à la Castlevania, ninja à la Shinobi et beat'em up à la Double Dragon, puis une **énigme de code** à résoudre pour ouvrir le portail vers le niveau suivant : variables, texte, calculs, logique, conditions, boucles `for` et `while` (boss final).
+Chaque niveau se joue en deux temps : un **trajet** au clavier (flèches ou WASD/ZQSD, Espace pour sauter, clic gauche (ou X) pour frapper, clic droit (ou C) pour le shuriken ; boutons à l'écran sur mobile), mêlant plateformes à la Mario, fouet à la Castlevania, ninja à la Shinobi et beat'em up à la Double Dragon, puis une **énigme de code** à résoudre pour ouvrir le portail vers le niveau suivant : variables, texte, calculs, logique, conditions, boucles `for` et `while` (boss final).
 
 ```bash
 npm install && npm run check     # lint, tests (dont un bot qui termine les 10 parcours), build strict

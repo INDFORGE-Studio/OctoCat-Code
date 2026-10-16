@@ -79,10 +79,26 @@
         // enclume et fourneau
         k.add([k.rect(44, 10), k.pos(AX - 22, BASE_Y - 36), k.color(rgb("#6e7681")), k.z(6.8)]);
         k.add([k.rect(20, 26), k.pos(AX - 10, BASE_Y - 26), k.color(rgb("#4a4f58")), k.z(6.7)]);
-        k.add([k.rect(60, 70), k.pos(AX - 120, BASE_Y - 70), k.color(rgb("#3a2f48")), k.z(6.4)]);
-        var fire = k.add([k.sprite("glow"), k.pos(AX - 90, BASE_Y - 30), k.anchor("center"), k.scale(2.2), k.color(rgb("#f0883e")), k.opacity(0.7), k.z(6.5)]);
-        sc.onFrame(function (t) { fire.opacity = 0.6 + 0.2 * Math.sin(t * 11); });
+        var FX = AX - 120, flames = [];
+        k.add([k.rect(60, 70), k.pos(FX, BASE_Y - 70), k.color(rgb("#4a3a63")), k.z(6.4)]);
+        k.add([k.rect(18, 18), k.pos(FX + 36, BASE_Y - 88), k.color(rgb("#4a3a63")), k.z(6.4)]);
+        k.add([k.rect(24, 4), k.pos(FX + 33, BASE_Y - 92), k.color(rgb("#2e2340")), k.z(6.45)]);
+        for (var r = 1; r < 7; r++) k.add([k.rect(60, 1), k.pos(FX, BASE_Y - r * 10), k.color(rgb("#2e2340")), k.z(6.45)]); // briques
+        for (var r2 = 0; r2 < 7; r2++) for (var c2 = 0; c2 < 3; c2++) k.add([k.rect(1, 10), k.pos(FX + 8 + c2 * 20 + (r2 % 2) * 10, BASE_Y - 70 + r2 * 10), k.color(rgb("#2e2340")), k.z(6.45)]);
+        k.add([k.rect(34, 34), k.pos(FX + 13, BASE_Y - 36), k.color(rgb("#1a0f14")), k.z(6.5)]); // gueule du fourneau
+        k.add([k.rect(26, 4), k.pos(FX + 17, BASE_Y - 40), k.color(rgb("#1a0f14")), k.z(6.5)]);
+        [["#f85149", 8, 20], ["#f0883e", 7, 16], ["#ffe08a", 5, 10]].forEach(function (f, i) {
+          for (var j = 0; j < 3; j++) flames.push({ r: k.add([k.rect(f[1], f[2]), k.pos(FX + 16 + j * 9 + i, BASE_Y - 2 - f[2]), k.color(rgb(f[0])), k.z(6.6 + i * 0.01)]), h0: f[2], j: j, i: i });
+        });
+        sc.onFrame(function (t) {
+          flames.forEach(function (f) {
+            var hh = Math.max(4, Math.round(f.h0 * (0.75 + 0.25 * Math.sin(t * 9 + f.j * 2 + f.i))));
+            f.r.height = hh; f.r.pos.y = BASE_Y - 2 - hh;
+          });
+        });
         // râtelier : 8 emplacements d'épées
+        k.add([k.rect(5, 62), k.pos(340, BASE_Y - 102), k.color(rgb("#5a3a2a")), k.z(6.5)]);
+        k.add([k.rect(5, 62), k.pos(497, BASE_Y - 102), k.color(rgb("#5a3a2a")), k.z(6.5)]);
         k.add([k.rect(160, 5), k.pos(342, BASE_Y - 98), k.color(rgb("#5a3a2a")), k.z(6.5)]);
         k.add([k.rect(160, 5), k.pos(342, BASE_Y - 52), k.color(rgb("#5a3a2a")), k.z(6.5)]);
         for (var i = 0; i < 8; i++) {

@@ -156,7 +156,9 @@
     function respawn(fell) {
       sim.stats.deaths++;
       emit(fell ? "fall" : "die", p.x, p.y);
-      p.x = sim.cp.x; p.y = sim.cp.y; p.vx = 0; p.vy = 0; p.hp = CFG.hpMax; p.inv = 1.5; p.swing = 0;
+      // une chute coûte une vie (un cœur) ; à 0 cœur on repart avec tous les cœurs
+      if (fell) { p.hp -= 1; if (p.hp <= 0) p.hp = CFG.hpMax; } else p.hp = CFG.hpMax;
+      p.x = sim.cp.x; p.y = sim.cp.y; p.vx = 0; p.vy = 0; p.inv = 1.5; p.swing = 0;
     }
     function hurtPlayer(fromX, amount) {
       if (p.inv > 0) return;

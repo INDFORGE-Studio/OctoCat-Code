@@ -55,8 +55,21 @@
     }
     var kd = onKey(true), ku = onKey(false);
     function reset() { kb = {}; pad = {}; }
+    // Souris : clic gauche = frapper, clic droit = shuriken (sur le canvas ; le tactile garde ses boutons).
+    function onMouse(down) {
+      return function (e) {
+        if (e.pointerType !== "mouse" || !e.target || e.target.tagName !== "CANVAS") { if (!down) { kb.attack = false; kb.throw = false; } return; }
+        if (e.button === 0) kb.attack = down; else if (e.button === 2) kb.throw = down; else return;
+        e.preventDefault();
+      };
+    }
+    var md = onMouse(true), mu = onMouse(false);
+    function noMenu(e) { if (e.target && e.target.tagName === "CANVAS") e.preventDefault(); }
     window.addEventListener("keydown", kd);
     window.addEventListener("keyup", ku);
+    window.addEventListener("pointerdown", md);
+    window.addEventListener("pointerup", mu);
+    window.addEventListener("contextmenu", noMenu);
     window.addEventListener("blur", reset);
     return {
       pad: pad, kbReset: reset,
@@ -71,6 +84,7 @@
       },
       destroy: function () {
         window.removeEventListener("keydown", kd); window.removeEventListener("keyup", ku); window.removeEventListener("blur", reset);
+        window.removeEventListener("pointerdown", md); window.removeEventListener("pointerup", mu); window.removeEventListener("contextmenu", noMenu);
       }
     };
   }
@@ -198,7 +212,7 @@
     var plate = k.add([k.rect(Math.min(VW - 20, 300), 62), k.pos(VW / 2, VH * 0.3 + 8), k.anchor("center"), k.color(rgb("#0d1117")), k.opacity(0.5), k.fixed(), k.z(31.8)]);
     var banner = k.add([k.text("NIVEAU " + def.id, { size: 22, font: "monospace" }), k.pos(VW / 2, VH * 0.3), k.anchor("center"), k.color(rgb("#ffffff")), k.opacity(1), k.fixed(), k.z(32)]);
     var sub = k.add([k.text(plain(def.title), { size: 11, font: "monospace" }), k.pos(VW / 2, VH * 0.3 + 22), k.anchor("center"), k.color(rgb("#ffe08a")), k.opacity(1), k.fixed(), k.z(32)]);
-    var hintStr = brawl ? "FLECHES: BOUGER   ESPACE: SAUTER   X: FRAPPER" : "GAUCHE/DROITE: BOUGER   HAUT/ESPACE: SAUTER   X: ATTAQUER" + (ab.shuriken ? "   C: SHURIKEN" : "") + (ab.doubleJump ? "   (DOUBLE SAUT)" : "");
+    var hintStr = brawl ? "FLECHES: BOUGER   ESPACE: SAUTER   CLIC GAUCHE / X: FRAPPER" : "GAUCHE/DROITE: BOUGER   HAUT/ESPACE: SAUTER   CLIC GAUCHE / X: ATTAQUER" + (ab.shuriken ? "   CLIC DROIT / C: SHURIKEN" : "") + (ab.doubleJump ? "   (DOUBLE SAUT)" : "");
     var hint = k.add([k.text(hintStr, { size: 9, font: "monospace" }), k.pos(VW / 2, VH - 12), k.anchor("center"), k.color(rgb("#e6edf3")), k.opacity(0.9), k.fixed(), k.z(31)]);
     var goTxt = k.add([k.text("GO >", { size: 22, font: "monospace" }), k.pos(VW - 40, VH * 0.4), k.anchor("center"), k.color(rgb("#ffe08a")), k.opacity(0), k.fixed(), k.z(32)]);
     var toast = k.add([k.text("", { size: 14, font: "monospace" }), k.pos(VW / 2, VH * 0.46), k.anchor("center"), k.color(rgb("#ffffff")), k.opacity(0), k.fixed(), k.z(32)]);
@@ -219,6 +233,18 @@
       }
     }
 
+    /** Flamme nette (deux rectangles qui vacillent) + léger halo, posée sur la vasque d'une torche. */
+    function flame(x, y, z) {
+      var gl = k.add([k.sprite("glow"), k.pos(x, y - 6), k.anchor("center"), k.scale(1.8), k.color(rgb("#f0883e")), k.opacity(0.28), k.z(z - 0.01)]);
+      var outer = k.add([k.rect(13, 20), k.pos(x, y + 3), k.anchor("bot"), k.color(rgb("#f0883e")), k.z(z)]);
+      var inner = k.add([k.rect(7, 13), k.pos(x, y + 3), k.anchor("bot"), k.color(rgb("#ffe08a")), k.z(z + 0.01)]);
+      outer.onUpdate(function () {
+        var f = 0.8 + 0.2 * Math.sin(time * 11 + x), g = 0.8 + 0.2 * Math.sin(time * 14 + x * 2);
+        outer.height = Math.round(20 * f); inner.height = Math.round(13 * g);
+        gl.opacity = 0.22 + 0.1 * f;
+      });
+    }
+
     /** Pose des éléments de décor (arbres, torches, panneaux…) selon le thème, derrière l'action. */
     function props(place, count, baseScale) {
       var list = theme.deco || [];
@@ -227,10 +253,7 @@
         if (!pos) continue;
         var name = list[i % list.length], sc = name === "torch" ? 2.4 : name === "tree" || name === "palm" ? baseScale : name === "sign" ? 2.4 : 2.6;
         k.add([k.sprite(name), k.pos(pos.x, pos.y), k.anchor("bot"), k.scale(sc), k.color(rgb(theme.tile)), k.z(pos.z)]);
-        if (name === "torch" && theme.wash) {
-          var gl = k.add([k.sprite("glow"), k.pos(pos.x, pos.y - 44), k.anchor("center"), k.scale(1.6), k.color(rgb("#f0883e")), k.opacity(0.3), k.z(3.6)]);
-          gl.onUpdate(function () { gl.opacity = 0.25 + 0.08 * Math.sin(time * 10 + gl.pos.x); });
-        }
+        if (name === "torch") flame(pos.x, pos.y - 46, pos.z + 0.02);
       }
     }
 
