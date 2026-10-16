@@ -59,3 +59,4 @@ extra_javascript:
   - javascripts/hub.js
   - javascripts/level1.js
   - javascripts/level2.js
+  - javascripts/level3.js

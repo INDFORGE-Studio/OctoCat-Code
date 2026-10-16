@@ -58,11 +58,16 @@ const SCENARIOS = {
   "level2-brief": { hash: "#level2", unlock: true, wait: 1200 },
   "level2-editor": { hash: "#level2", unlock: true, wait: 800, act: async (p) => { await p.click(".octo-dialog .octo-btn--primary"); } },
   "level2-fail": { hash: "#level2", unlock: true, wait: 1100, act: play('v_pont = "solide"') },
+  "level3-brief": { hash: "#level3", unlock: 3, wait: 1200 },
+  "level3-editor": { hash: "#level3", unlock: 3, wait: 800, act: async (p) => { await p.click(".octo-dialog .octo-btn--primary"); } },
+  "level3-fail": { hash: "#level3", unlock: 3, wait: 1500, act: play(["v_pv = 5", "while v_pv > 2:", "    v_pv = v_pv - 1"].join("\n")) },
+  "level3-win": { hash: "#level3", unlock: 3, wait: 1700, act: play(["v_pv = 5", "while v_pv > 0:", "    v_pv = v_pv - 1"].join("\n")) },
+  "level3-end": { hash: "#level3", unlock: 3, wait: 4500, act: play(["v_pv = 5", "for i in range(5):", "    v_pv = v_pv - 1"].join("\n")) },
   "level2-win": { hash: "#level2", unlock: true, wait: 3000, act: play(['v_pont = "fragile"', "if v_energie >= 50:", '    v_pont = "solide"'].join("\n")) }
 };
 
 const wanted = process.argv.slice(2).filter((a) => !a.startsWith("-"));
-const names = (wanted.length ? wanted : Object.keys(SCENARIOS)).filter((n) => n !== "audio" && n !== "pwa" && n !== "audio-ui");
+const names = (wanted.length ? wanted : Object.keys(SCENARIOS)).filter((n) => n !== "audio" && n !== "pwa" && n !== "audio-ui" && n !== "audio-battle");
 const browser = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required", "--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
 let failed = 0;
 
@@ -79,7 +84,7 @@ for (const [view, size] of Object.entries(VIEWS)) {
     page.on("requestfailed", (r) => problems.push("requête échouée: " + r.url()));
     await page.goto(URL_BASE + QUALITY + sc.hash, { waitUntil: "load" });
     if (sc.hash) await page.evaluate(() => localStorage.clear());
-    if (sc.unlock) { await page.evaluate(() => window.OctoProgress.complete(1)); await page.reload({ waitUntil: "load" }); }
+    if (sc.unlock) { await page.evaluate((n) => { for (let i = 1; i < n; i++) window.OctoProgress.complete(i); }, sc.unlock === true ? 2 : sc.unlock); await page.reload({ waitUntil: "load" }); }
     await ready(page);
     if (sc.act) await sc.act(page);
     await page.waitForTimeout(sc.wait);
@@ -138,6 +143,31 @@ if (!wanted.length || wanted.includes("audio-ui")) {
   const afterSecond = { text: await label(), running: await page.evaluate(() => window.OctoMusic.state().running) };
   const ok = first.includes("ON") && afterFirst.text.includes("ON") && afterFirst.running && Math.abs(vol - 0.3) < 0.01 && afterSecond.text.includes("OFF") && !afterSecond.running && !problems.length;
   console.log(`${ok ? "✓" : "✗"} audio-ui : ${first} → clic → ${afterFirst.text} (musique ${afterFirst.running ? "lancée" : "arrêtée"}), volume ${vol} → clic → ${afterSecond.text}`);
+  problems.forEach((m) => console.log("    " + m));
+  failed += ok ? 0 : 1;
+}
+
+// Musique de combat : seul le niveau 3 (combat: true) passe en mode épique ; le menu et le niveau 1 restent joyeux.
+if (!wanted.length || wanted.includes("audio-battle")) {
+  const page = await (await browser.newContext({ viewport: VIEWS.desktop })).newPage();
+  const problems = [];
+  page.on("pageerror", (e) => problems.push("pageerror: " + e.message));
+  await page.goto(URL_BASE, { waitUntil: "load" });
+  await ready(page);
+  await page.evaluate(() => { localStorage.clear(); for (let i = 1; i < 3; i++) window.OctoProgress.complete(i); });
+  await page.reload({ waitUntil: "load" });
+  await ready(page);
+  await page.keyboard.press("Shift");
+  await page.waitForTimeout(600);
+  const hub = await page.evaluate(() => window.OctoMusic.state().battle);
+  await page.goto(URL_BASE + "#level3", { waitUntil: "load" });
+  await page.reload({ waitUntil: "load" });
+  await ready(page);
+  await page.keyboard.press("Shift");
+  await page.waitForTimeout(1500);
+  const boss = await page.evaluate(() => ({ battle: window.OctoMusic.state().battle, bpm: window.OctoMusic.state().bpm }));
+  const ok = hub === false && boss.battle === true && boss.bpm > 120 && !problems.length;
+  console.log(`${ok ? "✓" : "✗"} audio-battle : menu ${hub ? "combat" : "calme"} → niveau 3 ${boss.battle ? "combat" : "calme"} (${boss.bpm.toFixed(0)} BPM)`);
   problems.forEach((m) => console.log("    " + m));
   failed += ok ? 0 : 1;
 }
