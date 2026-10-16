@@ -1,0 +1,53 @@
+site_name: OctoCat-Code
+site_description: Un jeu d'aventure rétro pour apprendre à programmer — le site est le jeu.
+site_author: OctoCat-Code
+use_directory_urls: true
+
+theme:
+  name: material
+  language: fr
+  palette:
+    scheme: slate
+    primary: custom
+    accent: custom
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - content.tabs.link
+  # NB : ne pas activer `navigation.instant` — chaque niveau instancie son propre canvas KAPLAY.
+
+nav:
+  - Accueil: index.md
+  - "Zone 1 · Logique pure":
+      - "Niveau 1 · La Forêt des Syntaxes": niveau-1.md
+      - "Niveau 2 · Le Pont des Booléens": niveau-2.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+extra_css:
+  - stylesheets/octocat.css
+
+# Ordre important : KAPLAY → persistance → sprites → moteur → scripts de niveau.
+# Chaque script de niveau s'enregistre auprès de window.gameEngine ; le moteur
+# ne monte que le niveau dont la page contient un <div class="octo-game" data-level="N">.
+extra_javascript:
+  - https://unpkg.com/kaplay@3001.0.19/dist/kaplay.js
+  - javascripts/progress.js
+  - javascripts/sprites.js
+  - javascripts/engine.js
+  - javascripts/level1.js
+  - javascripts/level2.js
