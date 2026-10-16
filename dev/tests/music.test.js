@@ -60,6 +60,15 @@ test("thèmes : 4 mesures, notes dans la mesure, sans chevauchement ; le calme r
   assert.equal(T.melodyAt(false, 0, 1), null);
 });
 
+test("volume : borné entre 0 et 1, valeur par défaut audible", () => {
+  const M = ctx.OctoMusic;
+  assert.equal(M.getVolume(), 0.8);
+  M.setVolume(2); assert.equal(M.getVolume(), 1);
+  M.setVolume(-1); assert.equal(M.getVolume(), 0);
+  M.setVolume("abc"); assert.equal(M.getVolume(), 0);
+  M.setVolume(0.5); assert.equal(M.getVolume(), 0.5);
+});
+
 test("API : sans AudioContext, rien ne plante", () => {
   const M = ctx.OctoMusic;
   M.unlock(); M.setMood(0.9); M.setBattle(true); M.hit(); M.victory();

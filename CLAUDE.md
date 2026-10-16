@@ -156,7 +156,7 @@ Règle du PO : **toujours joyeuse, entraînante et douce** ; **épique et intens
 | Combat | `def.combat: true` ou `OctoMusic.setBattle(true)` | Ré mineur, 148 BPM, grosse caisse/caisse claire, basse en croches, cuivres, mélodie héroïque, choc d'entrée |
 
 `hit()` = petit accord grave + pic de tension (jamais de combat) ; `victory()` = arpège majeur, retour au calme.
-Démarre au premier geste (autoplay) ; bouton ♪ ON/OFF mémorisé dans `localStorage`. Vérifié par `npm test` (théorie, thèmes) et `npm run shot` (signal audio, calme → alerte → combat, titre d'onglet).
+Démarre au premier geste (autoplay) ; bouton ♪ ON/OFF + curseur de volume discret (`.octo-audio`), tous deux mémorisés dans `localStorage` (clés `octocat-code:music:v2`, `octocat-code:volume`). Le premier clic sur ♪ lance la musique (il ne la coupe pas). Vérifié par `npm test` (théorie, thèmes) et `npm run shot` (signal audio, calme → alerte → combat, titre d'onglet).
 
 ## 14. Optimisation multi-plateformes (PC, portable, tablette, Android, iOS)
 
@@ -171,5 +171,5 @@ Toujours penser à toutes les plateformes. Déjà en place :
 
 - **Progression** : déjà 100 % locale (`localStorage`, `OctoProgress`) — aucun serveur, aucun compte.
 - **Jeu installé dans le navigateur** : `docs/sw.js` (service worker, cache d'abord) + `docs/manifest.webmanifest` (plein écran, paysage, icônes PNG générées par `dev/icons.mjs`). `tools/postbuild.py` réécrit `VERSION` (hash du contenu) et `PRECACHE` (tous les fichiers du site) à chaque build : 1re visite = tout est téléchargé une fois (~3 Mo), ensuite chargement instantané et jeu **hors ligne**. Une nouvelle version remplace l'ancien cache au rechargement suivant. Le worker est désactivé en local (sauf `?pwa=on`) pour ne jamais servir de fichiers périmés en développement. Vérifié par `npm run shot` (rechargement hors ligne).
-- **Qualité graphique** : `docs/javascripts/fx.js` = un passage plein écran WebGL (KAPLAY `usePostEffect`) : halo lumineux (bloom) sur torches, portail, yeux du Glitch, lucioles ; étalonnage (contraste en S, hautes lumières chaudes), vignettage, dithering. Niveaux auto : `high` (PC, portables, tablettes récentes) = bloom 16 échantillons ; `lite` (Android/iOS, ≤ 4 cœurs ou ≤ 4 Go) = étalonnage seul ; forçage `?quality=high|lite|off`, `SHOT_QUALITY=… npm run shot` pour comparer.
+- **Qualité graphique** : `docs/javascripts/fx.js` = un passage plein écran WebGL (KAPLAY `usePostEffect`) : halo lumineux (bloom) sur torches, portail, yeux du Glitch, lucioles ; étalonnage (contraste en S, hautes lumières chaudes), vignettage, dithering. **Désactivé par défaut** (le PO a jugé le rendu moins bon : halo qui adoucit les contours et les textes) ; option expérimentale via `?quality=high|lite`, `SHOT_QUALITY=… npm run shot` pour comparer. Le rendu de référence reste le pixel art net (`pixelDensity` jusqu'à 6, plafonné à 4 sur appareils modestes).
 - Rappel : Material for MkDocs n'apporte que l'enveloppe de la page ; le rendu du jeu vient de KAPLAY/WebGL et du pixel art procédural. Pistes suivantes : lumières dynamiques, parallaxe plus profonde, animations de feuillage, particules supplémentaires (toujours avec un palier `lite`).

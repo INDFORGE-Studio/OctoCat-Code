@@ -58,7 +58,7 @@ const SCENARIOS = {
 };
 
 const wanted = process.argv.slice(2).filter((a) => !a.startsWith("-"));
-const names = (wanted.length ? wanted : Object.keys(SCENARIOS)).filter((n) => n !== "audio" && n !== "pwa");
+const names = (wanted.length ? wanted : Object.keys(SCENARIOS)).filter((n) => n !== "audio" && n !== "pwa" && n !== "audio-ui");
 const browser = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required", "--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
 let failed = 0;
 
@@ -109,6 +109,32 @@ if (!wanted.length || wanted.includes("audio")) {
   console.log(`${ok && !problems.length ? "✓" : "✗"} audio : calme ${calm.s.bpm.toFixed(0)} BPM (rms ${calm.rms.toFixed(4)}) → alerte ${alert.bpm.toFixed(0)} BPM → combat ${fightS.s.bpm.toFixed(0)} BPM (rms ${fightS.rms.toFixed(4)})`);
   problems.forEach((m) => console.log("    " + m));
   failed += ok && !problems.length ? 0 : 1;
+}
+
+// Commandes du son : le premier clic sur ♪ lance la musique (reste « ON »), le curseur règle le volume, le clic suivant coupe.
+if (!wanted.length || wanted.includes("audio-ui")) {
+  const page = await (await browser.newContext({ viewport: VIEWS.desktop })).newPage();
+  const problems = [];
+  page.on("pageerror", (e) => problems.push("pageerror: " + e.message));
+  await page.goto(URL_BASE, { waitUntil: "load" });
+  await ready(page);
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({ waitUntil: "load" });
+  await ready(page);
+  const label = () => page.textContent(".octo-mute");
+  const first = await label();
+  await page.click(".octo-mute");
+  await page.waitForTimeout(600);
+  const afterFirst = { text: await label(), running: await page.evaluate(() => window.OctoMusic.state().running) };
+  await page.fill(".octo-vol", "30");
+  const vol = await page.evaluate(() => window.OctoMusic.getVolume());
+  await page.screenshot({ path: path.join(OUT, "audio-ui.png"), clip: { x: 1100, y: 0, width: 500, height: 70 } });
+  await page.click(".octo-mute");
+  const afterSecond = { text: await label(), running: await page.evaluate(() => window.OctoMusic.state().running) };
+  const ok = first.includes("ON") && afterFirst.text.includes("ON") && afterFirst.running && Math.abs(vol - 0.3) < 0.01 && afterSecond.text.includes("OFF") && !afterSecond.running && !problems.length;
+  console.log(`${ok ? "✓" : "✗"} audio-ui : ${first} → clic → ${afterFirst.text} (musique ${afterFirst.running ? "lancée" : "arrêtée"}), volume ${vol} → clic → ${afterSecond.text}`);
+  problems.forEach((m) => console.log("    " + m));
+  failed += ok ? 0 : 1;
 }
 
 // PWA : après une première visite, le jeu se recharge entièrement hors ligne (cache du service worker).

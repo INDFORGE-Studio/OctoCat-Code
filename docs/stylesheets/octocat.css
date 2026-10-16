@@ -292,8 +292,16 @@ body:has(.octo-fs) { margin: 0; overflow: hidden; background: #150e24; }
   .octo-panel { height: 48%; }
 }
 
-.octo-mute {
+.octo-audio {
   position: absolute; top: 0.6em; right: 0.8em; z-index: 5;
+  display: flex; align-items: center; gap: 0.5em;
+}
+.octo-vol {
+  width: 5.5em; height: 44px; margin: 0; cursor: pointer;
+  accent-color: var(--octo-green); opacity: 0.75;
+}
+.octo-vol:hover, .octo-vol:focus-visible { opacity: 1; }
+.octo-mute {
   padding: 0.35em 0.7em;
   border: 2px solid var(--octo-border); border-radius: 4px;
   background: rgba(13, 17, 23, 0.8); color: #e6edf3;

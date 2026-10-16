@@ -2,10 +2,9 @@
  *   - étalonnage : contraste en S, hautes lumières chaudes / ombres froides, saturation ;
  *   - halo lumineux (bloom) : torches, portail, yeux du Glitch, lucioles et glyphes rayonnent ;
  *   - vignettage doux et grain de dithering (supprime les bandes dans les dégradés).
- * Deux niveaux, choisis automatiquement :
- *   « high » (PC, portables, tablettes récentes) : bloom à 16 échantillons ;
- *   « lite » (Android/iOS, ≤ 4 cœurs ou ≤ 4 Go) : étalonnage + vignette seuls, 1 échantillon par pixel, batterie préservée.
- * Forçage pour tests : ?quality=high | lite | off dans l'adresse.
+ * DÉSACTIVÉ PAR DÉFAUT : le rendu pixel art net est la référence (le halo adoucissait les contours et les textes).
+ * Option expérimentale, activée seulement par l'adresse : ?quality=high (halo à 16 échantillons)
+ * ou ?quality=lite (étalonnage seul, sans halo, adapté aux mobiles).
  */
 (function () {
   "use strict";
@@ -46,13 +45,18 @@
       var q = new URLSearchParams(window.location.search).get("quality");
       if (q === "high" || q === "lite" || q === "off") return q;
     } catch { /* ignoré */ }
+    return "off";
+  }
+
+  /** Appareil modeste (Android/iOS, ≤ 4 cœurs ou ≤ 4 Go) : on y réduit la résolution de rendu et les effets. */
+  function modest() {
     var nav = window.navigator || {};
-    var modest = /Android|Mobi|iPhone|iPad/i.test(nav.userAgent || "") || (nav.hardwareConcurrency || 8) <= 4 || (nav.deviceMemory || 8) <= 4;
-    return modest ? "lite" : "high";
+    return /Android|Mobi|iPhone|iPad/i.test(nav.userAgent || "") || (nav.hardwareConcurrency || 8) <= 4 || (nav.deviceMemory || 8) <= 4;
   }
 
   var OctoFX = {
     quality: quality,
+    modest: modest,
     _frag: FRAG,
     /** Charge le shader (une fois par instance KAPLAY) ; renvoie `apply(k)` à appeler au début de chaque scène. */
     install: function (k) {
