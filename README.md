@@ -32,3 +32,17 @@ mkdocs build --strict && python tools/postbuild.py site
 | `docs/javascripts/levelN.js` | Énigme et scène d'un niveau |
 
 Voir [`CLAUDE.md`](CLAUDE.md) pour le backlog et les consignes de travail du Lead Projet.
+
+## Crédits et licences tierces
+
+| Composant | Licence | Texte |
+|---|---|---|
+| [KAPLAY](https://kaplayjs.com) (`docs/javascripts/vendor/`) | MIT | `docs/assets/licenses/kaplay-MIT.txt` |
+| Police Press Start 2P (`docs/assets/fonts/`) | SIL OFL 1.1 | `docs/assets/licenses/press-start-2p-OFL.txt` |
+| [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) | MIT | (dépendance de build, non redistribuée) |
+
+Les sprites et le décor sont dessinés pour le projet (procéduraux, voir `docs/javascripts/sprites.js`).
+Ce projet n'est pas affilié à GitHub : « GitHub » et « Octocat » sont des marques de GitHub, Inc. ;
+l'OctoCat du jeu est un personnage original (chat-pieuvre violet).
+
+Licence du projet : à définir par INDFORGE Studio (aucune licence n'est accordée tant qu'elle n'est pas ajoutée).
