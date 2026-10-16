@@ -150,6 +150,7 @@
   /** Effets sonores de jeu, synthétisés (aucun fichier) : jump, djump, land, bit, heart, hit, kill, stomp, hurt, swing, throw, checkpoint, finish. */
   function playSfx(name) {
     if (!running || !ctx) return;
+    if (window.OctoSettings && window.OctoSettings.get("sfx") === false) return;
     var t = ctx.currentTime;
     if (lastSfx[name] && t - lastSfx[name] < 0.04) return; // évite les rafales
     lastSfx[name] = t;

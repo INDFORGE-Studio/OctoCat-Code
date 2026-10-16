@@ -196,8 +196,19 @@ Chaque niveau = **trajet** (phase d'action, scène `run<N>`) → arrivée au ter
 | 9 | Le Tri des Glitches | boucle + `if` + `%` | fouet + shuriken |
 | 10 | L'Arène du Glitch Gardien | `while` (boss, musique de combat) | Double Dragon, vagues épiques |
 
-- `docs/javascripts/playsim.js` : simulation **pure** (testée sous Node) — plateformes (`buildCourse` : langage de segments `flat/gap/up/down/float/end`), beat'em up (`createBrawl` : vagues qui verrouillent l'écran), et deux « bots ». `play.js` : rendu KAPLAY, clavier et souris (flèches / WASD = ZQSD, Espace, clic gauche ou X = frapper, clic droit ou C = shuriken), boutons tactiles, effets, caméra, musique (tension près des ennemis, combat pendant les vagues) et sons (`OctoMusic.sfx`, synthétisés). `puzzle.js` : validation « sur plusieurs cas » + scène d'énigme standard. Sprites du trajet : `sprites-run.js`.
+- `docs/javascripts/playsim.js` : simulation **pure** (testée sous Node) — plateformes (`buildCourse` : langage de segments `flat/gap/up/down/float/end`), beat'em up (`createBrawl` : vagues qui verrouillent l'écran), et deux « bots ». `play.js` : rendu KAPLAY, clavier et souris (touches par défaut : flèches / WASD = ZQSD, Espace, clic gauche ou X = frapper, clic droit ou C = shuriken ; toutes personnalisables, voir §18), boutons tactiles, effets, caméra, musique (tension près des ennemis, combat pendant les vagues) et sons (`OctoMusic.sfx`, synthétisés). `puzzle.js` : validation « sur plusieurs cas » + scène d'énigme standard. Sprites du trajet : `sprites-run.js`.
 - Ajouter un niveau : un `levelN.js` (`run`, `starter`, `briefing`, `hints`, `validate` via `OctoPuzzle.validateCases`, `scene: OctoPuzzle.scene({...})`), une entrée dans `OctoProgress.levels` et dans `extra_javascript`. Les tests (`levels`, `sim`) l'attrapent s'il est incomplet ou infaisable.
 - Garde-fous : `npm test` fait jouer chaque parcours par un bot (doit se terminer) et vérifie que le double saut est indispensable aux niveaux 4 et 8 ; `node dev/run-check.mjs [niveaux]` rejoue le vrai jeu dans Chromium avec le bot jusqu'à l'ouverture de l'énigme.
 - Une chute dans un trou coûte un cœur (retour au dernier point de contrôle). Accessibilité : après 3 chutes / 2 K.O., un bouton « Passer le trajet » apparaît. Tactile : boutons à l'écran (détection `pointer: coarse` ou premier toucher). `?unlock=all` déverrouille tous les niveaux (démonstration). Sélecteur de niveaux sur l'accueil.
 - Réglages de la physique dans `OctoSim.CFG` (saut max ≈ 80 px, portée ≈ 90 px) : les parcours respectent ces limites (vides ≤ 2 colonnes, ≤ 3 avec double saut ; marches ≤ 2 tuiles, ≤ 3 avec double saut).
+
+## 18. Réglages du joueur (menu ⚙)
+
+`docs/javascripts/settings.js` (`OctoSettings`) : bouton ⚙ à côté du son, ou **Échap** (la partie se met en pause). Quatre onglets :
+- **Touches** : chaque action (gauche, droite, sauter, haut, bas, frapper, shuriken) a jusqu'à 4 touches, clavier ou **boutons de souris** ; « + » puis appuyer sur la touche voulue. Une touche déjà prise est reprise à l'autre action. Codes physiques (KeyW = Z sur AZERTY). L'aide en bas de l'écran suit les touches choisies (`hintFor`).
+- **Son** : musique, volume, effets sonores (`sfx`).
+- **Affichage** : secousses, aide des touches, boutons tactiles (auto / toujours / jamais), plein écran.
+- **Jeu** : mode détente (aucun dégât ; `sim.relax`), « Passer le trajet » toujours visible, sauvegarde copiable / rechargeable (`OctoProgress.exportSave / importSave`, validation stricte), réglages par défaut, **recommencer le jeu à zéro** (confirmation en deux temps, garde les réglages).
+- Stockage : `octocat-code:settings:v1` (réglages) et `octocat-code:v1` (progression). Logique pure testée (`dev/tests/settings.test.js`) ; `node dev/settings-check.mjs` rejoue le menu dans Chromium (pause, liaison clavier et souris, reset).
+- `play.js` lit les touches via `OctoSettings.lookup(code)` ; ne plus ajouter de touche en dur.
+- Piège corrigé : `.octo-fs` a `z-index: 50` ; sans cela une barre latérale Material invisible interceptait des clics dans le jeu.

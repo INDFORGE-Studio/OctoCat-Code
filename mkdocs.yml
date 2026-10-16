@@ -54,6 +54,7 @@ extra_javascript:
   - javascripts/scenery.js
   - javascripts/pwa.js
   - javascripts/music.js
+  - javascripts/settings.js
   - javascripts/fx.js
   - javascripts/sprites-run.js
   - javascripts/playsim.js

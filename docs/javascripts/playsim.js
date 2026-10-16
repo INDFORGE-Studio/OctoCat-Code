@@ -157,11 +157,11 @@
       sim.stats.deaths++;
       emit(fell ? "fall" : "die", p.x, p.y);
       // une chute coûte une vie (un cœur) ; à 0 cœur on repart avec tous les cœurs
-      if (fell) { p.hp -= 1; if (p.hp <= 0) p.hp = CFG.hpMax; } else p.hp = CFG.hpMax;
+      if (fell) { if (!sim.relax) { p.hp -= 1; if (p.hp <= 0) p.hp = CFG.hpMax; } } else p.hp = CFG.hpMax;
       p.x = sim.cp.x; p.y = sim.cp.y; p.vx = 0; p.vy = 0; p.inv = 1.5; p.swing = 0;
     }
     function hurtPlayer(fromX, amount) {
-      if (p.inv > 0) return;
+      if (p.inv > 0 || sim.relax) return; // mode détente : aucun dégât
       p.hp -= amount || 1; p.inv = CFG.invTime;
       p.vx = (p.x < fromX ? -1 : 1) * 180; p.vy = -230; p.onGround = false;
       emit("hurt", p.x, p.y - 16);
@@ -357,7 +357,7 @@
     }
 
     function hurtPlayer(e, dmg) {
-      if (p.inv > 0) return;
+      if (p.inv > 0 || sim.relax) return; // mode détente : aucun dégât
       p.hp -= dmg; p.inv = 1.0; emit("hurt", p.x, p.y - 20);
       p.x += (p.x < e.x ? -1 : 1) * 14;
       if (p.hp <= 0) {
