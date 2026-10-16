@@ -1,0 +1,20 @@
+{
+  "name": "octocat-code-dev",
+  "private": true,
+  "description": "Outils de développement d'OctoCat-Code (lint, tests, captures). Rien de ceci n'est publié sur le site.",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint docs/javascripts dev",
+    "test": "node --test \"dev/tests/*.test.js\"",
+    "build": "python -m mkdocs build --strict && python tools/postbuild.py site",
+    "shot": "node dev/shot.mjs",
+    "check": "npm run lint && npm test && npm run build",
+    "serve": "python -m mkdocs serve"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "globals": "^15.0.0",
+    "playwright": "^1.50.0"
+  }
+}

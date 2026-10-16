@@ -421,7 +421,7 @@
   }
 
   function cityBuf() {
-    var b = new Buf(165, 84), rnd = seeded(77), x, y, w, h;
+    var b = new Buf(165, 84), rnd = seeded(77), x, w, h;
     function tower(bx, baseY, bw, bh, face, side, top) {
       b.rect(bx, baseY - bh, bw, bh, face);
       b.rect(bx + bw - Math.max(2, Math.floor(bw / 4)), baseY - bh, Math.max(2, Math.floor(bw / 4)), bh, side);

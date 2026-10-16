@@ -34,7 +34,7 @@
         k.color(rgb("#1a1040")), k.opacity(0.38), k.fixed(), k.z(30.6)]);
       k.add([k.text("OCTOCAT-CODE", { size: fsz(38), font: "monospace" }), k.pos(cx + 2, 50), k.anchor("center"), k.color(rgb("#1a1040")), k.fixed(), k.z(31)]);
       k.add([k.text("OCTOCAT-CODE", { size: fsz(38), font: "monospace" }), k.pos(cx, 48), k.anchor("center"), k.color(rgb("#f0f6fc")), k.fixed(), k.z(32)]);
-      k.add([k.text("APPRENDS A CODER - LE SITE EST LE JEU", { size: fsz(11), font: "monospace" }), k.pos(cx, 80), k.anchor("center"),
+      k.add([k.text("APPRENDS A CODER EN T'AMUSANT", { size: fsz(11), font: "monospace" }), k.pos(cx, 80), k.anchor("center"),
         k.color(rgb("#f0f6fc")), k.fixed(), k.z(32)]);
       var prompt = k.add([k.text(info.started ? "[ CLIQUE : CONTINUER ]" : "[ CLIQUE : ENTRER DANS LE PORTAIL ]", { size: fsz(12), font: "monospace" }),
         k.pos(cx, 104), k.anchor("center"), k.color(rgb("#ffe08a")), k.fixed(), k.z(32)]);
@@ -86,15 +86,13 @@
             });
           })
           .then(function () { return h.wait(0.2); })
-          .then(function () { ctx.go(info.root + info.level.path); });
+          .then(function () { ctx.go("level" + info.level.id); });
       }
 
-      ctx.host.tabIndex = 0;
-      ctx.host.style.cursor = "pointer";
-      ctx.host.addEventListener("click", enter);
-      ctx.host.addEventListener("keydown", function (e) {
-        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); enter(); }
-      });
+      // entrées du canvas : nettoyées automatiquement au changement de scène
+      k.onClick(enter);
+      k.onKeyPress("enter", enter);
+      k.onKeyPress("space", enter);
 
       return { reset: function () {} };
     }

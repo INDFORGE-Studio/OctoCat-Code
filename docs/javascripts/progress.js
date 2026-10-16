@@ -33,23 +33,18 @@
       if (!raw) return memory ? clone(memory) : defaults();
       var parsed = JSON.parse(raw);
       return Object.assign(defaults(), parsed);
-    } catch (e) {
+    } catch {
       return memory ? clone(memory) : defaults();
     }
   }
 
   function write(state) {
     memory = clone(state);
-    try { window.localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* mémoire seule */ }
+    try { window.localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* mémoire seule */ }
     document.dispatchEvent(new CustomEvent("octo:progress", { detail: state }));
   }
 
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
-
-  function levelById(id) {
-    for (var i = 0; i < LEVELS.length; i++) if (LEVELS[i].id === id) return LEVELS[i];
-    return null;
-  }
 
   var Progress = {
     levels: LEVELS,

@@ -20,6 +20,15 @@
       "\n" +
       "v_speed = ???",
 
+    briefing: {
+      title: "La Forêt des Syntaxes",
+      lore: "Les arbres de GitHubia murmurent en { } et en ;. Un Glitch, fragment de code corrompu, bloque le sentier menant au premier Portail à Code.",
+      lesson: "Une variable est une boîte étiquetée qui garde une valeur. On lui donne un nom, puis on lui assigne une valeur avec le signe =.",
+      examples: { "Pseudo-code": "v_vie = 3", "Python": "v_vie = 3", "JavaScript": "let v_vie = 3;" },
+      tips: ["= donne une valeur ; == compare deux valeurs.", "Les noms respectent la casse : v_speed et V_Speed sont deux boîtes différentes."],
+      goal: "déclare la variable v_speed et donne-lui la valeur 200."
+    },
+
     hints: [
       "Une variable se déclare avec un nom, le signe = puis une valeur.",
       "Remplace les ??? par un nombre. Ici, la variable s'appelle v_speed (attention aux majuscules).",
@@ -57,8 +66,8 @@
       return { ok: true, messages: ["v_speed = " + res.value + "  ✓"], data: { speed: res.value } };
     },
 
-    scene: function (k, h) {
-      var sc = OctoScenery.build(k, h, { portalOpen: false });
+    scene: function (k, h, ctx) {
+      var sc = OctoScenery.build(k, h, { portalOpen: false, reserve: ctx.reserve });
       var rgb = sc.rgb, BASE_Y = sc.BASE_Y, PORTAL_X = sc.PORTAL_X;
 
       // panneau du sentier
@@ -75,10 +84,10 @@
         k.color(), k.opacity(1), k.rotate(0), k.z(9)]);
 
       // HUD (la police par défaut de KAPLAY n'a pas les accents : texte en capitales sans accents)
-      k.add([k.text("FORET DES SYNTAXES - NIVEAU 1", { size: 11, font: "monospace" }), k.pos(10, 8), k.color(rgb("#e6edf3")), k.z(31)]);
-      var speedTxt = k.add([k.text("v_speed = ???", { size: 14, font: "monospace" }), k.pos(10, 24), k.color(rgb("#d29922")), k.z(31)]);
-      var banner = k.add([k.text("", { size: 18, font: "monospace" }), k.pos(300, 70), k.anchor("center"),
-        k.color(rgb("#ffffff")), k.opacity(0), k.z(32)]);
+      k.add([k.text("FORET DES SYNTAXES - NIVEAU 1", { size: 11, font: "monospace" }), k.pos(10, 8), k.color(rgb("#e6edf3")), k.fixed(), k.z(31)]);
+      var speedTxt = k.add([k.text("v_speed = ???", { size: 14, font: "monospace" }), k.pos(10, 24), k.color(rgb("#d29922")), k.fixed(), k.z(31)]);
+      var banner = k.add([k.text("", { size: 18, font: "monospace" }), k.pos(sc.viewW / 2, 70), k.anchor("center"),
+        k.color(rgb("#ffffff")), k.opacity(0), k.fixed(), k.z(32)]);
 
       var glitchBob = 0;
       sc.onFrame(function (t) {
