@@ -120,3 +120,10 @@ Règles du projet (appliquées par `tools/postbuild.py`, qui fait échouer le bu
 - `deploy.yml` : build strict + `postbuild.py` sur **chaque** push ; publication Pages **uniquement** depuis `main`.
 - ⬜ Activer GitHub Pages (Settings → Pages → Source : GitHub Actions) — action publique, à valider par le PO.
 - ⬜ i18n (français par défaut + anglais) avec `mkdocs-static-i18n`, comme le site FISTILAND.
+
+## 11. Direction artistique & propriété intellectuelle
+
+- Ambiance de GitHubia : **de jour**, ciel indigo → bleu avec cumulus cernés, canyon rouge à strates, mesas bleutées, forêt corail, cité pâle à tours, premier plan de grandes feuilles violet sombre, plateau de roche mauve où évolue l'OctoCat. Palette détaillée dans `sprites.js` (section « Décor »).
+- Les illustrations fournies par le PO (page d'accueil de Material for MkDocs) ne servent que de **référence d'ambiance**. Elles ne sont ni copiées, ni tracées, ni embarquées dans le dépôt.
+- **Passer en 2D / pixel art ne supprime pas le droit d'auteur** : c'est la ressemblance de l'expression protégée (composition, éléments distinctifs, textes) qui compte, pas la technique. Règle : composition originale (ici : paysage inversé, tours de notre invention — ziggourat de baies serveurs et flèche annulaire), aucun texte ni élément signature repris (le panneau « DOCS LIKE CODE » est remplacé par une enseigne « { } »).
+- Tout nouvel asset visuel est dessiné pour le projet (procédural ou création originale) ou issu d'une licence libre compatible, dont la source et la licence sont notées dans le dépôt.
