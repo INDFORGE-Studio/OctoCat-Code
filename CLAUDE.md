@@ -44,19 +44,19 @@ Statut : ✅ écrit · 🔶 écrit mais non vérifié · ⬜ à faire
 
 ### Étape 1 — Architecture & MkDocs
 - 🔶 `mkdocs.yml` : Material, `pymdownx.superfences`, `pymdownx.tabbed`, CDN KAPLAY (`unpkg …/kaplay@3001.0.19`), scripts de niveau.
-- 🔶 State management `localStorage` (niveaux débloqués, langage, succès) + verrou des niveaux (`data-octo-guard`).
+- ✅ State management `localStorage` (niveaux débloqués, langage, succès) + verrou des niveaux (`data-octo-guard`) — testé navigateur (verrou, déblocage, succès).
 - ⬜ Vérifier `mkdocs build --strict` et `mkdocs serve` (Python non installé sur la machine de dev initiale).
 
 ### Étape 2 — Assets & intégration KAPLAY
 - 🔶 Charte GitHub Dark, pixel art procédural : OctoCat (idle/run/success/fail), Glitch, portail fermé/ouvert, arbres, sol.
-- 🔶 Canvas 600×250 responsive (`aspect-ratio`, `width:100%`).
+- ✅ Canvas 600×250 responsive (`aspect-ratio`, `width:100%`) — testé à 375 px, pas de scroll horizontal.
 - ⬜ Itération artistique sur les sprites (rendu à valider à l'œil) ; décor « Forêt des Syntaxes » plus riche.
 - ⬜ Option : remplacer le procédural par des PNG spritesheet (changer uniquement `sprites.js`).
 
 ### Étape 3 — Interprétation & évaluation
-- 🔶 `window.gameEngine` : `registerLevel`, `mount`, `on`, `interpreter.run`, `validators.{regex,qcm,keywords,assignment}`.
-- 🔶 Succès : portail s'ouvre → OctoCat traverse → `window.location.href` vers la page suivante.
-- 🔶 Échec : `shake()`, attaque du Glitch, message de compilation dans la console du composant.
+- ✅ `window.gameEngine` : `registerLevel`, `mount`, `on`, `interpreter.run`, `validators.{regex,qcm,keywords,assignment}`. — testé navigateur.
+- ✅ Succès : portail s'ouvre → OctoCat traverse → `window.location.href` (animation vérifiée, redirection vérifiée sur page de test).
+- ✅ Échec : `shake()`, attaque du Glitch, message de compilation dans la console du composant (logique vérifiée ; rendu visuel de l'attaque à revoir à l'œil).
 - ⬜ Zone 2/3 : étendre l'interpréteur (`if`, `while`, `for`, fonctions, tableaux) — **liste blanche uniquement**.
 
 ### Étape 4 — Level design du Vertical Slice
@@ -82,3 +82,9 @@ Statut : ✅ écrit · 🔶 écrit mais non vérifié · ⬜ à faire
 
 - Réponses courtes : ce qui est vrai maintenant, ce qui reste, la décision demandée (une seule à la fois).
 - Signaler immédiatement tout écart avec le cahier des charges et proposer l'option recommandée.
+
+## 8. Notes d'environnement
+
+- Python/Node absents de la machine de dev initiale : `mkdocs build`/`serve` **jamais exécutés** → premier test réel à faire dès que Python est installé.
+- Les tests navigateur du composant ont été faits sur une page statique reproduisant le DOM de MkDocs, servie en localhost. Le Browser pane **caché** met en pause `requestAnimationFrame` : les animations KAPLAY ne se jouent que si le pane est affiché.
+- Commits : utiliser l'e-mail `noreply` GitHub (le push est refusé avec l'e-mail privé).
