@@ -97,6 +97,22 @@ ok("réglages conservés après reset du jeu", set.keys && set.keys.jump.include
 ok("retour à l'accueil", !/level\d/.test(await page.evaluate(() => location.hash)));
 await shot("hub");
 
+// bouton « Retour à l'accueil » : visible dans un niveau (trajet), absent à l'accueil
+await page.goto(`http://127.0.0.1:${PORT}${BASE}?unlock=all#level3`, { waitUntil: "load" });
+await page.waitForFunction(() => window.OctoPlay && window.OctoPlay.current, null, { timeout: 15000 });
+await page.waitForTimeout(800);
+await page.keyboard.press("Escape");
+await page.waitForTimeout(300);
+const home = page.locator(".octo-set__foot button", { hasText: "Retour à l'accueil" });
+ok("« Retour à l'accueil » visible dans un niveau", await home.isVisible());
+await home.click();
+await page.waitForTimeout(1200);
+ok("retour à l'accueil effectué", (await page.evaluate(() => document.documentElement.getAttribute("data-octo-scene"))) === "hub" && !/level/.test(await page.evaluate(() => location.hash)));
+ok("le menu s'est refermé", await page.locator(".octo-set.is-open").count() === 0);
+await page.keyboard.press("Escape");
+await page.waitForTimeout(300);
+ok("pas de bouton « Accueil » à l'accueil", !(await home.isVisible()));
+
 console.log(out.join("\n"));
 console.log("erreurs page :", errs.length ? errs : "aucune");
 if (errs.length) process.exitCode = 1;

@@ -548,13 +548,31 @@
 
     function show(node, on) { node.classList.toggle("is-open", !!on); }
 
+    /** Texte enrichi sans innerHTML : `code` devient une pastille de code, **gras** devient du gras (les deux peuvent s'imbriquer). */
+    function rich(node, text) {
+      var re = /\*\*(.+?)\*\*|`([^`]+)`/g, last = 0, m;
+      text = String(text);
+      while ((m = re.exec(text))) {
+        if (m.index > last) node.appendChild(document.createTextNode(text.slice(last, m.index)));
+        if (m[1] != null) { var strong = el("strong"); rich(strong, m[1]); node.appendChild(strong); }
+        else node.appendChild(el("code", "octo-key", m[2]));
+        last = re.lastIndex;
+      }
+      if (last < text.length) node.appendChild(document.createTextNode(text.slice(last)));
+      return node;
+    }
+    function label(text) { return el("div", "octo-dialog__label", text); }
+
     function openBriefing(then) {
       var b = def.briefing || {};
       card.textContent = "";
       card.appendChild(el("h2", "octo-dialog__title", b.title || def.title));
-      if (b.lore) card.appendChild(el("p", "octo-dialog__lore", b.lore));
-      if (b.lesson) card.appendChild(el("p", "octo-dialog__text", b.lesson));
+      if (b.lore) { card.appendChild(label("📖 L'histoire")); card.appendChild(rich(el("p", "octo-dialog__lore"), b.lore)); }
+      if (b.lesson) { card.appendChild(label("🧠 Pour comprendre")); card.appendChild(rich(el("p", "octo-dialog__text"), b.lesson)); }
+      // la mission passe avant les exemples : c'est ce qu'il faut absolument voir (surtout sur petit écran)
+      if (b.goal) { var g = el("div", "octo-dialog__goal"); g.appendChild(el("div", "octo-dialog__goal-title", "🎯 TA MISSION")); g.appendChild(rich(el("p", "octo-dialog__goal-text"), b.goal)); card.appendChild(g); }
       if (b.examples) {
+        card.appendChild(label("👀 Regarde un exemple"));
         var tabs = el("div", "octo-tabs"), code = el("pre", "octo-dialog__code");
         Object.keys(b.examples).forEach(function (name, i) {
           var t = el("button", "octo-tab" + (i === 0 ? " is-on" : ""), name);
@@ -569,16 +587,17 @@
         });
         card.appendChild(tabs); card.appendChild(code);
       }
-      (b.tips || []).forEach(function (t) { card.appendChild(el("p", "octo-dialog__tip", "▸ " + t)); });
-      if (b.goal) card.appendChild(el("p", "octo-dialog__goal", "OBJECTIF : " + b.goal));
-      var go = el("button", "octo-btn octo-btn--primary", def.comingSoon ? "◂ RETOUR AU MENU" : "COMMENCER ▶");
+      if ((b.tips || []).length) card.appendChild(label("💡 Petits conseils"));
+      (b.tips || []).forEach(function (t) { var p = el("p", "octo-dialog__tip", "▸ "); card.appendChild(rich(p, t)); });
+      var foot = el("div", "octo-dialog__foot");
+      var go = el("button", "octo-btn octo-btn--primary", def.comingSoon ? "◂ RETOUR AU MENU" : "J'AI COMPRIS, JE JOUE ! ▶");
       go.type = "button";
       go.addEventListener("click", function () {
         show(dialog, false);
         if (def.comingSoon) hooks.menu(); else { show(panel, true); editor.focus(); }
         if (then) then();
       });
-      card.appendChild(go);
+      foot.appendChild(go); card.appendChild(foot);
       show(dialog, true);
       go.focus();
     }
@@ -589,7 +608,7 @@
     bMenu.addEventListener("click", function () { hooks.menu(); });
     bReset.addEventListener("click", function () {
       editor.value = def.starter; konsole.textContent = "";
-      log("// Code réinitialisé.", "dim");
+      log("// Le code est revenu au début. Tu peux recommencer !", "dim");
       hooks.reset();
     });
     bBrief.addEventListener("click", function () { show(panel, false); openBriefing(function () { show(panel, true); }); });
@@ -626,7 +645,7 @@
         editor.value = d.starter || "";
         editor.rows = Math.max(4, (d.starter || "").split("\n").length + 1);
         konsole.textContent = "";
-        log("// Écris ta solution puis clique sur « Compiler » (Ctrl+Entrée).", "dim");
+        log("// Écris ta réponse à la place des ???, puis clique sur ⚡ Compiler (ou Ctrl+Entrée).", "dim");
         setBusy(false); show(panel, false);
         openBriefing();
       }
@@ -669,6 +688,7 @@
     k.shake = function (n) { if (!window.OctoSettings || window.OctoSettings.get("shake")) rawShake.call(k, n); };
     window.OctoSprites.registerAll(k);
     if (window.OctoSprites.registerRun) window.OctoSprites.registerRun(k);
+    if (window.OctoLogo) window.OctoLogo.register(k); // lettres du logo de l'accueil
     var applyFx = window.OctoFX ? window.OctoFX.install(k) : function () {}; // post-traitement (halo, étalonnage)
     var helpers = {
       wait: function (s) { return wait(k, s); },
@@ -697,9 +717,12 @@
       if (m && !P.isUnlocked(parseInt(m[1], 10))) { name = "hub"; target = "hub"; m = null; }
       else if (m && levels[m[1]] && levels[m[1]].run && !(opts && opts.skip)) target = "run" + m[1];
       busy = false;
+      document.documentElement.setAttribute("data-octo-scene", name); // le menu ⚙ s'en sert (bouton « Accueil » seulement hors de l'accueil)
       try { window.history.replaceState(null, "", name === "hub" ? window.location.pathname : "#" + name); } catch { /* ignoré */ }
       k.go(target);
     }
+
+    document.addEventListener("octo:home", function () { goTo("hub"); }); // bouton « Accueil » du menu ⚙
 
     var ui = createUI(host, {
       menu: function () { goTo("hub"); },
@@ -717,7 +740,7 @@
         busy = true; ui.setBusy(true);
         if (result.ok) {
           var gained = P.complete(def.id);
-          ui.log("✔ Compilation réussie.", "ok");
+          ui.log("✔ Bravo, ça marche ! 🎉", "ok");
           gained.forEach(function (key) { ui.log("🏆 Succès débloqué : " + P.achievements[key].title, "gold"); });
           emit("success", { level: def.id, result: result });
           music().victory();
@@ -727,7 +750,7 @@
           });
         } else {
           P.recordFail(def.id);
-          ui.log("✗ Compilation échouée.", "err");
+          ui.log("✗ Pas encore… lis le message ci-dessus et réessaie : tu peux y arriver ! (Le bouton 💡 Indice t'aide.)", "err");
           emit("fail", { level: def.id, result: result });
           music().hit();
           cur.ctrl.fail(result).then(function () { busy = false; ui.setBusy(false); });
@@ -770,13 +793,35 @@
     if (/^level\d+$/.test(start) && !(levels[start.slice(5)] && P.isUnlocked(parseInt(start.slice(5), 10)))) start = "hub";
     k.onLoad(function () { goTo(start); });
 
-    // Le format de la fenêtre a changé : on recompose la vue.
+    // Le format de la fenêtre a changé : on recompose la vue (rechargement). Jamais en plein écran : recharger la page
+    // le ferait quitter (écran noir puis retour à la fenêtre) ; le canvas garde alors son format et s'entoure de bandes (CSS).
     var timer = null;
-    window.addEventListener("resize", function () {
+    host.style.setProperty("--octo-aspect", (W / H).toFixed(4));
+    function relayout() {
+      if (document.fullscreenElement) return;
+      if (Math.abs(window.innerWidth / window.innerHeight / aspect - 1) > 0.06) window.location.reload();
+    }
+    window.addEventListener("resize", function () { window.clearTimeout(timer); timer = window.setTimeout(relayout, 400); });
+    // Plein écran : la souris est cachée (même dans un niveau) ; un clic molette la montre ou la cache à nouveau.
+    var root = document.documentElement, cursorToast = null;
+    function toast(text) {
+      if (!cursorToast) { cursorToast = el("div", "octo-toast"); host.appendChild(cursorToast); }
+      cursorToast.textContent = text; cursorToast.classList.add("is-on");
+      window.clearTimeout(cursorToast.__t); cursorToast.__t = window.setTimeout(function () { cursorToast.classList.remove("is-on"); }, 2600);
+    }
+    document.addEventListener("mousedown", function (e) {
+      if (e.button !== 1 || !document.fullscreenElement) return;
+      e.preventDefault();
+      toast(root.classList.toggle("octo-hide-cursor") ? "Souris cachée · clic molette pour la montrer" : "Souris visible · clic molette pour la cacher");
+    });
+    document.addEventListener("auxclick", function (e) { if (e.button === 1 && document.fullscreenElement) e.preventDefault(); });
+    document.addEventListener("fullscreenchange", function () {
+      root.classList.toggle("octo-fs-on", !!document.fullscreenElement);
+      var hide = !!document.fullscreenElement && (!window.OctoSettings || window.OctoSettings.get("hideCursor") !== false);
+      root.classList.toggle("octo-hide-cursor", hide);
+      if (hide) toast("Souris cachée · clic molette pour la montrer");
       window.clearTimeout(timer);
-      timer = window.setTimeout(function () {
-        if (Math.abs(window.innerWidth / window.innerHeight / aspect - 1) > 0.06) window.location.reload();
-      }, 400);
+      if (!document.fullscreenElement) timer = window.setTimeout(relayout, 900); // retour à la fenêtre : format redevenu normal, sinon on recompose
     });
 
     host.__kaplay = k;

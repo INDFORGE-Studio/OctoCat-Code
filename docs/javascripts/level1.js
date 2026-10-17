@@ -32,52 +32,55 @@
     alt: "Une forêt nocturne : l'OctoCat à gauche, un Glitch au centre et un portail verrouillé à droite.",
 
     starter:
-      "# Un Glitch bloque le chemin !\n" +
-      "# Donne à l'OctoCat une vitesse de 200.\n" +
+      "# 🐱 Un Glitch bloque le chemin !\n" +
+      "# Remplace les ??? par un nombre pour donner une vitesse de 200 à l'OctoCat.\n" +
       "\n" +
       "v_speed = ???",
 
     briefing: {
       title: "La Forêt des Syntaxes",
-      lore: "Les arbres de GitHubia murmurent en { } et en ;. Un Glitch, fragment de code corrompu, bloque le sentier menant au premier Portail à Code.",
-      lesson: "Une variable est une boîte étiquetée qui garde une valeur. On lui donne un nom, puis on lui assigne une valeur avec le signe =.",
+      lore: "Dans la forêt de GitHubia, les arbres parlent la langue des ordinateurs ! Ils murmurent avec deux signes magiques : les accolades `{ }` (elles rangent des choses à l'intérieur, comme une boîte) et le point-virgule `;` (il veut dire « ma phrase est finie »). Mais un Glitch bloque le chemin vers le premier Portail à Code…",
+      lesson: "Une **variable**, c'est une **boîte avec une étiquette**. L'étiquette est le **nom** de la boîte. Dedans, on met une **valeur** (un nombre, par exemple). Pour mettre une valeur dans la boîte, on utilise le signe `=`.",
       examples: { "Pseudo-code": "v_vie = 3", "Python": "v_vie = 3", "JavaScript": "let v_vie = 3;" },
-      tips: ["= donne une valeur ; == compare deux valeurs.", "Les noms respectent la casse : v_speed et V_Speed sont deux boîtes différentes."],
-      goal: "déclare la variable v_speed et donne-lui la valeur 200."
+      tips: [
+        "Le signe `=` veut dire « mets dans la boîte ». Ce n'est pas le `=` des maths !",
+        "Fais attention aux **majuscules** : `v_speed` et `V_Speed` sont deux boîtes différentes."
+      ],
+      goal: "Écris **`v_speed = 200`**. Il y a **2 choses** à écrire : le **nom** de la boîte, `v_speed`, puis sa **valeur**, `200`. Remplace les `???`, puis appuie sur ⚡ Compiler !"
     },
 
     hints: [
-      "Une variable se déclare avec un nom, le signe = puis une valeur.",
-      "Remplace les ??? par un nombre. Ici, la variable s'appelle v_speed (attention aux majuscules).",
-      "La solution tient en une ligne : v_speed = 200"
+      "Une variable, c'est une boîte : un nom, le signe =, puis ce qu'on met dedans.",
+      "Remplace les ??? par un nombre. Le nom de la boîte est déjà écrit : v_speed.",
+      "La réponse tient en une ligne : v_speed = 200"
     ],
 
     validate: function (code, engine) {
       var NAME = "v_speed", EXPECTED = 200;
       var msgs = [];
-      if (!code.trim()) return { ok: false, messages: ["Aucun code détecté : l'éditeur est vide."] };
+      if (!code.trim()) return { ok: false, messages: [OctoPuzzle.msg.empty] };
       if (/\?\?\?/.test(code)) {
-        return { ok: false, messages: ["Il reste des « ??? » à remplacer par une vraie valeur."] };
+        return { ok: false, messages: ["Oups, il reste des « ??? » ! Remplace-les par un nombre : la vitesse de l'OctoCat."] };
       }
 
       var res = engine.validators.assignment(code, NAME, EXPECTED);
       if (res.run.errors.length) {
-        res.run.errors.forEach(function (e) { msgs.push("Ligne " + e.line + " — SyntaxError : " + e.msg); });
+        res.run.errors.forEach(function (e) { msgs.push(OctoPuzzle.msg.syntax(e)); });
         return { ok: false, messages: msgs };
       }
       if (!res.defined) {
         var near = Object.keys(res.run.vars).filter(function (n) { return n.toLowerCase().replace(/_/g, "") === "vspeed"; });
         msgs.push(near.length
-          ? "NameError : « " + near[0] + " » n'est pas « " + NAME + " ». Les noms de variables respectent la casse et les underscores."
-          : "NameError : la variable « " + NAME + " » n'a jamais été définie.");
+          ? "Je ne trouve pas la boîte « " + NAME + " ». Tu as écrit « " + near[0] + " » : fais attention aux majuscules et aux _ !"
+          : "La boîte « " + NAME + " » n'existe pas encore : crée-la avec le signe =, par exemple " + NAME + " = 200");
         return { ok: false, messages: msgs };
       }
       if (typeof res.value !== "number") {
-        return { ok: false, messages: ["TypeError : " + NAME + " doit être un nombre, pas du texte."] };
+        return { ok: false, messages: [NAME + " doit contenir un nombre (comme 200), pas un mot."] };
       }
       if (res.value !== EXPECTED) {
-        msgs.push(NAME + " vaut " + res.value + " (attendu : " + EXPECTED + ") — " +
-          (res.value < EXPECTED ? "l'OctoCat est trop lent pour percer le Glitch." : "trop rapide, le portail ne peut pas le synchroniser."));
+        msgs.push(NAME + " vaut " + res.value + " mais il faut " + EXPECTED + " : " +
+          (res.value < EXPECTED ? "l'OctoCat est trop lent pour percer le Glitch !" : "c'est trop rapide, le portail n'arrive pas à suivre !"));
         return { ok: false, messages: msgs };
       }
       return { ok: true, messages: ["v_speed = " + res.value + "  ✓"], data: { speed: res.value } };

@@ -38,7 +38,7 @@
     alt: "Une arène : l'OctoCat à gauche fait face au Glitch Gardien, un gros monstre rouge, devant un portail verrouillé.",
 
     starter:
-      "# Le Glitch Gardien a 5 points de vie (v_pv).\n" +
+      "# 👾 Le Glitch Gardien a 5 points de vie (v_pv).\n" +
       "# Chaque tour de boucle = un coup d'épée de l'OctoCat.\n" +
       "# Frappe tant qu'il lui reste des points de vie !\n" +
       "\n" +
@@ -49,42 +49,42 @@
 
     briefing: {
       title: "L'Arène du Glitch Gardien",
-      lore: "Le dernier Glitch de la forêt garde le chemin du prochain monde. Il se régénère à chaque coup... sauf si tu frappes en boucle, sans jamais t'arrêter avant qu'il tombe.",
-      lesson: "Une boucle répète des instructions. while (« tant que ») recommence tant que sa condition est vraie ; for répète un nombre de fois connu. Attention : si la condition ne devient jamais fausse, la boucle tourne sans fin !",
+      lore: "Le dernier Glitch de la forêt garde le chemin vers le monde suivant : c'est le **Glitch Gardien** ! Pour le battre, il faut frapper encore et encore, **sans t'arrêter** tant qu'il tient debout.",
+      lesson: "`while` veut dire « **tant que** » : la boucle recommence **tant que** sa condition est vraie. On s'en sert quand on ne sait pas combien de tours il faudra. Attention ! Si la condition ne devient **jamais** fausse, la boucle tourne **pour toujours** 😱. Il faut donc que quelque chose, dans la boucle, la fasse changer. (`for` sert quand on connaît le nombre de tours.)",
       examples: {
         "Pseudo-code": "tant que v_vie > 0 faire\n  v_vie = v_vie - 1\nfin tant que",
         "Python": "while v_vie > 0:\n    v_vie = v_vie - 1\n\n# ou, pour un nombre de tours connu :\nfor i in range(3):\n    v_vie = v_vie - 1",
         "JavaScript": "while (v_vie > 0) {\n  v_vie = v_vie - 1;\n}\n\nfor (let i = 0; i < 3; i++) {\n  v_vie = v_vie - 1;\n}"
       },
       tips: [
-        "La condition est testée avant chaque tour : quand elle devient fausse, la boucle s'arrête.",
-        "Une ligne du corps de la boucle doit faire évoluer la condition, sinon elle ne s'arrête jamais.",
-        "Compte les tours : 5 points de vie = 5 coups, ni 4, ni 6."
+        "La condition est regardée **avant chaque tour**. Quand elle devient fausse, la boucle s'arrête.",
+        "Une ligne de la boucle fait changer `v_pv` : sans elle, ça ne s'arrêterait jamais !",
+        "Compte bien : 5 points de vie = **5 coups**, ni 4, ni 6."
       ],
-      goal: "complète la boucle pour frapper le Gardien jusqu'à ce que v_pv tombe à 0, en 5 coups exactement."
+      goal: "Complète le `while` : frappe le Gardien **tant qu'il lui reste des points de vie** (`v_pv` plus grand que 0). Il doit tomber en **5 coups** exactement."
     },
 
     hints: [
       "while est suivi d'une condition. La boucle continue tant que cette condition est vraie.",
-      "Tant que le Gardien a des points de vie : compare v_pv à 0 avec « strictement supérieur ».",
-      "La solution : while v_pv > 0:"
+      "Tant que le Gardien a des points de vie : compare v_pv à 0 avec « plus grand que ».",
+      "La réponse : while v_pv > 0:"
     ],
 
     validate: function (code, engine) {
-      if (!code.trim()) return { ok: false, messages: ["Aucun code détecté : l'éditeur est vide."] };
-      if (/\?\?\?/.test(code)) return { ok: false, messages: ["Il reste des « ??? » : écris la condition de ta boucle à la place."] };
+      if (!code.trim()) return { ok: false, messages: [OctoPuzzle.msg.empty] };
+      if (/\?\?\?/.test(code)) return { ok: false, messages: ["Oups, il reste des « ??? » ! Écris la condition de ta boucle à leur place."] };
 
       var r = engine.interpreter.run(code);
       if (r.errors.length) {
         var loopy = r.errors.some(function (e) { return /tours de boucle/.test(e.msg); });
         return {
           ok: false,
-          messages: r.errors.map(function (e) { return "Ligne " + e.line + " — " + (/tours de boucle/.test(e.msg) ? "boucle infinie : " : "SyntaxError : ") + e.msg; }),
+          messages: r.errors.map(function (e) { return /tours de boucle/.test(e.msg) ? "Ligne " + e.line + " : boucle infinie ! " + e.msg : OctoPuzzle.msg.syntax(e); }),
           data: { hits: loopy ? HP : 0, fumble: true }
         };
       }
       var pv = r.vars.v_pv, hits = r.loops;
-      if (typeof pv !== "number") return { ok: false, messages: ["NameError : la variable v_pv a disparu (elle doit rester un nombre)."], data: { hits: 0, fumble: true } };
+      if (typeof pv !== "number") return { ok: false, messages: ["La boîte v_pv a disparu ! Elle doit rester un nombre."], data: { hits: 0, fumble: true } };
       if (hits === 0) {
         return { ok: false, messages: ["Aucun coup n'a été porté : la boucle n'a fait aucun tour. Sa condition est-elle vraie au départ ?"], data: { hits: 0, fumble: true } };
       }

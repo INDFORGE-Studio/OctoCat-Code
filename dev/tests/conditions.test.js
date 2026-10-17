@@ -66,7 +66,7 @@ test("niveau 5 : la condition doit être juste pour toutes les énergies", () =>
   assert.match(v(lines('v_pont = "fragile"', "if v_energie > 50:", '    v_pont = "solide"')).messages[0], /v_energie = 50/);
   assert.match(v(lines('v_pont = "fragile"', "if v_energie >= 49:", '    v_pont = "solide"')).messages[0], /v_energie = 49/);
   assert.match(v(lines("if v_energie >= 50:", '    v_pont = "Solide"')).messages[0], /casse/);
-  assert.match(v(lines("if v_energie >= 50", "    v_pont = 1")).messages[0], /SyntaxError/);
+  assert.match(v(lines("if v_energie >= 50", "    v_pont = 1")).messages[0], /faute d'écriture/);
   assert.equal(v(lines("if v_energie < 50:", '    v_pont = "solide"')).data.collapse, true);
   for (const ok of [
     lines('v_pont = "fragile"', "if v_energie >= 50:", '    v_pont = "solide"'),
@@ -117,7 +117,7 @@ test("niveau 10 : la boucle doit frapper exactement 5 fois", () => {
   assert.match(v(lines("v_pv = 5", "while v_pv > 2:", body)).messages[0], /encore 2 PV/);
   assert.match(v(lines("v_pv = 5", "while v_pv >= 0:", body)).messages[0], /coup de trop/);
   assert.match(v(lines("v_pv = 5", "v_pv = 0")).messages[0], /Aucun coup/);
-  assert.match(v(lines("v_pv = 5", "while v_pv > 0", body)).messages[0], /SyntaxError/);
+  assert.match(v(lines("v_pv = 5", "while v_pv > 0", body)).messages[0], /faute d.écriture/);
   assert.equal(v(lines("v_pv = 5", "while v_pv >= 0:", body)).data.hits, 5);
   for (const ok of [
     lines("v_pv = 5", "while v_pv > 0:", body),

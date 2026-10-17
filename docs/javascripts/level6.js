@@ -37,7 +37,7 @@
     },
 
     starter:
-      "# v_or contient l'or de l'OctoCat. Le marchand le classe :\n" +
+      "# 💎 v_or = l'or de l'OctoCat. Le marchand le classe :\n" +
       "#   100 ou plus -> \"riche\"   |   de 50 à 99 -> \"aise\"   |   moins de 50 -> \"pauvre\"\n" +
       "\n" +
       "v_titre = \"pauvre\"\n" +
@@ -48,25 +48,25 @@
 
     briefing: {
       title: "Le Marché des Cristaux",
-      lore: "Au marché de GitHubia, le marchand de cristaux traite chaque client selon sa bourse. Les Glitches ont brouillé sa règle : il ne sait plus reconnaître les clients aisés.",
-      lesson: "if / elif / else enchaîne plusieurs cas. Le premier cas vrai gagne et les suivants sont ignorés ; else (« sinon ») couvre tout le reste. On teste d'abord le cas le plus exigeant.",
+      lore: "Au marché des cristaux, le marchand accueille chaque client selon la taille de sa bourse. Mais les Glitches ont brouillé sa règle : il ne reconnaît plus les clients **aisés** !",
+      lesson: "`if` / `elif` / `else` servent à choisir entre **plusieurs** possibilités, comme un aiguillage. On regarde le premier cas ; s'il est faux, on regarde le suivant (`elif` veut dire « sinon si ») ; et `else` (« sinon ») prend tout le reste. **Le premier cas vrai gagne**, les autres sont ignorés. On commence donc par le cas le plus difficile.",
       examples: {
         "Pseudo-code": "si v_note >= 15 alors\n  v_mention = \"bien\"\nsinon si v_note >= 10 alors\n  v_mention = \"passable\"\nsinon\n  v_mention = \"refuse\"\nfin si",
         "Python": "if v_note >= 15:\n    v_mention = \"bien\"\nelif v_note >= 10:\n    v_mention = \"passable\"\nelse:\n    v_mention = \"refuse\"",
         "JavaScript": "if (v_note >= 15) {\n  v_mention = \"bien\";\n} else if (v_note >= 10) {\n  v_mention = \"passable\";\n} else {\n  v_mention = \"refuse\";\n}"
       },
       tips: [
-        "elif (« sinon si ») n'est testé que si les cas au-dessus sont faux.",
-        ">= veut dire « supérieur ou égal » : 50 >= 50 est vrai.",
+        "`elif` n'est regardé que si les cas **au-dessus** sont faux.",
+        "`>=` veut dire « plus grand ou égal » : `50 >= 50` est vrai.",
         "Ta règle doit marcher pour toutes les bourses : 0, 49, 50, 99, 100…"
       ],
-      goal: "complète le elif pour que 50 à 99 d'or donne \"aise\"."
+      goal: "Complète le `elif` pour qu'un client qui a **de 50 à 99** d'or soit `\"aise\"`. Remplace les `???` par la condition."
     },
 
     hints: [
-      "Un client est « aise » à partir de 50 d'or. Le premier if a déjà traité les riches.",
-      "La condition du elif compare v_or à 50 avec « supérieur ou égal ».",
-      "elif v_or >= 50:"
+      "Un client est « aise » à partir de 50 d'or. Le premier if a déjà pris les riches.",
+      "La condition du elif compare v_or à 50 avec « plus grand ou égal ».",
+      "La réponse : elif v_or >= 50:"
     ],
 
     validate: function (code, engine) {

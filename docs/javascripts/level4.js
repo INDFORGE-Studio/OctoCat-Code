@@ -30,33 +30,33 @@
     },
 
     starter:
-      "# v_cle : l'OctoCat possède la clé (true ou false).\n" +
+      "# 🚪 v_cle : l'OctoCat a la clé (true ou false).\n" +
       "# v_garde : un garde veille devant la porte (true ou false).\n" +
-      "# La porte ne s'ouvre que s'il a la clé ET qu'il n'y a PAS de garde.\n" +
+      "# La porte s'ouvre seulement s'il a la clé ET s'il n'y a PAS de garde.\n" +
       "\n" +
       "v_porte_ouverte = ???",
 
     briefing: {
       title: "Le Dojo des Torches",
-      lore: "Dans le dojo, une porte à runes obéit à la logique pure. Deux lampes indiquent ce qu'elle voit : la clé de l'OctoCat et la présence d'un garde.",
-      lesson: "On combine les booléens avec and (« et » : vrai si les deux sont vrais), or (« ou » : vrai si au moins un est vrai) et not (« non » : inverse la valeur). En JavaScript on écrit && || !.",
+      lore: "Dans le dojo, une porte magique obéit à la **logique**. Deux lampes te montrent ce qu'elle voit : est-ce que l'OctoCat a la **clé** ? Y a-t-il un **garde** devant la porte ?",
+      lesson: "Un **booléen** ne peut valoir que `true` (**vrai**) ou `false` (**faux**), comme une lampe allumée ou éteinte 💡. On les combine avec `and` (**et** : les deux doivent être vrais), `or` (**ou** : un seul suffit) et `not` (le **contraire** : vrai devient faux). En JavaScript on écrit `&&`, `||` et `!`.",
       examples: {
         "Pseudo-code": "v_ok = v_a et non v_b",
         "Python": "v_ok = v_a and not v_b\nv_ou = v_a or v_b",
         "JavaScript": "let v_ok = v_a && !v_b;\nlet v_ou = v_a || v_b;"
       },
       tips: [
-        "a and b : vrai seulement si a ET b sont vrais.",
-        "not inverse : not true vaut false.",
-        "Ton expression doit marcher pour les 4 combinaisons de v_cle et v_garde."
+        "`a and b` est vrai seulement si `a` ET `b` sont vrais.",
+        "`not` retourne la lampe : `not true` vaut `false`.",
+        "Ta réponse doit marcher dans les 4 cas possibles de `v_cle` et `v_garde`."
       ],
-      goal: "écris l'expression qui donne à v_porte_ouverte true seulement avec la clé et sans garde."
+      goal: "La porte s'ouvre **seulement** si l'OctoCat a la clé ET s'il n'y a PAS de garde. Écris ça pour **`v_porte_ouverte`**, avec `v_cle`, `v_garde` et les mots `and` et `not`."
     },
 
     hints: [
-      "Il faut deux conditions en même temps : avoir la clé, et ne pas avoir de garde.",
-      "« et » se dit and ; « ne pas avoir » se dit not.",
-      "v_porte_ouverte = v_cle and not v_garde"
+      "Il faut deux choses en même temps : avoir la clé, et ne pas avoir de garde.",
+      "« et » se dit and. « ne pas avoir » se dit not.",
+      "La réponse : v_porte_ouverte = v_cle and not v_garde"
     ],
 
     validate: function (code, engine) {

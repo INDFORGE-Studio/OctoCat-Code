@@ -28,7 +28,7 @@
     left: ["ArrowLeft", "KeyA"], right: ["ArrowRight", "KeyD"], up: ["ArrowUp", "KeyW"], down: ["ArrowDown", "KeyS"],
     jump: ["Space"], attack: ["KeyX", "KeyJ", "Mouse0"], throw: ["KeyC", "KeyK", "Mouse2"]
   };
-  var DEFAULT_OPTS = { sfx: true, shake: true, hints: true, pad: "auto", relax: false, skipAlways: false };
+  var DEFAULT_OPTS = { sfx: true, shake: true, hints: true, pad: "auto", relax: false, skipAlways: false, hideCursor: true };
   var PAD_MODES = ["auto", "on", "off"];
   var MAX_BINDS = 4;
   var BLOCKED = /^(Escape|Tab|F\d{1,2}|MetaLeft|MetaRight|OSLeft|OSRight|ContextMenu|PrintScreen)$/;
@@ -164,6 +164,46 @@
     _sanitize: sanitize
   };
 
+  /* ---------- le navigateur garde-t-il nos données ? ---------- */
+
+  // Les réglages et la progression vivent dans le localStorage du navigateur. Certains navigateurs les effacent à la fermeture
+  // (navigation privée, « effacer les données des sites à la fermeture » dans Firefox) : on le détecte quand c'est possible,
+  // on demande un stockage « persistant » (bouton du menu) et on propose un code de sauvegarde qui contient TOUT.
+  var storage = { ok: true, persisted: null };
+  try { window.localStorage.setItem(KEY + ":probe", "1"); window.localStorage.removeItem(KEY + ":probe"); } catch { storage.ok = false; }
+  var nav = typeof navigator === "object" && navigator ? navigator : {};
+  if (nav.storage && nav.storage.persisted) { try { nav.storage.persisted().then(function (v) { storage.persisted = !!v; }, function () {}); } catch { /* indisponible */ } }
+
+  Settings.storage = function () { return { ok: storage.ok, persisted: storage.persisted, canPersist: !!(nav.storage && nav.storage.persist) }; };
+  Settings.requestPersist = function () {
+    if (!(nav.storage && nav.storage.persist)) return Promise.resolve(false);
+    return nav.storage.persist().then(function (v) { storage.persisted = !!v; return !!v; }, function () { return false; });
+  };
+
+  /** Code de sauvegarde complet : progression + réglages (touches, options) + son (volume, musique). */
+  Settings.exportAll = function () {
+    var P = window.OctoProgress, M = window.OctoMusic, o = { v: 2, settings: clone(state) };
+    if (P && P.get) o.progress = P.get();
+    if (M && M.getVolume) o.music = { muted: !!M.isMuted(), volume: M.getVolume() };
+    return JSON.stringify(o);
+  };
+  /** Recharge un code de sauvegarde (le nouveau, ou l'ancien qui ne contenait que la progression). */
+  Settings.importAll = function (text) {
+    var o, P = window.OctoProgress, M = window.OctoMusic;
+    try { o = JSON.parse(String(text || "").trim()); } catch { return { ok: false, error: "Ce code est illisible : copie-le en entier." }; }
+    if (!o || typeof o !== "object" || Array.isArray(o)) return { ok: false, error: "Ce code n'est pas une sauvegarde." };
+    if (o.v !== 2 && o.unlocked != null) return P && P.importSave ? P.importSave(text) : { ok: false, error: "Sauvegarde indisponible." }; // ancien code : progression seule
+    if (o.v !== 2) return { ok: false, error: "Ce code n'est pas une sauvegarde." };
+    if (o.progress && P && P.importSave) { var r = P.importSave(JSON.stringify(o.progress)); if (!r.ok) return r; }
+    if (o.settings) { state = sanitize(o.settings); save(); bump(); }
+    if (o.music && M) {
+      if (typeof o.music.volume === "number") M.setVolume(o.music.volume);
+      if (typeof o.music.muted === "boolean" && o.music.muted !== !!M.isMuted()) M.toggle();
+      document.dispatchEvent(new CustomEvent("octo:audio"));
+    }
+    return { ok: true };
+  };
+
   load();
   window.OctoSettings = Settings;
 
@@ -190,7 +230,7 @@
   function music() { return window.OctoMusic || null; }
 
   var TABS = [["keys", "Touches"], ["sound", "Son"], ["screen", "Affichage"], ["game", "Jeu"]];
-  var overlay = null, bodyEl = null, tabsEl = null, msgEl = null, closeBtn = null, openState = false, tab = "keys", capturing = null, lastFocus = null, confirmReset = false;
+  var homeBtn = null, overlay = null, bodyEl = null, tabsEl = null, msgEl = null, closeBtn = null, openState = false, tab = "keys", capturing = null, lastFocus = null, confirmReset = false;
 
   function say(text, bad) { if (msgEl) { msgEl.textContent = text || ""; msgEl.classList.toggle("is-bad", !!bad); } }
 
@@ -340,6 +380,7 @@
         if (p && p.then) p.then(function () { render(); }, function () { say("Le plein écran n'est pas disponible ici.", true); });
       });
       frow.appendChild(ft); frow.appendChild(fb); bodyEl.appendChild(frow);
+      bodyEl.appendChild(toggleRow("hideCursor", "Cacher la souris en plein écran", "Clic molette : la montrer ou la cacher quand tu veux."));
     }
   }
 
@@ -355,11 +396,29 @@
     bodyEl.appendChild(toggleRow("skipAlways", "« Passer le trajet » toujours visible", "Sinon il apparaît après quelques échecs."));
 
     var P = window.OctoProgress;
+    // état de la mémoire du navigateur
+    var mem = el("div", "octo-set__block"), stg = Settings.storage();
+    mem.appendChild(el("strong", "", "Ma mémoire"));
+    if (!stg.ok) {
+      mem.appendChild(el("span", "octo-set__desc octo-set__desc--warn", "⚠️ Ce navigateur ne peut pas garder tes réglages ni ta progression (navigation privée ?). Ils seront perdus quand tu fermeras la page. Utilise le code de sauvegarde ci-dessous pour les retrouver."));
+    } else {
+      mem.appendChild(el("span", "octo-set__desc", "✅ Tes réglages, ton son et ta progression sont gardés dans ce navigateur, sur cet appareil."));
+      mem.appendChild(el("span", "octo-set__desc", stg.persisted ? "🔒 Le navigateur les protège : il ne les effacera pas tout seul." : "Si tu les retrouves vides au retour, ton navigateur efface peut-être les données des sites quand tu le fermes (Firefox : Réglages → Vie privée → Cookies et données de sites : décoche « Supprimer à la fermeture » ou ajoute ce site en exception). Tu peux aussi demander une protection :"));
+      if (!stg.persisted && stg.canPersist) {
+        var pa = el("div", "octo-set__actions");
+        pa.appendChild(button("🔒 Demander au navigateur de les garder", "", function () {
+          Settings.requestPersist().then(function (v) { say(v ? "Le navigateur va les garder." : "Le navigateur n'a pas accepté (essaie de les garder avec le code de sauvegarde)."  , !v); render(); });
+        }));
+        mem.appendChild(pa);
+      }
+    }
+    bodyEl.appendChild(mem);
+
     if (P && P.exportSave) {
       var save = el("div", "octo-set__block");
-      save.appendChild(el("strong", "", "Sauvegarde"));
-      save.appendChild(el("span", "octo-set__desc", "Ta progression reste dans ce navigateur. Copie ce code pour la garder ou la reprendre ailleurs."));
-      var ta = el("textarea", "octo-set__ta"); ta.rows = 3; ta.spellcheck = false; ta.value = P.exportSave();
+      save.appendChild(el("strong", "", "Code de sauvegarde"));
+      save.appendChild(el("span", "octo-set__desc", "Contient tout : niveaux, touches, son et réglages. Copie-le pour tout retrouver (sur un autre appareil, ou si ton navigateur oublie tout), puis colle-le ici et clique sur « Charger ce code »."));
+      var ta = el("textarea", "octo-set__ta"); ta.rows = 3; ta.spellcheck = false; ta.value = Settings.exportAll();
       ta.setAttribute("aria-label", "Code de sauvegarde");
       ta.addEventListener("focus", function () { ta.select(); });
       var acts = el("div", "octo-set__actions");
@@ -370,8 +429,8 @@
         else { try { document.execCommand("copy"); } catch { /* ignoré */ } done(); }
       }));
       acts.appendChild(button("Charger ce code", "", function () {
-        var r = P.importSave(ta.value);
-        if (r.ok) { say("Sauvegarde chargée."); render(); } else say(r.error, true);
+        var r = Settings.importAll(ta.value);
+        if (r.ok) { say("Sauvegarde chargée : tout est retrouvé !"); render(); } else say(r.error, true);
       }));
       save.appendChild(ta); save.appendChild(acts); bodyEl.appendChild(save);
     }
@@ -422,9 +481,12 @@
     });
     msgEl = el("div", "octo-set__msg"); msgEl.setAttribute("aria-live", "polite");
     bodyEl = el("div", "octo-set__body");
-    var foot = el("div", "octo-set__foot");
+    var foot = el("div", "octo-set__foot"), footBtns = el("div", "octo-set__footbtns");
     foot.appendChild(el("span", "", "Échap : ouvrir / fermer · la partie est en pause"));
-    foot.appendChild(button("Fermer", "octo-set__btn--ok", function () { Settings.close(); }));
+    homeBtn = button("⌂ Retour à l'accueil", "", function () { Settings.close(); document.dispatchEvent(new CustomEvent("octo:home")); });
+    footBtns.appendChild(homeBtn);
+    footBtns.appendChild(button("Fermer", "octo-set__btn--ok", function () { Settings.close(); }));
+    foot.appendChild(footBtns);
     card.appendChild(head); card.appendChild(tabsEl); card.appendChild(msgEl); card.appendChild(bodyEl); card.appendChild(foot);
     overlay.appendChild(card);
     overlay.addEventListener("pointerdown", function (e) { if (e.target === overlay && !capturing) Settings.close(); });
@@ -438,6 +500,8 @@
     host.appendChild(overlay);
     lastFocus = document.activeElement;
     openState = true; confirmReset = false; say("");
+    homeBtn.style.display = document.documentElement.getAttribute("data-octo-scene") === "hub" ? "none" : ""; // déjà à l'accueil : pas de bouton
+    document.documentElement.classList.add("octo-menu-open"); // la souris reste visible dans le menu
     overlay.classList.add("is-open");
     render();
     try { closeBtn.focus({ preventScroll: true }); } catch { /* ignoré */ }
@@ -447,6 +511,7 @@
     if (!openState) return;
     stopCapture();
     openState = false;
+    document.documentElement.classList.remove("octo-menu-open");
     overlay.classList.remove("is-open");
     if (lastFocus && lastFocus.blur) lastFocus.blur();
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
@@ -458,6 +523,7 @@
     var gear = el("button", "octo-mute octo-gear", "⚙");
     gear.type = "button"; gear.setAttribute("aria-label", "Réglages (Échap)"); gear.title = "Réglages (Échap)";
     gear.addEventListener("click", function () { if (openState) Settings.close(); else Settings.open(container.parentNode); gear.blur(); });
+    if (!storage.ok) { gear.classList.add("octo-gear--warn"); gear.title = "Réglages — ⚠ ce navigateur ne garde pas tes réglages"; }
     container.appendChild(gear);
     if (overlay && overlay.parentNode !== container.parentNode && !openState) container.parentNode.appendChild(overlay);
     return gear;

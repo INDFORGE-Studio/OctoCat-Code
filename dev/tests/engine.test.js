@@ -64,12 +64,12 @@ test("niveau 1 : messages d'erreur et succès", () => {
   const v = (code) => engine.levels[1].validate(code, engine);
   assert.equal(v("").ok, false);
   assert.match(v("v_speed = ???").messages[0], /\?\?\?/);
-  assert.match(v("V_speed = 200").messages[0], /NameError/);
-  assert.match(v("speed = 200").messages[0], /jamais été définie/);
+  assert.match(v("V_speed = 200").messages[0], /Je ne trouve pas la boîte/);
+  assert.match(v("speed = 200").messages[0], /n.existe pas encore/);
   assert.match(v("v_speed = 150").messages[0], /trop lent/);
   assert.match(v("v_speed = 250").messages[0], /trop rapide/);
-  assert.match(v('v_speed = "200"').messages[0], /TypeError/);
-  assert.match(v("v_speed == 200").messages[0], /SyntaxError/);
+  assert.match(v('v_speed = "200"').messages[0], /doit contenir un nombre/);
+  assert.match(v("v_speed == 200").messages[0], /faute d.écriture/);
   for (const ok of ["v_speed = 200", "let v_speed = 200;", "v_speed = 100 * 2", "a = 100\nv_speed = a + 100"]) {
     const r = v(ok);
     assert.equal(r.ok, true, ok);

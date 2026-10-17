@@ -32,54 +32,54 @@
     alt: "Un pont de planches au-dessus d'un gouffre : l'OctoCat à gauche, un portail fermé à droite.",
 
     starter:
-      "# Le pont s'effondre case par case !\n" +
-      "# Il ne tient que si l'OctoCat a assez d'énergie : 50 ou plus.\n" +
-      "# La variable v_energie contient son énergie.\n" +
+      "# 🌉 Le pont s'effondre case par case !\n" +
+      "# Il tient seulement si l'OctoCat a assez d'énergie : 50 ou plus.\n" +
+      "# v_energie contient son énergie.\n" +
       "\n" +
-      'v_pont = "fragile"\n' +
+      "v_pont = \"fragile\"\n" +
       "\n" +
       "if ???:\n" +
-      '    v_pont = "solide"',
+      "    v_pont = \"solide\"",
 
     briefing: {
       title: "Le Pont des Booléens",
-      lore: "Tu as franchi le premier portail. Devant toi, un pont de pixels s'effondre case par case : seules les conditions vraies tiennent encore.",
-      lesson: "Un booléen ne vaut que vrai (true) ou faux (false). Une condition compare des valeurs avec ==, !=, <, >, <= ou >= et donne un booléen. Le mot if (« si ») exécute son bloc seulement quand la condition est vraie ; else (« sinon ») s'exécute dans le cas contraire.",
+      lore: "Tu as passé le premier portail ! Devant toi, un pont de pixels s'effondre case par case… Seuls les endroits où la condition est **vraie** tiennent encore.",
+      lesson: "Une **condition** est une question dont la réponse est « vrai » ou « faux » : par exemple « as-tu au moins 50 d'énergie ? ». On la pose avec le mot `if` (« **si** »). Si c'est vrai, l'ordinateur fait ce qui est écrit dessous. Sinon, il passe son chemin. Pour comparer, on a `==` (égal), `!=` (différent), `<` (plus petit), `>` (plus grand), `<=` et `>=`.",
       examples: {
         "Pseudo-code": 'si v_vie > 0 alors\n  v_etat = "vivant"\nsinon\n  v_etat = "perdu"\nfin si',
         "Python": 'if v_vie > 0:\n    v_etat = "vivant"\nelse:\n    v_etat = "perdu"',
         "JavaScript": 'if (v_vie > 0) {\n  v_etat = "vivant";\n} else {\n  v_etat = "perdu";\n}'
       },
       tips: [
-        "Un seul = donne une valeur ; deux == comparent.",
-        "En Python, le bloc est décalé vers la droite (indentation) ; en JavaScript, il est entre { }.",
-        ">= veut dire « supérieur ou égal » : 50 >= 50 est vrai."
+        "Un seul `=` **met** une valeur dans une boîte. Deux `==` **comparent**.",
+        "En Python, ce qui dépend du `if` est **décalé vers la droite** (4 espaces). En JavaScript, c'est entre `{ }`.",
+        "`>=` veut dire « plus grand **ou égal** » : `50 >= 50` est vrai !"
       ],
-      goal: "écris la condition pour que v_pont devienne \"solide\" quand v_energie vaut 50 ou plus."
+      goal: "Écris la condition qui rend le pont `\"solide\"` quand **`v_energie`** vaut **50 ou plus**. Remplace les `???` juste après le `if`."
     },
 
     hints: [
-      "Une condition compare deux valeurs : ==, !=, <, >, <=, >=. Elle se place après if.",
-      "Le pont tient avec au moins 50 d'énergie : compare v_energie à 50 avec « supérieur ou égal ».",
-      "La solution : if v_energie >= 50:"
+      "Une condition compare deux choses avec ==, !=, <, >, <= ou >=. Elle se met juste après if.",
+      "Le pont tient avec au moins 50 d'énergie. Compare v_energie à 50 avec « plus grand ou égal ».",
+      "La réponse : if v_energie >= 50:"
     ],
 
     validate: function (code, engine) {
       var run = engine.interpreter.run;
-      if (!code.trim()) return { ok: false, messages: ["Aucun code détecté : l'éditeur est vide."] };
-      if (/\?\?\?/.test(code)) return { ok: false, messages: ["Il reste des « ??? » : écris ta condition à la place."] };
+      if (!code.trim()) return { ok: false, messages: [OctoPuzzle.msg.empty] };
+      if (/\?\?\?/.test(code)) return { ok: false, messages: ["Oups, il reste des « ??? » ! Écris ta condition à leur place."] };
 
       // 1. Le code doit être correct, quelle que soit l'énergie.
       var first = run(code, { v_energie: SHOWN_ENERGY });
       if (first.errors.length) {
-        return { ok: false, messages: first.errors.map(function (e) { return "Ligne " + e.line + " — SyntaxError : " + e.msg; }) };
+        return { ok: false, messages: first.errors.map(OctoPuzzle.msg.syntax) };
       }
 
       // 2. Il doit donner le bon résultat pour toutes les énergies testées.
       for (var i = 0; i < CASES.length; i++) {
         var energy = CASES[i], r = run(code, { v_energie: energy });
         if (r.errors.length) {
-          return { ok: false, messages: r.errors.map(function (e) { return "Ligne " + e.line + " — erreur : " + e.msg; }) };
+          return { ok: false, messages: r.errors.map(function (e) { return "Ligne " + e.line + " : " + e.msg; }) };
         }
         var bridge = r.vars.v_pont, solid = bridge === "solide";
         if (energy >= THRESHOLD && !solid) {
