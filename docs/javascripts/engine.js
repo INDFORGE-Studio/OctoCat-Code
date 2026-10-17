@@ -770,13 +770,19 @@
     if (/^level\d+$/.test(start) && !(levels[start.slice(5)] && P.isUnlocked(parseInt(start.slice(5), 10)))) start = "hub";
     k.onLoad(function () { goTo(start); });
 
-    // Le format de la fenêtre a changé : on recompose la vue.
+    // Le format de la fenêtre a changé : on recompose la vue (rechargement). Jamais en plein écran : recharger la page
+    // le ferait quitter (écran noir puis retour à la fenêtre) ; le canvas garde alors son format et s'entoure de bandes (CSS).
     var timer = null;
-    window.addEventListener("resize", function () {
+    host.style.setProperty("--octo-aspect", (W / H).toFixed(4));
+    function relayout() {
+      if (document.fullscreenElement) return;
+      if (Math.abs(window.innerWidth / window.innerHeight / aspect - 1) > 0.06) window.location.reload();
+    }
+    window.addEventListener("resize", function () { window.clearTimeout(timer); timer = window.setTimeout(relayout, 400); });
+    document.addEventListener("fullscreenchange", function () {
+      document.documentElement.classList.toggle("octo-fs-on", !!document.fullscreenElement);
       window.clearTimeout(timer);
-      timer = window.setTimeout(function () {
-        if (Math.abs(window.innerWidth / window.innerHeight / aspect - 1) > 0.06) window.location.reload();
-      }, 400);
+      if (!document.fullscreenElement) timer = window.setTimeout(relayout, 900); // retour à la fenêtre : format redevenu normal, sinon on recompose
     });
 
     host.__kaplay = k;
