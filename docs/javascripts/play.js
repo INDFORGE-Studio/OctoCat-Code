@@ -10,6 +10,8 @@
 
   var Sim = window.OctoSim, T = Sim.TILE;
 
+  var SIGN_WORDS = ["GO >", "{ }", "1+1", "OCTO", "< >", "PY", "JS", "CODE", "=", "? ?", "#", "x = 5"]; // petits mots écrits sur les panneaux du décor
+
   var THEMES = {
     forest: { sky: "#3a47b4", skyTint: "#ffffff", tile: "#ffffff", land: "#ffffff", wash: null, deco: ["tree", "bush", "tuft0", "flower0", "mushroom", "palm", "tuft1", "flower1"] },
     village: { sky: "#4a55c0", skyTint: "#ffe4d0", tile: "#e8d8ff", land: "#fff0e6", wash: ["#f0883e", 0.07], floor: "#4a3a58", deco: ["tree", "sign", "bush", "palm", "torch", "bush", "tree"] },
@@ -376,6 +378,9 @@
         var name = list[i % list.length], sc = name === "torch" ? 2.4 : name === "tree" || name === "palm" ? baseScale : name === "sign" ? 2.4 : 2.6;
         k.add([k.sprite(name), k.pos(pos.x, pos.y), k.anchor("bot"), k.scale(sc), k.color(rgb(theme.tile)), k.z(pos.z)]);
         if (name === "torch") flame(pos.x, pos.y - 46, pos.z + 0.02);
+        if (name === "sign") { // un panneau vide fait bizarre : on y écrit un petit mot de codeur (texte court, sans accents)
+          k.add([k.text(SIGN_WORDS[(i * 5 + Math.floor(pos.x / 50)) % SIGN_WORDS.length], { size: 10, font: "monospace" }), k.pos(pos.x, pos.y - 51), k.anchor("center"), k.color(rgb(i % 2 ? "#7ee787" : "#e3b341")), k.z(pos.z + 0.02)]);
+        }
       }
     }
 
