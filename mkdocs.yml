@@ -61,8 +61,10 @@ extra_javascript:
   - javascripts/playsim.js
   - javascripts/play.js
   - javascripts/puzzle.js
+  - javascripts/langs.js
   - javascripts/engine.js
   - javascripts/hub.js
+  - javascripts/credits.js
   - javascripts/level1.js
   - javascripts/level2.js
   - javascripts/level3.js

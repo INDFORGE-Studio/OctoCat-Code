@@ -87,14 +87,34 @@
    * oreille tombante, pattes blanches. Vue de profil (regarde à droite), 24×16, 4 images : debout (queue haute, queue qui remue), course A, course B.
    * Dessiné pour le projet (ressemblance d'ambiance avec la vraie Laita, aucune image copiée).
    */
-  function laitaBuf(pose) {
+  /** Apparences de Laita : 0 d'origine, 1 bandana rouge, 2 couronne + cape rouge, 3 pelage étoilé + collier-étoile. */
+  function laitaBuf(pose, skin) {
+    skin = skin || 0;
     var b = new Buf(24, 16), BK = "#1d1d27", BK2 = "#34344a", WH = "#f6f6fb", WH2 = "#c9cde0", PK = "#ff7f9f", EYE = "#7a4220";
+    if (skin === 3) { BK = "#1f2a6b"; BK2 = "#3a4db0"; WH = "#f4f2ff"; WH2 = "#c3c9f5"; }
+    var sit = pose >= 4;
+    function dressBack() { // cape (sur le dos)
+      if (skin === 2) b.poly(sit ? [[11.5, 7], [6, 8], [3.5, 14], [8, 12.5], [10, 14], [12, 12]] : [[12.5, 5.5], [3.5, 6], [1.5, 12], [5, 10.5], [8, 12.5], [11.5, 10]], "#c62a35");
+      if (skin === 3) [[7, 6], [10, 7], [12, 6], [5, 8], [9, 9], [8, 4]].forEach(function (q) { var x = sit ? q[0] + 0 : q[0], y = sit ? q[1] + 3 : q[1]; if (b.get(x, y) === BK) b.set(x, y, "#ffffff"); });
+    }
+    function dressFront() { // bandana / collier / couronne
+      if (skin === 1) { b.poly(sit ? [[12.2, 7], [15.4, 7.5], [13.8, 11]] : [[13.3, 6], [16.3, 6.5], [14.7, 10.5]], "#e5383b"); b.set(sit ? 14 : 15, sit ? 8 : 7, "#ffffff"); }
+      if (skin === 2) {
+        var cx = sit ? 14 : 16;
+        [[0, 1], [1, 0], [2, 1], [3, 0], [4, 1]].forEach(function (q) { b.set(cx + q[0], q[1], "#ffd23f"); });
+        for (var qx = 0; qx < 5; qx++) b.set(cx + qx, 2, "#ffd23f");
+        b.set(cx + 2, 2, "#e5383b");
+        b.rect(sit ? 12 : 13, sit ? 8 : 7, 2, 1, "#ffd23f");
+      }
+      if (skin === 3) { var nx = sit ? 13 : 14, ny = sit ? 8 : 7; b.set(nx, ny, "#ffe066"); b.set(nx - 1, ny, "#fff4b8"); b.set(nx + 1, ny, "#fff4b8"); b.set(nx, ny - 1, "#fff4b8"); b.set(nx, ny + 1, "#fff4b8"); }
+    }
     var wag = pose === 1;
     if (pose >= 4) { // assise de profil (regarde à droite) : pattes arrière repliées, pattes avant droites, tête haute
       var up = pose === 5;
       if (up) { b.line(3, 14, 1, 11, BK); b.line(4, 14, 2, 11, BK); b.set(1, 10, WH); b.set(2, 10, WH); }
       else { b.line(2, 15, 6, 14, BK); b.line(2, 14, 6, 13, BK); b.set(1, 14, WH); b.set(1, 15, WH); }
       b.ellipse(8, 11, 4.4, 4.2, BK); b.rect(9, 14, 4, 2, WH2);
+      dressBack();
       b.ellipse(12.5, 9, 3.7, 5.4, BK); b.ellipse(14.2, 10.4, 2, 3.4, WH);
       b.set(9, 8, BK2); b.set(10, 6, BK2); b.set(8, 9, BK2); b.set(11, 12, BK2); // poil ébouriffé
       b.rect(13, 11, 2, 5, WH); b.rect(15, 12, 2, 4, WH2); b.set(13, 15, WH); b.set(14, 15, WH);
@@ -105,6 +125,7 @@
       b.rect(18, 6, 2, 3, PK); b.set(18, 8, "#e8587f");
       b.set(16, 3, EYE); b.set(17, 3, EYE); b.set(16, 2, "#ffffff");
       b.poly([[12.5, 1.2], [15, 0.8], [14.6, 6], [12.5, 7]], BK2); b.poly([[13, 1.8], [14.6, 1.5], [14.3, 5.6], [13, 6.2]], BK);
+      dressFront();
       return b.outline(OUT);
     }
     // queue (haute, ou un peu penchée quand elle remue), bout blanc
@@ -130,6 +151,7 @@
     // corps noir, poitrail blanc
     b.ellipse(10, 8, 7.2, 3.9, BK);
     b.ellipse(14.5, 9.5, 2.6, 3, WH);
+    dressBack();
     b.set(8, 5, BK2); b.set(10, 5, BK2); b.set(6, 6, BK2); b.set(12, 5, BK2); b.set(9, 11, BK2); // poil ébouriffé
     // tête : noire, tache blanche sur le front, museau blanc, nez, langue, œil, oreille
     b.ellipse(17.5, 5.4, 3.9, 3.5, BK);
@@ -140,6 +162,7 @@
     b.set(18, 4, EYE); b.set(19, 4, EYE); b.set(18, 3, "#ffffff");
     b.poly([[14.5, 2.5], [17, 2], [16.5, 7.5], [14.5, 8.5]], BK2); // oreille tombante
     b.poly([[14.5, 3], [16.2, 2.6], [16, 6.8], [14.8, 7.6]], BK);
+    dressFront();
     return b.outline(OUT);
   }
 
@@ -332,7 +355,9 @@
     k.loadSprite("candle", single(candleBuf()));
     k.loadSprite("bat", sheet([batBuf(true), batBuf(false)], 18, 14), { sliceX: 2, anims: { fly: { from: 0, to: 1, loop: true, speed: 8 } } });
     k.loadSprite("shuriken", single(shurikenBuf()));
-    k.loadSprite("laita", sheet([laitaBuf(0), laitaBuf(1), laitaBuf(2), laitaBuf(3), laitaBuf(4), laitaBuf(5)], 24, 16), { sliceX: 6, anims: { idle: { from: 0, to: 1, loop: true, speed: 3 }, run: { from: 2, to: 3, loop: true, speed: 14 }, sit: { from: 4, to: 5, loop: true, speed: 1.6 } } });
+    [0, 1, 2, 3].forEach(function (skin) { // une planche par apparence (voir « laita-sN » dans le moteur)
+      k.loadSprite(skin ? "laita-s" + skin : "laita", sheet([0, 1, 2, 3, 4, 5].map(function (pose) { return laitaBuf(pose, skin); }), 24, 16), { sliceX: 6, anims: { idle: { from: 0, to: 1, loop: true, speed: 3 }, run: { from: 2, to: 3, loop: true, speed: 14 }, sit: { from: 4, to: 5, loop: true, speed: 1.6 } } });
+    });
     k.loadSprite("slash", single(slashBuf()));
     k.loadSprite("crate", single(crateBuf(false)));
     k.loadSprite("crate2", single(crateBuf(true)));

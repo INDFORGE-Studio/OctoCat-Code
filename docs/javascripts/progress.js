@@ -21,15 +21,26 @@
     { id: 10, zone: 1, title: "L'Arène du Glitch Gardien", path: "niveau-10/" }
   ];
 
+  // `?skin=N` dans l'adresse force l'apparence (démonstration) ; lu une seule fois au chargement, car le jeu nettoie ensuite l'adresse
+  var FORCED_SKIN = (function () {
+    try { var m = /[?&]skin=([0-3])\b/.exec(window.location.search); return m ? parseInt(m[1], 10) : -1; } catch { return -1; }
+  })();
+  var LAPS = 3;// la fin du jeu : les 10 niveaux terminés 3 fois (un autre langage à chaque tour)
+  var LANG_LIST = ["Python", "JavaScript", "Pseudo-code"];
+
   var ACHIEVEMENTS = {
     first_compile: { icon: "⚡", title: "Premier Compile", desc: "Ton tout premier code qui marche !" },
     flawless: { icon: "💎", title: "Sans faute", desc: "Réussir un niveau du premier coup, sans erreur." },
     curious: { icon: "💡", title: "Curieux", desc: "Demander un coup de pouce (le bouton 💡 Indice)." },
-    polyglot: { icon: "🌐", title: "Polyglotte", desc: "Essayer un autre langage (Python, JavaScript…)." }
+    polyglot: { icon: "🌐", title: "Polyglotte", desc: "Essayer un autre langage (Python, JavaScript, pseudo-code)." },
+    lap1: { icon: "🥋", title: "Tour 1", desc: "Terminer les 10 niveaux une première fois." },
+    lap2: { icon: "👑", title: "Tour 2", desc: "Terminer les 10 niveaux une deuxième fois." },
+    lap3: { icon: "🌌", title: "Légende du code", desc: "Terminer les 10 niveaux trois fois : le jeu est fini !" },
+    magic: { icon: "🪄", title: "Magicien", desc: "Éteindre les deux torches du portail… avec la magie." }
   };
 
   function defaults() {
-    return { version: 1, unlocked: 1, completed: {}, language: null, achievements: {}, fails: {}, coins: 0, banked: {}, paid: {} };
+    return { version: 1, unlocked: 1, completed: {}, language: null, achievements: {}, fails: {}, coins: 0, banked: {}, paid: {}, laps: 0, lapLang: "Python", pendingLap: false, creditsPending: false, finished: false };
   }
 
   // Repli en mémoire si localStorage est indisponible (navigation privée, etc.).
@@ -112,9 +123,34 @@
       }
       grant("first_compile");
       if (flawless) grant("flawless");
+      // les 10 niveaux sont finis : un tour de plus (nouvelle apparence, autre langage) ; au 3e tour, c'est la fin du jeu (crédits)
+      gained.lap = null;
+      if (id === LEVELS.length && s.laps < LAPS && LEVELS.every(function (lv) { return s.completed[lv.id]; })) {
+        s.laps += 1; grant("lap" + s.laps);
+        if (s.laps >= LAPS) { s.finished = true; s.creditsPending = true; gained.lap = "end"; }
+        else { s.pendingLap = true; s.completed = {}; s.unlocked = 1; s.fails = {}; s.paid = {}; s.banked = {}; gained.lap = "lap"; }
+      }
       write(s);
       return gained;
     },
+
+    /* ----- Tours : 10 niveaux = 1 tour ; après chaque tour OctoCat et Laita changent d'apparence, et on choisit un langage ----- */
+    LAPS: LAPS,
+    languages: LANG_LIST,
+    laps: function () { return Math.max(0, Math.min(LAPS, Math.floor(read().laps) || 0)); },
+    /** Apparence en cours (0 = d'origine … 3) ; `?skin=N` dans l'adresse la force (démonstration). */
+    skin: function () { return FORCED_SKIN >= 0 ? FORCED_SKIN : Progress.laps(); },
+    lang: function () { var l = read().lapLang; return LANG_LIST.indexOf(l) >= 0 ? l : "Python"; },
+    pendingLap: function () { return !!read().pendingLap; },
+    creditsPending: function () { return !!read().creditsPending; },
+    /** Début d'un nouveau tour avec le langage choisi. */
+    startLap: function (lang) {
+      var s = read();
+      s.lapLang = LANG_LIST.indexOf(lang) >= 0 ? lang : "Python"; s.pendingLap = false;
+      write(s);
+      if (s.lapLang !== "Python") Progress.grant("polyglot");
+    },
+    finishCredits: function () { var s = read(); s.creditsPending = false; write(s); },
 
     grant: function (key) {
       var s = read();
@@ -152,7 +188,11 @@
           s.unlocked = Math.max(s.unlocked, Math.min(max, i + 1));
         }
       });
-      if (o.language === "Python" || o.language === "JavaScript") s.language = o.language;
+      if (LANG_LIST.indexOf(o.language) >= 0) s.language = o.language;
+      var lp = Math.floor(Number(o.laps));
+      if (lp >= 0) s.laps = Math.min(LAPS, lp);
+      if (LANG_LIST.indexOf(o.lapLang) >= 0) s.lapLang = o.lapLang;
+      s.pendingLap = o.pendingLap === true; s.creditsPending = o.creditsPending === true; s.finished = o.finished === true || s.laps >= LAPS;
       if (o.achievements && typeof o.achievements === "object") Object.keys(o.achievements).forEach(function (key) {
         if (ACHIEVEMENTS[key]) s.achievements[key] = Number(o.achievements[key]) || 1;
       });

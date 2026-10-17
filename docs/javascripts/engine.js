@@ -769,6 +769,16 @@
     k.shake = function (n) { if (!window.OctoSettings || window.OctoSettings.get("shake")) rawShake.call(k, n); };
     window.OctoSprites.registerAll(k);
     if (window.OctoSprites.registerRun) window.OctoSprites.registerRun(k);
+    // apparences : « octo » et « laita » deviennent « octo-sN » / « laita-sN » selon le tour (N = 0 à 3), lu au moment où l'objet est créé
+    var rawSprite = k.sprite, skinMemo = null;
+    document.addEventListener("octo:progress", function () { skinMemo = null; });
+    k.sprite = function (name, opt) {
+      if (name === "octo" || name === "laita") {
+        if (skinMemo === null) skinMemo = window.OctoProgress ? window.OctoProgress.skin() : 0;
+        if (skinMemo) name = name + "-s" + skinMemo;
+      }
+      return rawSprite.call(k, name, opt);
+    };
     if (window.OctoLogo) window.OctoLogo.register(k); // lettres du logo de l'accueil
     var applyFx = window.OctoFX ? window.OctoFX.install(k) : function () {}; // post-traitement (halo, étalonnage)
     var helpers = {
@@ -820,14 +830,14 @@
         (result.messages || []).forEach(function (m) { ui.log(m, result.ok ? "ok" : "err"); });
         busy = true; ui.setBusy(true);
         if (result.ok) {
-          var gained = P.complete(def.id);
+          var gained = P.complete(def.id), lapUp = gained.lap; // lapUp : "lap" (tour fini) ou "end" (3e tour fini : crédits)
           ui.log("✔ Bravo, ça marche ! 🎉", "ok");
           gained.forEach(function (key) { ui.log("🏆 Succès débloqué : " + P.achievements[key].title, "gold"); });
           emit("success", { level: def.id, result: result });
           music().victory();
           cur.ctrl.success(result).then(function () {
-            ui.log(levels[def.id + 1] ? "→ Le portail s'ouvre vers le niveau suivant…" : "→ Retour au menu…", "dim");
-            window.setTimeout(function () { goTo(nextName(def.id)); }, 600);
+            ui.log(lapUp === "end" ? "→ Les crédits arrivent…" : lapUp === "lap" ? "→ Tour terminé ! Retour à l'accueil…" : levels[def.id + 1] ? "→ Le portail s'ouvre vers le niveau suivant…" : "→ Retour au menu…", "dim");
+            window.setTimeout(function () { goTo(lapUp === "end" && scenes.credits ? "credits" : nextName(def.id)); }, 600);
           });
         } else {
           P.recordFail(def.id);
@@ -860,7 +870,7 @@
       var ctx = { go: goTo, host: host, name: name, reserve: isLevel ? 0.4 : 0 };
       applyFx();
       cur.ctrl = def.scene(k, helpers, ctx);
-      if (isLevel) ui.showLevel(def); else { ui.hide(); canvas.focus(); }
+      if (isLevel) ui.showLevel(window.OctoLangs ? window.OctoLangs.apply(def, P.lang()) : def); else { ui.hide(); canvas.focus(); }
     }
 
     Object.keys(scenes).forEach(function (name) { k.scene(name, function () { enter(name, scenes[name], false); }); });
@@ -872,6 +882,7 @@
     // Reprise : #levelN rouvre le niveau (s'il est débloqué), sinon on démarre au menu.
     var start = /^#level\d+$/.test(window.location.hash) ? window.location.hash.slice(1) : "hub";
     if (/^level\d+$/.test(start) && !(levels[start.slice(5)] && P.isUnlocked(parseInt(start.slice(5), 10)))) start = "hub";
+    if (P.creditsPending() && scenes.credits) start = "credits"; // le jeu est fini mais les crédits n'ont pas été vus (page fermée en route)
     k.onLoad(function () { goTo(start); });
 
     // Le format de la fenêtre a changé : on recompose la vue (rechargement). Jamais en plein écran : recharger la page

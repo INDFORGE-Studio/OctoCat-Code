@@ -20,7 +20,7 @@
     alt: "L'OctoCat se promène dans une forêt nocturne devant un portail ouvert : cliquer pour entrer dans l'aventure.",
 
     scene: function (k, h, ctx) {
-      var sc = OctoScenery.build(k, h, { portalOpen: true, hudBar: false });
+      var sc = OctoScenery.build(k, h, { portalOpen: true, hudBar: false, magic: false });
       var rgb = sc.rgb, BASE_Y = sc.BASE_Y, PORTAL_X = sc.PORTAL_X;
       var root = ctx.host.getAttribute("data-root") || "./";
       var info = nextTarget(root);
@@ -54,6 +54,8 @@
       var prompt = k.add([k.text(promptTxt, { size: fsz(12), font: "monospace" }), k.pos(cx, py + 1), k.anchor("center"), k.color(rgb("#ffe08a")), k.fixed(), k.z(32)]);
       k.add([k.text("NIVEAUX TERMINES : " + done + "/" + P.levels.length, { size: 10, font: "monospace" }), k.pos(10, 8),
         k.color(rgb("#f0f6fc")), k.fixed(), k.z(32)]);
+      var fin = P.get().finished, tourTxt = fin ? "JEU TERMINE - " + P.LAPS + "/" + P.LAPS + " TOURS" : "TOUR " + Math.min(P.LAPS, P.laps() + 1) + "/" + P.LAPS + " - " + P.lang().toUpperCase();
+      k.add([k.text(tourTxt, { size: 9, font: "monospace" }), k.pos(10, 22), k.color(rgb(fin ? "#ffe08a" : "#a5d6ff")), k.fixed(), k.z(32)]);
 
       // ----- l'OctoCat patrouille -----
       var shadow = sc.shadow(80, 0.85);
@@ -62,10 +64,9 @@
       // Laita attend devant sa niche (son nom sur une petite plaque), tournée vers l'OctoCat
       var KX = 352, LX = 288;
       k.add([k.sprite("kennel"), k.pos(KX, BASE_Y + 1), k.anchor("bot"), k.scale(2.6), k.z(6.6)]);
-      k.add([k.rect(46, 13), k.pos(KX, BASE_Y - 78), k.anchor("center"), k.color(rgb("#150c33")), k.opacity(0.9), k.z(6.8)]);
-      k.add([k.rect(46, 1), k.pos(KX, BASE_Y - 84), k.anchor("center"), k.color(rgb("#ffe08a")), k.opacity(0.9), k.z(6.9)]);
-      k.add([k.rect(46, 1), k.pos(KX, BASE_Y - 72), k.anchor("center"), k.color(rgb("#ffe08a")), k.opacity(0.9), k.z(6.9)]);
-      k.add([k.text("LAITA", { size: 10, font: "monospace" }), k.pos(KX, BASE_Y - 78), k.anchor("center"), k.color(rgb("#ffe08a")), k.z(7)]);
+      var PY = BASE_Y - 53; // le nom est peint directement sur le pan du toit (lettres claires, ombre rouge sombre)
+      k.add([k.text("LAITA", { size: 10, font: "monospace" }), k.pos(KX + 1, PY + 1.5), k.anchor("center"), k.color(rgb("#5a1a22")), k.z(6.8)]);
+      k.add([k.text("LAITA", { size: 10, font: "monospace" }), k.pos(KX, PY), k.anchor("center"), k.color(rgb("#fff0c2")), k.z(6.9)]);
       var laitaShadow = sc.shadow(LX, 0.6);
       var laita = k.add([k.sprite("laita", { anim: "sit" }), k.pos(LX, BASE_Y), k.anchor("bot"), k.scale(3), k.opacity(1), k.z(8.5)]);
       laita.flipX = true;
@@ -89,8 +90,9 @@
         }
       });
 
+      var lapDialog = null;
       function enter() {
-        if (entering) return;
+        if (entering || lapDialog) return;
         entering = true;
         prompt.text = "[ ... ]"; promptShadow.text = "[ ... ]";
         octo.flipX = false;
@@ -144,7 +146,40 @@
       picker.appendChild(panel); picker.appendChild(toggle);
       ctx.host.appendChild(picker);
 
-      return { reset: function () {}, destroy: function () { picker.remove(); } };
+      /** Un tour de 10 niveaux vient d'être fini : on présente la nouvelle apparence et on fait choisir le langage du tour suivant. */
+      var SKIN_NAMES = ["OctoCat", "OctoNinja", "OctoRoi", "OctoCosmos"], DOG_NAMES = ["Laita", "Laita Bandana", "Laita Reine", "Laita Etoilee"];
+      function openLapUp() {
+        var tour = P.laps(), L = window.OctoLangs, dlg = document.createElement("div"), card = document.createElement("div");
+        dlg.className = "octo-dialog is-open octo-lapup"; card.className = "octo-dialog__card";
+        function add(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; card.appendChild(n); return n; }
+        add("h2", "octo-dialog__title", "🎉 TOUR " + tour + " TERMINE !");
+        var intro = add("p", "octo-dialog__text", "Tu as vaincu les 10 niveaux ! Regarde : OctoCat et Laita ont une toute nouvelle apparence. Voici " + SKIN_NAMES[tour] + " et " + DOG_NAMES[tour].replace("Etoilee", "Étoilée") + " ✨");
+        intro.className = "octo-dialog__text";
+        add("div", "octo-dialog__label", "💻 CHOISIS TON LANGAGE POUR LE TOUR " + (tour + 1));
+        add("p", "octo-dialog__tip", "Les énigmes seront les mêmes, mais tu les écriras dans ce langage. Tes pièces sont gardées !");
+        var row = add("div", "octo-lang-row"), used = [P.lang()];
+        (L ? L.LANGS : ["Python"]).forEach(function (lang) {
+          var b = document.createElement("button"); b.type = "button"; b.className = "octo-lang";
+          var nm = document.createElement("span"); nm.className = "octo-lang__name"; nm.textContent = (L ? L.INFO[lang].icon : "") + " " + lang;
+          var tg = document.createElement("span"); tg.className = "octo-lang__tag"; tg.textContent = L ? L.INFO[lang].tagline : "";
+          b.appendChild(nm); b.appendChild(tg);
+          if (used.indexOf(lang) >= 0) { var dn = document.createElement("span"); dn.className = "octo-lang__done"; dn.textContent = "c'est le langage du tour qui vient de finir"; b.appendChild(dn); }
+          b.addEventListener("click", function () {
+            P.startLap(lang);
+            dlg.remove(); lapDialog = null;
+            if (window.OctoMusic) window.OctoMusic.sfx("star");
+            sc.burst(octo.pos.x + 20, octo.pos.y - 40, ["#ffe08a", "#ffffff", "#58a6ff", "#bc8cff"], 26);
+          });
+          row.appendChild(b);
+        });
+        dlg.appendChild(card); ctx.host.appendChild(dlg); lapDialog = dlg;
+        var first = row.querySelector("button"); if (first) first.focus();
+        if (window.OctoMusic) window.OctoMusic.sfx("star");
+        h.wait(0.4).then(function () { sc.burst(octo.pos.x + 20, octo.pos.y - 40, ["#ffe08a", "#ffffff", "#f778ba", "#39c5cf"], 40); });
+      }
+      if (P.pendingLap()) openLapUp();
+
+      return { reset: function () {}, destroy: function () { picker.remove(); if (lapDialog) lapDialog.remove(); } };
     }
   });
 })();
