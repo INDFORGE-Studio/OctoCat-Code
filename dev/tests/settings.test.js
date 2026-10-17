@@ -30,6 +30,7 @@ test("réglages : touches par défaut (clavier AZERTY/QWERTY et souris)", () => 
   assert.equal(S.lookup("Mouse0"), "attack");
   assert.equal(S.lookup("Mouse2"), "dog");
   assert.equal(S.lookup("KeyV"), "dog");
+  assert.equal(S.lookup("KeyF"), "throw", "le shuriken est sur F par défaut");
   assert.equal(S.lookup("KeyC"), "throw");
   assert.equal(S.lookup("KeyP"), null);
 });
@@ -84,7 +85,7 @@ test("réglages : options typées (set refuse les mauvais types) et texte d'aide
   assert.equal(S.hintFor("jump", 1), "ESPACE");
   assert.equal(S.hintFor("attack", 2), "CLIC GAUCHE/X");
   assert.equal(S.hintFor("dog", 2), "CLIC DROIT/V");
-  assert.equal(S.hintFor("throw", 2), "C/K");
+  assert.equal(S.hintFor("throw", 2), "F/C");
   assert.equal(S.hintFor("attack", 1), "CLIC GAUCHE");
   S.unbind("attack", "Mouse0");
   assert.equal(S.hintFor("attack", 2), "X/J");
@@ -131,12 +132,12 @@ test("sauvegarde : la réinitialisation remet le niveau 1 seul d'ouvert", () => 
 test("sauvegarde complète : progression + touches + options passent par un seul code, ancien code accepté", () => {
   const { S, P } = load();
   P.complete(1); P.complete(2);
-  S.bind("attack", "KeyF"); S.set("shake", false); S.set("relax", true);
+  S.bind("attack", "KeyG"); S.set("shake", false); S.set("relax", true);
   const code = S.exportAll();
   S.resetAll(); P.reset();
-  assert.equal(S.lookup("KeyF"), null); assert.equal(P.get().unlocked, 1);
+  assert.equal(S.lookup("KeyG"), null); assert.equal(P.get().unlocked, 1);
   assert.equal(S.importAll(code).ok, true);
-  assert.equal(S.lookup("KeyF"), "attack");
+  assert.equal(S.lookup("KeyG"), "attack");
   assert.equal(S.get("shake"), false); assert.equal(S.get("relax"), true);
   assert.equal(P.get().unlocked, 3);
   // ancien code : progression seule
@@ -195,4 +196,13 @@ test("réglages : d'anciens réglages (clic droit = shuriken) passent à Laita s
   assert.equal(S.lookup("Mouse2"), "dog", "le clic droit appelle Laita");
   assert.equal(S.lookup("KeyC"), "throw", "le shuriken garde sa touche du clavier");
   assert.equal(S.get("sfx"), false, "les autres réglages sont gardés");
+});
+
+test("réglages : les anciennes touches par défaut du shuriken (C / K) reçoivent F en premier, des touches personnalisées ne bougent pas", () => {
+  const old = load({ "octocat-code:settings:v1": JSON.stringify({ keys: { throw: ["KeyC", "KeyK"] } }) }).S;
+  assert.equal(old.lookup("KeyF"), "throw");
+  assert.equal(old.hintFor("throw", 2), "F/C");
+  const custom = load({ "octocat-code:settings:v1": JSON.stringify({ keys: { throw: ["KeyB"] } }) }).S;
+  assert.equal(custom.lookup("KeyB"), "throw");
+  assert.equal(custom.lookup("KeyF"), null, "un choix personnalisé est respecté");
 });
