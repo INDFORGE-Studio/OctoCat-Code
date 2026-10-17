@@ -65,5 +65,27 @@ await page.evaluate(() => document.exitFullscreen());
 await metrics(620);
 await page.waitForTimeout(1800);
 ok("retour à la fenêtre sans rechargement", await page.evaluate(() => window.__marker === 1 && !document.fullscreenElement));
+
+// fenêtre d'explication (briefing) en plein écran : souris visible dessus, pas de menu du navigateur au clic droit
+await page.evaluate(() => localStorage.setItem("octocat-code:settings:v1", JSON.stringify({ skipAlways: true })));
+await page.goto(`http://127.0.0.1:${PORT}${BASE}?unlock=all#level1`, { waitUntil: "load" });
+await page.waitForFunction(() => window.OctoPlay && window.OctoPlay.current, null, { timeout: 15000 });
+await page.waitForTimeout(1200);
+await page.locator(".octo-gear").click();
+await page.locator(".octo-set__tab", { hasText: "Affichage" }).click();
+await page.locator(".octo-set__btn", { hasText: "Activer" }).click();
+await page.waitForTimeout(500);
+await page.keyboard.press("Escape");
+await page.waitForTimeout(300);
+await page.locator(".octo-skip").click();
+await page.waitForSelector(".octo-dialog.is-open", { timeout: 20000 });
+await page.waitForTimeout(400);
+ok("briefing : plein écran actif", await page.evaluate(() => !!document.fullscreenElement));
+ok("briefing : souris visible sur la fenêtre", await page.evaluate(() => getComputedStyle(document.querySelector(".octo-dialog__card")).cursor !== "none" && getComputedStyle(document.querySelector(".octo-dialog")).cursor !== "none"));
+ok("briefing : bouton cliquable avec souris visible", await page.evaluate(() => getComputedStyle(document.querySelector(".octo-dialog .octo-btn")).cursor !== "none"));
+ok("jeu : souris cachée sur le décor", await page.evaluate(() => getComputedStyle(document.querySelector("canvas")).cursor === "none"));
+const menuBlocked = await page.evaluate(() => ["octo-dialog__card", "octo-canvas"].map((c) => { const e = new MouseEvent("contextmenu", { bubbles: true, cancelable: true, button: 2 }); document.querySelector("." + c).dispatchEvent(e); return e.defaultPrevented; }));
+ok("clic droit : menu du navigateur bloqué en plein écran", menuBlocked.every(Boolean), JSON.stringify(menuBlocked));
+await page.screenshot({ path: path.join(OUT, "_fs-brief.png") });
 console.log(out.join("\n"), "\nerreurs :", errs.length ? errs : "aucune");
 await browser.close(); server.close();

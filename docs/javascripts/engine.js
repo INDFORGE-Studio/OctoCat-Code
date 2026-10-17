@@ -815,6 +815,12 @@
       toast(root.classList.toggle("octo-hide-cursor") ? "Souris cachée · clic molette pour la montrer" : "Souris visible · clic molette pour la cacher");
     });
     document.addEventListener("auxclick", function (e) { if (e.button === 1 && document.fullscreenElement) e.preventDefault(); });
+    // Plein écran : le clic droit sert à lancer le shuriken, pas à ouvrir le menu du navigateur (sauf dans un champ de texte : coller).
+    document.addEventListener("contextmenu", function (e) {
+      if (!document.fullscreenElement) return;
+      var t = e.target && e.target.tagName;
+      if (t !== "TEXTAREA" && t !== "INPUT") e.preventDefault();
+    });
     document.addEventListener("fullscreenchange", function () {
       root.classList.toggle("octo-fs-on", !!document.fullscreenElement);
       var hide = !!document.fullscreenElement && (!window.OctoSettings || window.OctoSettings.get("hideCursor") !== false);
