@@ -57,6 +57,7 @@ extra_javascript:
   - javascripts/settings.js
   - javascripts/fx.js
   - javascripts/sprites-run.js
+  - javascripts/logo.js
   - javascripts/playsim.js
   - javascripts/play.js
   - javascripts/puzzle.js
