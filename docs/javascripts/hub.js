@@ -53,6 +53,22 @@
       k.add([k.rect(pw, 1), k.pos(cx, py + ph / 2), k.anchor("center"), k.color(rgb("#ffe08a")), k.opacity(0.9), k.fixed(), k.z(30.7), "hudchrome"]);
       var promptShadow = k.add([k.text(promptTxt, { size: fsz(12), font: "monospace" }), k.pos(cx + 1, py + 2), k.anchor("center"), k.color(rgb("#000000")), k.opacity(0.8), k.fixed(), k.z(31.9), "hudchrome"]);
       var prompt = k.add([k.text(promptTxt, { size: fsz(12), font: "monospace" }), k.pos(cx, py + 1), k.anchor("center"), k.color(rgb("#ffe08a")), k.fixed(), k.z(32), "hudchrome"]);
+      // compteur de score : toutes les pièces gagnées depuis le début (style borne d'arcade), il défile jusqu'au total à l'arrivée
+      var score = P.earned(), digits = Math.max(4, String(score).length);
+      function measure(txt, size) { var w; try { w = k.formatText({ text: txt, size: size, font: "monospace" }).width; } catch { w = 0; } return w && isFinite(w) ? w : txt.length * size * 0.62; }
+      var scSize = fsz(12), lblW = measure("PIECES", scSize), numW = measure(new Array(digits + 1).join("0"), scSize), icon = 16 * Math.max(0.8, fit);
+      var scW = Math.min(VW - 12, icon + 10 + lblW + 16 + numW + 34 * fit), scH = 22 * Math.max(0.85, fit), scY = py + ph / 2 + 8 * fit + scH / 2;
+      var scLeft = cx - scW / 2 + 17 * fit, scRight = cx + scW / 2 - 17 * fit;
+      k.add([k.rect(scW, scH), k.pos(cx, scY), k.anchor("center"), k.color(rgb("#150c33")), k.opacity(0.88), k.fixed(), k.z(30.6), "hudchrome"]);
+      k.add([k.rect(scW, 1), k.pos(cx, scY - scH / 2), k.anchor("center"), k.color(rgb("#58d6ff")), k.opacity(0.9), k.fixed(), k.z(30.7), "hudchrome"]);
+      k.add([k.rect(scW, 1), k.pos(cx, scY + scH / 2), k.anchor("center"), k.color(rgb("#58d6ff")), k.opacity(0.9), k.fixed(), k.z(30.7), "hudchrome"]);
+      var coin = k.add([k.sprite("bit"), k.pos(scLeft + icon / 2, scY), k.anchor("center"), k.scale(icon / 10), k.fixed(), k.z(32), "hudchrome"]);
+      k.add([k.text("PIECES", { size: scSize, font: "monospace" }), k.pos(scLeft + icon + 10 + 1, scY + 2), k.anchor("left"), k.color(rgb("#000000")), k.opacity(0.8), k.fixed(), k.z(31.9), "hudchrome"]);
+      k.add([k.text("PIECES", { size: scSize, font: "monospace" }), k.pos(scLeft + icon + 10, scY + 1), k.anchor("left"), k.color(rgb("#7ae7ff")), k.fixed(), k.z(32), "hudchrome"]);
+      function pad(n) { var t = String(n); while (t.length < digits) t = "0" + t; return t; }
+      var scoreShadow = k.add([k.text(pad(0), { size: scSize, font: "monospace" }), k.pos(scRight + 1, scY + 2), k.anchor("right"), k.color(rgb("#000000")), k.opacity(0.8), k.fixed(), k.z(31.9), "hudchrome"]);
+      var scoreTxt = k.add([k.text(pad(0), { size: scSize, font: "monospace" }), k.pos(scRight, scY + 1), k.anchor("right"), k.color(rgb("#ffe08a")), k.fixed(), k.z(32), "hudchrome"]);
+      var scoreT = 0, scoreDur = Math.min(1.6, 0.4 + score / 400), scoreDone = score <= 0, scoreFlash = 0;
       k.add([k.text("NIVEAUX TERMINES : " + done + "/" + P.levels.length, { size: 10, font: "monospace" }), k.pos(10, 8),
         k.color(rgb("#f0f6fc")), k.fixed(), k.z(32), "hudchrome"]);
       var fin = P.get().finished, tourTxt = fin ? "JEU TERMINE - " + P.LAPS + "/" + P.LAPS + " TOURS" : "TOUR " + Math.min(P.LAPS, P.laps() + 1) + "/" + P.LAPS + " - " + P.lang().toUpperCase();
@@ -78,6 +94,15 @@
       sc.onFrame(function (t) {
         if (logo) logo.update(t);
         if (prompt.exists()) prompt.opacity = 0.8 + 0.2 * Math.abs(Math.sin(t * 2.6));
+        if (coin.exists()) {
+          coin.scale = k.vec2(Math.max(0.12, Math.abs(Math.cos(t * 3))) * icon / 10, icon / 10); // la pièce tourne sur elle-même
+          if (!scoreDone) { // le score défile jusqu'au total, puis la pièce et le chiffre brillent un instant
+            scoreT += k.dt();
+            var q = Math.min(1, scoreT / scoreDur), shown = Math.round(score * (1 - (1 - q) * (1 - q)));
+            scoreTxt.text = pad(shown); scoreShadow.text = pad(shown);
+            if (q >= 1) { scoreDone = true; scoreFlash = 0.9; }
+          } else if (scoreFlash > 0) { scoreFlash -= k.dt(); scoreTxt.color = rgb(Math.floor(scoreFlash * 10) % 2 ? "#ffffff" : "#ffe08a"); if (scoreFlash <= 0) scoreTxt.color = rgb("#ffe08a"); }
+        }
         shadow.pos.x = octo.pos.x;
         shadow.opacity = 0.6 * octo.opacity;
         laitaShadow.pos.x = laita.pos.x; laitaShadow.opacity = 0.5 * octo.opacity; laita.opacity = octo.opacity;
@@ -182,7 +207,34 @@
       }
       if (P.pendingLap()) openLapUp();
 
-      return { reset: function () {}, destroy: function () { picker.remove(); if (lapDialog) lapDialog.remove(); } };
+      // choix du costume (à côté du bouton du son) : seulement une fois plus de 499 pièces gagnées ; on peut alors reprendre n'importe quelle apparence
+      var skinBox = null;
+      if (P.canPickSkin() && !CARD) {
+        var audioBox = ctx.host.querySelector(".octo-audio");
+        if (audioBox) {
+          skinBox = document.createElement("div"); skinBox.className = "octo-skin";
+          var skinBtn = document.createElement("button"); skinBtn.type = "button"; skinBtn.className = "octo-mute octo-skin__toggle";
+          skinBtn.appendChild(document.createTextNode("🎭"));
+          var skinLbl = document.createElement("span"); skinLbl.className = "octo-skin__label"; skinLbl.textContent = " COSTUME"; skinBtn.appendChild(skinLbl); // le mot disparaît sur petit écran (CSS) : le bouton ne recouvre pas le logo
+          skinBtn.setAttribute("aria-label", "Choisir l'apparence d'OctoCat et de Laita");
+          skinBtn.setAttribute("aria-expanded", "false");
+          var skinPanel = document.createElement("div"); skinPanel.className = "octo-skin__panel";
+          var skinHead = document.createElement("div"); skinHead.className = "octo-skin__head"; skinHead.textContent = "CHOISIS TON COSTUME";
+          skinPanel.appendChild(skinHead);
+          var ICONS = ["🐱", "🥷", "👑", "🌌"], now = P.skin();
+          SKIN_NAMES.forEach(function (nm, i) {
+            var row = document.createElement("button"); row.type = "button"; row.className = "octo-skin__row" + (i === now ? " is-on" : "");
+            row.textContent = ICONS[i] + "  " + nm + " + " + DOG_NAMES[i].replace("Etoilee", "Étoilée") + (i === now ? "  ✓" : "");
+            row.addEventListener("click", function () { if (i !== now && P.pickSkin(i)) ctx.go("hub"); else { skinBox.classList.remove("is-open"); skinBtn.setAttribute("aria-expanded", "false"); } }); // la scène est refaite : les sprites prennent le nouveau costume
+            skinPanel.appendChild(row);
+          });
+          skinBtn.addEventListener("click", function () { var o = skinBox.classList.toggle("is-open"); skinBtn.setAttribute("aria-expanded", String(o)); skinBtn.blur(); });
+          skinBox.appendChild(skinBtn); skinBox.appendChild(skinPanel);
+          audioBox.insertBefore(skinBox, audioBox.firstChild);
+        }
+      }
+
+      return { reset: function () {}, destroy: function () { picker.remove(); if (skinBox) skinBox.remove(); if (lapDialog) lapDialog.remove(); } };
     }
   });
 })();

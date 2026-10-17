@@ -40,7 +40,7 @@
   };
 
   function defaults() {
-    return { version: 1, unlocked: 1, completed: {}, language: null, achievements: {}, fails: {}, coins: 0, banked: {}, paid: {}, laps: 0, lapLang: "Python", pendingLap: false, creditsPending: false, finished: false };
+    return { version: 1, unlocked: 1, completed: {}, language: null, achievements: {}, fails: {}, coins: 0, earned: 0, skinPick: -1, banked: {}, paid: {}, laps: 0, lapLang: "Python", pendingLap: false, creditsPending: false, finished: false };
   }
 
   // Repli en mémoire si localStorage est indisponible (navigation privée, etc.).
@@ -91,9 +91,23 @@
     bank: function (id, n) {
       var s = read(), have = Math.floor(s.banked[id]) || 0, now = Math.max(0, Math.floor(n) || 0), gain = Math.max(0, now - have);
       if (!gain) return 0;
-      s.banked[id] = now; s.coins = Progress.coins() + gain;
+      s.banked[id] = now; s.earned = Progress.earned() + gain; s.coins = Progress.coins() + gain;
       write(s);
       return gain;
+    },
+
+    /** Score : toutes les pièces gagnées depuis le début du jeu (les indices payés ne la font pas baisser). */
+    earned: function () { var s = read(); return Math.max(Math.floor(s.earned) || 0, Math.max(0, Math.floor(s.coins) || 0)); },
+
+    /** Au-delà de 499 pièces gagnées, on peut choisir son apparence (bouton de l'accueil). */
+    SKIN_COINS: 500,
+    canPickSkin: function () { return Progress.earned() >= Progress.SKIN_COINS; },
+    /** Choisit l'apparence (0 à 3) ; refusé tant que le score est trop bas. Renvoie true si c'est pris en compte. */
+    pickSkin: function (n) {
+      n = Math.floor(n);
+      if (!Progress.canPickSkin() || !(n >= 0 && n <= LAPS)) return false;
+      var s = read(); s.skinPick = n; write(s);
+      return true;
     },
 
     /** Nombre d'indices déjà payés pour ce niveau (ils restent visibles jusqu'à la réussite du niveau). */
@@ -129,7 +143,7 @@
       if (id === LEVELS.length && s.laps < LAPS && LEVELS.every(function (lv) { return s.completed[lv.id]; })) {
         s.laps += 1; grant("lap" + s.laps);
         if (s.laps >= LAPS) { s.finished = true; s.creditsPending = true; gained.lap = "end"; }
-        else { s.pendingLap = true; s.completed = {}; s.unlocked = 1; s.fails = {}; s.paid = {}; s.banked = {}; gained.lap = "lap"; }
+        else { s.pendingLap = true; s.skinPick = -1; s.completed = {}; s.unlocked = 1; s.fails = {}; s.paid = {}; s.banked = {}; gained.lap = "lap"; }
       }
       write(s);
       return gained;
@@ -139,8 +153,12 @@
     LAPS: LAPS,
     languages: LANG_LIST,
     laps: function () { return Math.max(0, Math.min(LAPS, Math.floor(read().laps) || 0)); },
-    /** Apparence en cours (0 = d'origine … 3) ; `?skin=N` dans l'adresse la force (démonstration). */
-    skin: function () { return FORCED_SKIN >= 0 ? FORCED_SKIN : Progress.laps(); },
+    /** Apparence en cours (0 = d'origine … 3) : celle du tour, ou celle choisie à l'accueil (score ≥ 500) ; `?skin=N` dans l'adresse la force (démonstration). */
+    skin: function () {
+      if (FORCED_SKIN >= 0) return FORCED_SKIN;
+      var pick = Math.floor(read().skinPick);
+      return pick >= 0 && pick <= LAPS && Progress.canPickSkin() ? pick : Progress.laps();
+    },
     lang: function () { var l = read().lapLang; return LANG_LIST.indexOf(l) >= 0 ? l : "Python"; },
     pendingLap: function () { return !!read().pendingLap; },
     creditsPending: function () { return !!read().creditsPending; },
@@ -203,6 +221,10 @@
       });
       var c = Math.floor(Number(o.coins));
       if (c > 0) s.coins = Math.min(c, 99999);
+      var ea = Math.floor(Number(o.earned));
+      if (ea > 0) s.earned = Math.min(ea, 99999);
+      var pk = Math.floor(Number(o.skinPick));
+      if (pk >= 0 && pk <= LAPS) s.skinPick = pk;
       if (o.banked && typeof o.banked === "object") Object.keys(o.banked).forEach(function (id) {
         var i = parseInt(id, 10), v = Math.floor(Number(o.banked[id]));
         if (i >= 1 && i <= max && v > 0) s.banked[i] = Math.min(v, 999);

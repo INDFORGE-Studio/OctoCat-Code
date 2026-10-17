@@ -88,8 +88,11 @@
       // ----- texte qui monte (placé une fois, déplacé à chaque image) -----
       var band = k.add([k.rect(Math.min(VW - 16, 430), VH + 20), k.pos(VW / 2, VH / 2), k.anchor("center"), k.color(rgb("#07061a")), k.opacity(0.42), k.fixed(), k.z(29)]);
       var rows = [], y = 0;
+      // le titre est le même logo que sur l'accueil, mais ses reflets changent de couleur bien plus vite ; repli sur du texte si le module manque
+      var tlogo = window.OctoLogo ? window.OctoLogo.add(k, { cx: VW / 2, top: -300, maxW: Math.min(VW - 16, 440), maxH: 90, rgb: rgb, z: 31, speed: 2.6, rainbow: true, still: true }) : null;
       script(P).forEach(function (ln) {
         var st = STYLE[ln[0]];
+        if (ln[0] === "title" && tlogo) { rows.push({ logo: true, y: y + (tlogo.height + 12) / 2 }); y += tlogo.height + 12; return; }
         if (ln[1]) {
           var shadow = k.add([k.text(ln[1], { size: st.size, font: "monospace" }), k.pos(VW / 2 + 1, 0), k.anchor("center"), k.color(rgb("#000000")), k.opacity(0.8), k.fixed(), k.z(30.9)]);
           var t = k.add([k.text(ln[1], { size: st.size, font: "monospace" }), k.pos(VW / 2, 0), k.anchor("center"), k.color(rgb(st.color)), k.fixed(), k.z(31)]);
@@ -146,6 +149,7 @@
         // texte
         rows.forEach(function (r) {
           var yy = VH + 10 + r.y - scroll;
+          if (r.logo) { tlogo.setTop(yy - tlogo.height / 2); tlogo.setVisible(yy > -tlogo.height && yy < VH + tlogo.height); tlogo.update(time + 5); return; }
           r.o.pos.y = yy; r.s.pos.y = yy + 1;
           var vis = yy > -20 && yy < VH + 20;
           r.o.opacity = vis ? 1 : 0; r.s.opacity = vis ? 0.8 : 0;

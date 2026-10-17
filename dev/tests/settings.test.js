@@ -190,6 +190,29 @@ test("pièces : elles passent dans le code de sauvegarde, valeurs hors limites r
   assert.equal(bad.paidHints(1), 0);
 });
 
+test("score : toutes les pièces gagnées (les indices payés ne le font pas baisser) ; au-delà de 499, on choisit son apparence", () => {
+  const { P } = load();
+  assert.equal(P.earned(), 0);
+  assert.equal(P.canPickSkin(), false);
+  P.bank(1, 15); P.payHint(1, 5);
+  assert.equal(P.coins(), 10);
+  assert.equal(P.earned(), 15, "dépenser des pièces ne baisse pas le score");
+  assert.equal(P.pickSkin(2), false, "refusé sous 500");
+  assert.equal(P.skin(), 0);
+  const rich = load().P;
+  assert.equal(rich.importSave(JSON.stringify({ unlocked: 1, earned: 499 })).ok, true);
+  assert.equal(rich.canPickSkin(), false, "499 ne suffit pas");
+  assert.equal(rich.importSave(JSON.stringify({ unlocked: 1, earned: 500, skinPick: 3 })).ok, true);
+  assert.equal(rich.canPickSkin(), true);
+  assert.equal(rich.skin(), 3, "l'apparence choisie est reprise de la sauvegarde");
+  assert.equal(rich.pickSkin(1), true);
+  assert.equal(rich.skin(), 1);
+  assert.equal(rich.pickSkin(4), false, "il n'y a que 4 apparences");
+  assert.equal(rich.earned(), 500);
+  rich.reset();
+  assert.equal(rich.earned(), 0, "recommencer à zéro remet le score à zéro");
+  assert.equal(rich.skin(), 0);
+});
 
 test("réglages : d'anciens réglages (clic droit = shuriken) passent à Laita sans perdre les autres touches", () => {
   const { S } = load({ "octocat-code:settings:v1": JSON.stringify({ keys: { throw: ["KeyC", "Mouse2"], attack: ["KeyX"] }, sfx: false }) });

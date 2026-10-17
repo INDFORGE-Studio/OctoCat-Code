@@ -93,8 +93,22 @@
 
   function easeBack(p) { var c1 = 1.70158, q = p - 1; return 1 + (c1 + 1) * q * q * q + c1 * q * q; }
 
+  /** Couleur de l'arc-en-ciel (h de 0 à 1), pastel : [r, g, b]. */
+  function rainbow(h) {
+    var i = Math.floor(h * 6), f = h * 6 - i, v = 255, lo = 80, up = lo + (v - lo) * f, dn = v - (v - lo) * f;
+    switch (((i % 6) + 6) % 6) {
+      case 0: return [v, up, lo];
+      case 1: return [dn, v, lo];
+      case 2: return [lo, v, up];
+      case 3: return [lo, dn, v];
+      case 4: return [up, lo, v];
+      default: return [v, lo, dn];
+    }
+  }
+
   function add(k, o) {
     var rgb = o.rgb, z = o.z || 32, i, x = 0, layout = [], total;
+    var speed = o.speed || 1, prism = !!o.rainbow, still = !!o.still, top = o.top, visible = true; // générique : plus vite, reflets arc-en-ciel, déjà posé
     for (i = 0; i < TEXT.length; i++) {
       var d = size(TEXT.charAt(i));
       layout.push({ x: x, w: d.w, h: d.h });
@@ -105,47 +119,68 @@
     var left = Math.round(o.cx - (total * S) / 2), H = layout[0].h * S;
 
     // halo doux derrière le titre (il reste derrière : les lettres, elles, restent nettes)
-    var halo = k.add([k.sprite("glow"), k.pos(o.cx, o.top + H * 0.55), k.anchor("center"), k.scale((total * S) / 64 * 1.15, H / 64 * 1.5), k.color(rgb("#8957e5")), k.opacity(0.4), k.fixed(), k.z(z - 3)]);
+    var halo = k.add([k.sprite("glow"), k.pos(o.cx, top + H * 0.55), k.anchor("center"), k.scale((total * S) / 64 * 1.15, H / 64 * 1.5), k.color(rgb("#8957e5")), k.opacity(0.4), k.fixed(), k.z(z - 3)]);
 
     var letters = layout.map(function (l, idx) {
       var px = left + l.x * S;
-      var shadow = k.add([k.sprite(spriteName("f", idx)), k.pos(px + S * 2, o.top + S * 2), k.scale(S), k.color(rgb("#0a0620")), k.opacity(0), k.fixed(), k.z(z - 2)]);
-      var body = k.add([k.sprite(spriteName("f", idx)), k.pos(px, o.top), k.scale(S), k.opacity(0), k.fixed(), k.z(z)]);
-      var shine = k.add([k.sprite(spriteName("s", idx)), k.pos(px, o.top), k.scale(S), k.opacity(0), k.fixed(), k.z(z + 0.1)]);
+      var shadow = k.add([k.sprite(spriteName("f", idx)), k.pos(px + S * 2, top + S * 2), k.scale(S), k.color(rgb("#0a0620")), k.opacity(0), k.fixed(), k.z(z - 2)]);
+      var body = k.add([k.sprite(spriteName("f", idx)), k.pos(px, top), k.scale(S), k.opacity(0), k.fixed(), k.z(z)]);
+      var shine = k.add([k.sprite(spriteName("s", idx)), k.pos(px, top), k.scale(S), k.opacity(0), k.fixed(), k.z(z + 0.1)]);
       return { px: px, shadow: shadow, body: body, shine: shine };
     });
 
     // étincelles : petites croix qui scintillent à des endroits variés du titre
     var sparks = [];
     for (i = 0; i < 6; i++) {
-      var sp = { x: left + Math.round(k.rand(0.03, 0.97) * total * S), y: o.top + Math.round(k.rand(0.1, 0.8) * H), ph: k.rand(0, 6.28), sp: k.rand(1.2, 2.4), a: [], big: i % 2 === 0 ? 2 : 1 };
-      sp.a.push(k.add([k.rect(2 * S, 1 * S * sp.big), k.pos(sp.x, sp.y), k.anchor("center"), k.color(rgb("#ffffff")), k.opacity(0), k.fixed(), k.z(z + 0.2)]));
-      sp.a.push(k.add([k.rect(1 * S * sp.big, 2 * S), k.pos(sp.x, sp.y), k.anchor("center"), k.color(rgb("#ffffff")), k.opacity(0), k.fixed(), k.z(z + 0.2)]));
+      var sp = { x: left + Math.round(k.rand(0.03, 0.97) * total * S), dy: Math.round(k.rand(0.1, 0.8) * H), ph: k.rand(0, 6.28), sp: k.rand(1.2, 2.4) * speed, a: [], big: i % 2 === 0 ? 2 : 1 };
+      sp.a.push(k.add([k.rect(2 * S, 1 * S * sp.big), k.pos(sp.x, top + sp.dy), k.anchor("center"), k.color(rgb("#ffffff")), k.opacity(0), k.fixed(), k.z(z + 0.2)]));
+      sp.a.push(k.add([k.rect(1 * S * sp.big, 2 * S), k.pos(sp.x, top + sp.dy), k.anchor("center"), k.color(rgb("#ffffff")), k.opacity(0), k.fixed(), k.z(z + 0.2)]));
       sparks.push(sp);
+    }
+
+    var hidden = false;
+    function hide() {
+      if (hidden) return;
+      hidden = true;
+      letters.forEach(function (L) { L.body.opacity = 0; L.shadow.opacity = 0; L.shine.opacity = 0; });
+      sparks.forEach(function (s) { s.a[0].opacity = 0; s.a[1].opacity = 0; });
+      halo.opacity = 0;
     }
 
     return {
       width: total * S, height: H, scale: S,
+      /** Déplace le logo (générique : il monte avec le texte). */
+      setTop: function (y) { top = y; },
+      /** Faux = rien n'est dessiné (hors de l'écran). */
+      setVisible: function (v) { visible = !!v; },
       update: function (t) {
+        if (!visible) { hide(); return; }
+        hidden = false;
         var ready = true;
+        halo.pos.y = top + H * 0.55;
         letters.forEach(function (L, idx) {
-          var p = Math.max(0, Math.min(1, (t - 0.15 - idx * 0.07) / 0.55));
+          var p = still ? 1 : Math.max(0, Math.min(1, (t - 0.15 - idx * 0.07) / 0.55));
           if (p < 1) ready = false;
-          var drop = (1 - easeBack(p)) * -70, bob = p < 1 ? 0 : Math.round(Math.sin(t * 2.2 + idx * 0.55) * 1.2 * S) / S * 1;
-          var y = Math.round(o.top + drop + bob * S);
+          var drop = (1 - easeBack(p)) * -70, bob = p < 1 ? 0 : Math.round(Math.sin(t * 2.2 * speed + idx * 0.55) * 1.2 * S) / S * 1;
+          var y = Math.round(top + drop + bob * S);
           var vis = p > 0 ? 1 : 0;
           L.body.pos.y = y; L.shine.pos.y = y; L.shadow.pos.y = y + S * 2;
           L.body.opacity = vis; L.shadow.opacity = vis * 0.5;
-          var wave = Math.sin(t * 1.7 - idx * 0.55);
-          L.shine.opacity = p < 1 ? 0 : Math.max(0, wave - 0.62) * 1.25;
+          var wave = Math.sin(t * 1.7 * speed - idx * 0.55);
+          if (prism) { // reflets de toutes les couleurs qui défilent d'une lettre à l'autre
+            var hue = t * 0.55 * speed - idx * 0.07, c = rainbow(hue - Math.floor(hue));
+            L.shine.color = k.rgb(c[0], c[1], c[2]);
+            L.shine.opacity = p < 1 ? 0 : 0.3 + 0.18 * wave;
+          } else L.shine.opacity = p < 1 ? 0 : Math.max(0, wave - 0.62) * 1.25;
         });
         sparks.forEach(function (s) {
           var v = ready ? Math.max(0, Math.sin(t * s.sp + s.ph)) : 0;
           v = v * v * v;
+          s.a[0].pos.y = top + s.dy; s.a[1].pos.y = top + s.dy;
           s.a[0].opacity = v; s.a[1].opacity = v;
           var sc = 0.6 + 0.8 * v; s.a[0].scale = k.vec2(sc, sc); s.a[1].scale = k.vec2(sc, sc);
         });
-        halo.opacity = 0.34 + 0.06 * Math.sin(t * 1.3);
+        halo.opacity = 0.34 + 0.06 * Math.sin(t * 1.3 * speed);
       }
     };
   }
