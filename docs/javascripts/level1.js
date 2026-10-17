@@ -59,7 +59,7 @@
       var NAME = "v_speed", EXPECTED = 200;
       var msgs = [];
       if (!code.trim()) return { ok: false, messages: [OctoPuzzle.msg.empty] };
-      if (/\?\?\?/.test(code)) {
+      if (OctoPuzzle.hasBlank(code)) {
         return { ok: false, messages: ["Oups, il reste des « ??? » ! Remplace-les par un nombre : la vitesse de l'OctoCat."] };
       }
 

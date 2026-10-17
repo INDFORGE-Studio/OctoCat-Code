@@ -19,6 +19,11 @@
     syntax: function (e) { return "Ligne " + e.line + " : petite faute d'écriture → " + e.msg; }
   };
 
+  /** Reste-t-il des ??? dans le code ? Les commentaires (# ou //) ne comptent pas : le code de départ en contient un qui explique les ???. */
+  function hasBlank(code) {
+    return String(code).split("\n").some(function (line) { return /\?\?\?/.test(line.replace(/(#|\/\/).*$/, "")); });
+  }
+
   function describeEnv(env) {
     var keys = Object.keys(env || {});
     return keys.length ? "Avec " + keys.map(function (n) { return n + " = " + JSON.stringify(env[n]); }).join(" et ") + ", " : "";
@@ -169,5 +174,5 @@
     };
   }
 
-  window.OctoPuzzle = { msg: MSG, validateCases: validateCases, scene: scene, NL: NL };
+  window.OctoPuzzle = { msg: MSG, hasBlank: hasBlank, validateCases: validateCases, scene: scene, NL: NL };
 })();

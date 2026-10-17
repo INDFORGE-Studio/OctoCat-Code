@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 
 import { loadGame as load } from "./loader.mjs";
 
-const { engine } = load();
+const { engine, puzzle: OctoPuzzle } = load();
 
 const run = (code) => engine.interpreter.run(code);
 
@@ -58,6 +58,17 @@ test("validateurs : keywords et assignment", () => {
   assert.deepEqual(engine.validators.keywords("# while\nx = 1", { required: ["while"] }).missing, ["while"]);
   assert.equal(engine.validators.assignment("v = 3", "v", 3).ok, true);
   assert.equal(engine.validators.assignment("v = 4", "v", 3).ok, false);
+});
+
+test("le code de départ garde son commentaire sur les ??? : seul un ??? du code compte", () => {
+  const starter = engine.levels[1].starter;
+  assert.ok(/#.*\?\?\?/.test(starter), "le commentaire du niveau 1 parle des ???");
+  const filled = starter.replace("v_speed = ???", "v_speed = 200");
+  assert.equal(engine.levels[1].validate(filled, engine).ok, true, "commentaire conservé + 200 = accepté");
+  assert.equal(engine.levels[1].validate(starter, engine).ok, false);
+  assert.equal(OctoPuzzle.hasBlank("x = 1 # remplace les ???"), false);
+  assert.equal(OctoPuzzle.hasBlank("x = 1 // remplace les ???"), false);
+  assert.equal(OctoPuzzle.hasBlank("if ???:\n  x = 1"), true);
 });
 
 test("niveau 1 : messages d'erreur et succès", () => {

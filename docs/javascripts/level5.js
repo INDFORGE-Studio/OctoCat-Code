@@ -67,7 +67,7 @@
     validate: function (code, engine) {
       var run = engine.interpreter.run;
       if (!code.trim()) return { ok: false, messages: [OctoPuzzle.msg.empty] };
-      if (/\?\?\?/.test(code)) return { ok: false, messages: ["Oups, il reste des « ??? » ! Écris ta condition à leur place."] };
+      if (OctoPuzzle.hasBlank(code)) return { ok: false, messages: ["Oups, il reste des « ??? » ! Écris ta condition à leur place."] };
 
       // 1. Le code doit être correct, quelle que soit l'énergie.
       var first = run(code, { v_energie: SHOWN_ENERGY });

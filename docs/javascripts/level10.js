@@ -72,7 +72,7 @@
 
     validate: function (code, engine) {
       if (!code.trim()) return { ok: false, messages: [OctoPuzzle.msg.empty] };
-      if (/\?\?\?/.test(code)) return { ok: false, messages: ["Oups, il reste des « ??? » ! Écris la condition de ta boucle à leur place."] };
+      if (OctoPuzzle.hasBlank(code)) return { ok: false, messages: ["Oups, il reste des « ??? » ! Écris la condition de ta boucle à leur place."] };
 
       var r = engine.interpreter.run(code);
       if (r.errors.length) {
