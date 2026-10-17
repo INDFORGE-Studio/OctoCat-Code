@@ -27,7 +27,7 @@
 
   var DEFAULT_KEYS = {
     left: ["ArrowLeft", "KeyA"], right: ["ArrowRight", "KeyD"], up: ["ArrowUp", "KeyW"], down: ["ArrowDown", "KeyS"],
-    jump: ["Space"], attack: ["KeyX", "KeyJ", "Mouse0"], throw: ["KeyC", "KeyK"], dog: ["Mouse2", "KeyV"]
+    jump: ["Space"], attack: ["KeyX", "KeyJ", "Mouse0"], throw: ["KeyF", "KeyC", "KeyK"], dog: ["Mouse2", "KeyV"]
   };
   var DEFAULT_OPTS = { sfx: true, shake: true, hints: true, pad: "auto", relax: false, skipAlways: false, hideCursor: true };
   var PAD_MODES = ["auto", "on", "off"];
@@ -54,6 +54,7 @@
     ACTIONS.forEach(function (a) {
       var src = raw && raw.keys && Array.isArray(raw.keys[a.id]) ? raw.keys[a.id] : DEFAULT_KEYS[a.id], list = [];
       if (legacy && a.id === "throw") src = src.filter(function (c) { return c !== "Mouse2"; });
+      if (a.id === "throw" && src.join() === "KeyC,KeyK") src = DEFAULT_KEYS.throw; // anciennes touches par défaut (C / K) : F, plus pratique, devient la première
       src.forEach(function (c) {
         if (typeof c === "string" && VALID.test(c) && !BLOCKED.test(c) && !used[c] && list.length < MAX_BINDS) { used[c] = 1; list.push(c); }
       });

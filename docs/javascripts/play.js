@@ -47,7 +47,7 @@
   // Les touches viennent des réglages (menu ⚙) ; les codes sont physiques : WASD = ZQSD, valables pour tous les claviers.
   var FALLBACK_KEYS = {
     ArrowLeft: "left", KeyA: "left", ArrowRight: "right", KeyD: "right", ArrowUp: "up", KeyW: "up",
-    ArrowDown: "down", KeyS: "down", Space: "jump", KeyX: "attack", KeyJ: "attack", KeyC: "throw", KeyK: "throw", Mouse0: "attack", Mouse2: "dog", KeyV: "dog"
+    ArrowDown: "down", KeyS: "down", Space: "jump", KeyX: "attack", KeyJ: "attack", KeyF: "throw", KeyC: "throw", KeyK: "throw", Mouse0: "attack", Mouse2: "dog", KeyV: "dog"
   };
   function settings() { return window.OctoSettings || null; }
   function actionOf(code) { var S = settings(); return S ? S.lookup(code) : FALLBACK_KEYS[code] || null; }
