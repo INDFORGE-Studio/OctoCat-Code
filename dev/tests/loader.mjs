@@ -5,7 +5,7 @@ import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 
 const JS = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../docs/javascripts");
-const ORDER = ["playsim.js", "puzzle.js", "engine.js", ...Array.from({ length: 10 }, (_, i) => `level${i + 1}.js`)];
+const ORDER = ["playsim.js", "puzzle.js", "langs.js", "engine.js", ...Array.from({ length: 10 }, (_, i) => `level${i + 1}.js`)];
 
 export function loadGame() {
   const ctx = {

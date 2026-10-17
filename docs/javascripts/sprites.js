@@ -112,10 +112,20 @@
    * OctoCat (24×24, 10 frames) : chat-pieuvre violet
    * ================================================================== */
 
-  var O = {
+  var O_BASE = {
     P: "#8957e5", L: "#b392f0", D: "#6e40c9", DD: "#5a32a3", K: "#1a0f3a",
     pink: "#ff8fb1", W: "#f0f6fc", E: "#0d1117"
   };
+  var O = Object.assign({}, O_BASE);
+  /* Apparences : 0 = d'origine ; après chaque tour de 10 niveaux : 1 Ninja (bleu, bandeau rouge), 2 Roi (or, couronne, cape rouge),
+   * 3 Cosmos (indigo étoilé, auréole, cape magenta). Seules les couleurs et les accessoires changent ; les animations sont les mêmes. */
+  var O_SKINS = [
+    {},
+    { P: "#2f6fdb", L: "#86b6ff", D: "#2250ad", DD: "#183c86", K: "#0a1030", pink: "#ffd166" },
+    { P: "#e3a008", L: "#ffd966", D: "#b8790a", DD: "#8a5806", K: "#3a2203", pink: "#ff9f80" },
+    { P: "#2b2f86", L: "#6a72e0", D: "#1c1f5c", DD: "#12143f", K: "#070824", pink: "#39c5cf" }
+  ];
+  var skinNow = 0;
 
   function eye(b, ex, ey, kind, look) {
     var i;
@@ -137,6 +147,14 @@
   function octoBuf(o) {
     var b = new Buf(24, 24), dy = o.dy || 0, cx = 12, cy = 10 + dy, i, s, t;
     var top = cy + 5, bottom = 23.6;
+
+    // cape (derrière tout) : rouge pour le Roi, magenta étoilé pour le Cosmos
+    if (skinNow >= 2) {
+      var cape = skinNow === 2 ? "#c62a35" : "#8e2de2", capeD = skinNow === 2 ? "#8f1d28" : "#5a189a";
+      b.poly([[7, top - 1], [0.5, bottom - 1], [7.5, bottom - 3]], cape); b.poly([[17, top - 1], [23.5, bottom - 1], [16.5, bottom - 3]], cape);
+      b.line(7, top, 1.5, bottom - 2, capeD); b.line(17, top, 22.5, bottom - 2, capeD);
+      if (skinNow === 3) { b.set(3, bottom - 4, "#ffffff"); b.set(21, bottom - 4, "#ffffff"); b.set(5, bottom - 7, "#ffe066"); b.set(19, bottom - 7, "#ffe066"); }
+    }
 
     // tentacules (derrière la tête)
     for (i = 0; i < 4; i++) {
@@ -173,6 +191,21 @@
     eye(b, 8.5, cy - 0.5, o.eyes, look);
     eye(b, 15.5, cy - 0.5, o.eyes, look);
 
+    // accessoires selon l'apparence
+    if (skinNow === 1) { // ninja : bandeau rouge noué à gauche, plaque d'argent
+      for (i = 3; i <= 21; i++) for (s = cy - 6; s <= cy - 5; s++) if (b.get(i, s)) b.set(i, s, "#e5383b");
+      b.line(4, cy - 5, 0.5, cy - 2, "#e5383b"); b.line(4, cy - 6, 1, cy - 8.5, "#c1121f");
+      b.rect(11, cy - 6, 2, 2, "#e9ecef"); b.set(11, cy - 5, "#6c757d");
+    } else if (skinNow === 2) { // roi : couronne dorée à pierres
+      b.rect(8, cy - 8, 8, 2, "#fff0a0");
+      [8, 10, 14, 15].forEach(function (x) { b.set(x, cy - 9, "#fff0a0"); }); b.set(12, cy - 10, "#fff0a0"); b.set(12, cy - 9, "#fff0a0");
+      b.set(12, cy - 7, "#e5383b"); b.set(9, cy - 7, "#4dabf7"); b.set(15, cy - 7, "#4dabf7");
+    } else if (skinNow === 3) { // cosmos : étoiles sur la tête, auréole dorée
+      for (t = 0; t < 6.3; t += 0.2) b.set(12 + 5.4 * Math.cos(t), cy - 9.2 + 1.5 * Math.sin(t), "#ffe066");
+      [[7, cy - 3], [16, cy - 4], [12, cy - 5], [5, cy + 1], [19, cy + 2], [9, cy + 4]].forEach(function (q) { if (b.get(q[0], q[1])) b.set(q[0], q[1], "#ffffff"); });
+      if (b.get(18, cy - 2) && b.get(17, cy - 2) && b.get(19, cy - 2)) { b.set(18, cy - 2, "#fff4b8"); b.set(17, cy - 2, "#ffffff"); b.set(19, cy - 2, "#ffffff"); b.set(18, cy - 3, "#ffffff"); b.set(18, cy - 1, "#ffffff"); }
+    }
+
     // museau + bouche
     b.rect(11, cy + 2, 2, 1, O.pink);
     if (o.mouth === "open") { b.rect(11, cy + 3, 2, 2, O.E); b.set(11, cy + 4, O.pink); }
@@ -182,7 +215,15 @@
     return b.outline(O.K);
   }
 
-  function octoFrames() {
+  function octoFrames(skin) {
+    skinNow = skin || 0;
+    Object.assign(O, O_BASE, O_SKINS[skinNow]);
+    var f = octoFrameList();
+    Object.assign(O, O_BASE); skinNow = 0;
+    return f;
+  }
+
+  function octoFrameList() {
     return [
       octoBuf({ eyes: "open", phase: 0.0, sway: 0.9, dy: 0 }),                                   // 0 idle
       octoBuf({ eyes: "open", phase: 1.4, sway: 0.9, dy: 1 }),                                   // 1 idle (respire)
@@ -665,17 +706,19 @@
    * ================================================================== */
 
   function registerAll(k) {
-    k.loadSprite("octo", sheet(octoFrames(), 24, 24), {
-      sliceX: 10,
-      anims: {
-        idle: { from: 0, to: 1, loop: true, speed: 2 },
-        run: { from: 2, to: 5, loop: true, speed: 12 },
-        success: { from: 6, to: 7, loop: true, speed: 6 },
-        fail: { from: 8, to: 9, loop: true, speed: 6 },
-        jump: { from: 4, to: 4 },
-        atk: { from: 5, to: 5 },
-        hurt: { from: 8, to: 8 }
-      }
+    [0, 1, 2, 3].forEach(function (skin) { // une planche par apparence ; le moteur choisit selon le tour (voir « octo-sN »)
+      k.loadSprite(skin ? "octo-s" + skin : "octo", sheet(octoFrames(skin), 24, 24), {
+        sliceX: 10,
+        anims: {
+          idle: { from: 0, to: 1, loop: true, speed: 2 },
+          run: { from: 2, to: 5, loop: true, speed: 12 },
+          success: { from: 6, to: 7, loop: true, speed: 6 },
+          fail: { from: 8, to: 9, loop: true, speed: 6 },
+          jump: { from: 4, to: 4 },
+          atk: { from: 5, to: 5 },
+          hurt: { from: 8, to: 8 }
+        }
+      });
     });
     k.loadSprite("glitch", sheet([glitchBuf("idle", 7), glitchBuf("idle", 31), glitchBuf("attack", 5), glitchBuf("hurt", 3)], 24, 24), {
       sliceX: 4,

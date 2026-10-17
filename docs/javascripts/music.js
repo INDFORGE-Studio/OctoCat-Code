@@ -187,6 +187,8 @@
       case "dash": noise(t, 0.16, 0.08, "bandpass", 2200, sfx); sweep("sawtooth", 200, 520, t, 0.16, 0.05); break;
       case "bark": [0, 0.15].forEach(function (dt2) { sweep("sawtooth", 560, 300, t + dt2, 0.1, 0.075); noise(t + dt2, 0.05, 0.05, "bandpass", 1500, sfx); }); break;
       case "scare": sweep("triangle", 500, 1100, t, 0.14, 0.06); sweep("triangle", 1100, 700, t + 0.14, 0.1, 0.05); break;
+      case "snuff": noise(t, 0.3, 0.14, "bandpass", 760, sfx); sweep("triangle", 540, 120, t, 0.32, 0.06); tone("triangle", 1760, t + 0.14, 0.18, 0.05, sfx, 0.003); tone("triangle", 2349, t + 0.2, 0.2, 0.04, sfx, 0.003); break; // « pschiit » magique
+      case "magic": [523, 659, 784, 988, 1175, 1568, 1976, 2349, 3136].forEach(function (f, i) { tone("triangle", f, t + i * 0.07, 0.42, 0.08, sfx, 0.004); tone("sine", f * 2, t + i * 0.07 + 0.02, 0.3, 0.035, sfx, 0.004); }); noise(t + 0.55, 0.5, 0.05, "highpass", 5000, sfx); break; // glissando scintillant
       case "finish": [523, 659, 784, 1047].forEach(function (f, i) { tone("triangle", f, t + i * 0.08, 0.5, 0.1, sfx, 0.004); }); break;
       default: break;
     }

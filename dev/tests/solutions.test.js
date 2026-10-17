@@ -1,41 +1,47 @@
-// Les 10 réponses : on part du vrai code de départ (avec ses commentaires, comme le joueur) et on remplace seulement les ???.
+// Les 10 réponses dans les 3 langages (Python, JavaScript, pseudo-code) : on part du vrai code de départ (avec ses commentaires,
+// comme le joueur) et on remplace seulement les ???.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { loadGame } from "./loader.mjs";
 
-const { engine } = loadGame();
+const { engine, ctx } = loadGame();
+const L = ctx.OctoLangs;
 
-const FILL = {
-  1: [["v_speed = ???", "v_speed = 200"]],
-  2: [["v_mot = ???", 'v_mot = v_debut + "cat"']],
-  3: [["v_charge = ???", "v_charge = v_caisses * v_poids_caisse"]],
-  4: [["v_porte_ouverte = ???", "v_porte_ouverte = v_cle and not v_garde"]],
-  5: [["if ???:", "if v_energie >= 50:"]],
-  6: [["elif ???:", "elif v_or >= 50:"]],
-  7: [["range(???)", "range(v_commande)"]],
-  8: [["range(1, ???)", "range(1, v_marches + 1)"], ["v_total + ???", "v_total + i"]],
-  9: [["if ???:", "if i % 2 == 0:"]],
-  10: [["while ???:", "while v_pv > 0:"]]
-};
-
-// Remplace seulement dans les lignes de code (pas dans les commentaires), comme le fait un joueur.
-function solve(starter, pairs) {
-  return starter.split("\n").map((line) => (/^\s*(#|\/\/)/.test(line) ? line : pairs.reduce((l, [a, b]) => l.split(a).join(b), line))).join("\n");
+for (const lang of L.LANGS) {
+  for (let n = 1; n <= 10; n++) {
+    test(`niveau ${n} (${lang}) : la réponse est acceptée (commentaires du code de départ gardés), le code de départ seul est refusé`, () => {
+      const base = engine.levels[n], lvl = L.apply(base, lang);
+      assert.ok(/\?\?\?/.test(lvl.starter), "le départ contient des ???");
+      const code = L.solve(base, lang);
+      assert.ok(!/\?\?\?/.test(code.split("\n").filter((l) => !/^\s*(#|\/\/)/.test(l)).join("\n")), "tous les ??? sont remplis");
+      const r = base.validate(code, engine);
+      assert.equal(r.ok, true, `niveau ${n} (${lang}) : ${(r.messages || []).join(" / ")}\n${code}`);
+      assert.equal(base.validate(lvl.starter, engine).ok, false, "le départ non rempli est refusé");
+      const bare = code.split("\n").filter((l) => !/^\s*(#|\/\/)/.test(l)).join("\n"); // même réponse sans aucun commentaire
+      assert.equal(base.validate(bare, engine).ok, true, `niveau ${n} (${lang}) sans commentaires`);
+    });
+  }
 }
 
-for (let n = 1; n <= 10; n++) {
-  test(`niveau ${n} : la réponse est acceptée (commentaires du code de départ gardés), le code de départ seul est refusé`, () => {
-    const lvl = engine.levels[n];
-    assert.ok(/\?\?\?/.test(lvl.starter), "le départ contient des ???");
-    const code = solve(lvl.starter, FILL[n]);
-    const r = lvl.validate(code, engine);
-    assert.equal(r.ok, true, `niveau ${n} : ${(r.messages || []).join(" / ")}\n${code}`);
-    assert.equal(lvl.validate(lvl.starter, engine).ok, false, "le départ non rempli est refusé");
-    // même réponse sans aucun commentaire
-    const bare = code.split("\n").filter((l) => !/^\s*#/.test(l)).join("\n");
-    assert.equal(lvl.validate(bare, engine).ok, true, `niveau ${n} sans commentaires`);
-  });
-}
+test("langages : le niveau d'origine n'est jamais modifié, les exemples commencent par le langage choisi, le départ est bien dans ce langage", () => {
+  for (let n = 1; n <= 10; n++) {
+    const base = engine.levels[n], before = JSON.stringify([base.starter, base.hints, base.briefing]);
+    for (const lang of L.LANGS) {
+      const v = L.apply(base, lang);
+      assert.equal(Object.keys(v.briefing.examples)[0], lang, `niveau ${n} : exemples ${lang} en premier`);
+      assert.equal(v.hints.length, 3, `niveau ${n} (${lang}) : 3 indices`);
+      assert.match(v.hints[2], /^La réponse/, `niveau ${n} (${lang}) : le 3e indice donne la réponse`);
+      assert.doesNotMatch(v.hints[0] + v.hints[1], /^La réponse/);
+      if (lang === "JavaScript" && n >= 5) assert.match(v.starter, /\{/, `niveau ${n} : accolades en JavaScript`);
+      if (lang === "Pseudo-code" && n >= 5) assert.match(v.starter, /\b(alors|faire)\b/, `niveau ${n} : mots français`);
+      if (lang !== "Python" && n >= 5) assert.doesNotMatch(v.starter, /^\s*(if|elif|for|while)\b.*:\s*$/m, `niveau ${n} (${lang}) : pas de « : » à la Python`);
+      // le 3e indice contient la réponse (chaque morceau qui remplace un ???)
+      const py = L.apply(base, "Python");
+      assert.ok(py.starter.length > 0);
+    }
+    assert.equal(JSON.stringify([base.starter, base.hints, base.briefing]), before, `niveau ${n} : original intact`);
+  }
+});
 
 test("indices : 3 par niveau, le dernier donne la réponse (c'est lui qui coûte 15 pièces, avec confirmation)", () => {
   for (let n = 1; n <= 10; n++) {

@@ -113,11 +113,13 @@
    *    up / down {n}                                          marche de n tuiles (≤ 2)
    *    float {at, w, h, bits}                                 plateforme flottante à h tuiles du sol courant
    *    end   {n}                                              sol final avec le terminal
+   *    cave  {n, floor, open}                                 fin en grotte (apres le dernier trou) : falaise pleine hauteur, tunnel de `open` tuiles de haut
+   *                                                           (floor tuiles de sol dessous) dont l'entree s'ouvre sur la paroi du trou ; le terminal est au fond
    *  Les propriétés de `flat` sont des décalages de colonne dans le segment.
    * ==================================================================== */
 
   function buildCourse(course) {
-    var heights = [], feats = {}, floats = [], cur = 2, col = 0, endCol = -1, i;
+    var heights = [], feats = {}, floats = [], cur = 2, col = 0, endCol = -1, caveSeg = null, i;
     function feat(c, ch, up) { (feats[c] = feats[c] || []).push({ ch: ch, up: up || 0 }); }
 
     course.forEach(function (s) {
@@ -126,6 +128,7 @@
       if (s.t === "down") { cur -= s.n; return; }
       if (s.t === "float") { floats.push({ col: col + (s.at || 0), w: s.w || 3, h: s.h || 3, base: cur, bits: s.bits !== false }); return; }
       if (s.t === "gap") { for (i = 0; i < n; i++) heights.push(0); col += n; return; }
+      if (s.t === "cave") { for (i = 0; i < n; i++) heights.push(ROWS); caveSeg = { start: col, n: n, floor: s.floor || 2, open: s.open || 4 }; col += n; return; }
       // flat / end
       for (i = 0; i < n; i++) heights.push(cur);
       (s.en || []).forEach(function (o) { feat(start + o, "e"); });
@@ -156,7 +159,16 @@
       feats[c3].forEach(function (f) { put(c3, groundTop - 1 - (f.ch === "o" || f.ch === "f" ? f.up - 1 : 0), f.ch); });
     }
     put(2, ROWS - heights[2] - 1, "S");
-    return rows.map(function (r) { return r.join(""); });
+    var caveInfo = null;
+    if (caveSeg) { // grotte : on creuse le tunnel dans la falaise (2 colonnes de mur au fond), le terminal est tout au bout
+      var cTop = ROWS - caveSeg.floor - caveSeg.open, cBot = ROWS - caveSeg.floor, cEnd = caveSeg.start + caveSeg.n - 2;
+      for (var cc = caveSeg.start; cc < cEnd; cc++) for (var cr = cTop; cr < cBot; cr++) rows[cr][cc] = " ";
+      rows[cBot - 1][cEnd - 2] = "T";
+      caveInfo = { l: caveSeg.start * TILE, r: cEnd * TILE, t: cTop * TILE, b: cBot * TILE };
+    }
+    var grid = rows.map(function (r) { return r.join(""); });
+    grid.cave = caveInfo;
+    return grid;
   }
 
   /* ======================================================================
@@ -203,7 +215,7 @@
   }
 
   function createPlatform(rows, abilities) {
-    var ab = abilities || {};
+    var ab = abilities || {}, caveInfo = rows.cave || null;
     var secretRoom = addSecretRoom(rows);
     if (secretRoom) rows = secretRoom.rows;
     var cols = rows[0].length, R = rows.length;
@@ -211,7 +223,7 @@
       mode: "platform", w: cols * TILE, h: R * TILE, abilities: ab, time: 0, finished: false,
       events: [], stats: { bits: 0, bitsTotal: 0, deaths: 0, kills: 0 },
       enemies: [], bits: [], candles: [], items: [], spikes: [], checkpoints: [], shurikens: [], terminal: null,
-      player: null, cp: null, solid: [], dog: null, secret: secretRoom ? secretRoom.info : null
+      player: null, cp: null, solid: [], dog: null, secret: secretRoom ? secretRoom.info : null, cave: caveInfo
     };
     var spawn = { x: TILE * 2.5, y: TILE * 7 };
 
@@ -890,7 +902,10 @@
         if (dx > 0 && dx < 70 && Math.abs(e.y - p.y) < 50) enemyNear = e;
       });
       var candleNear = sim.candles.some(function (c) { return c.alive && (c.x - p.x) * dir > 0 && (c.x - p.x) * dir < 40 && Math.abs(c.y - p.y) < 10; });
-      var needJump = wall || (p.onGround && !floorAhead && floorHere) || spikeAhead;
+      // un bord qui domine un sol proche (marche descendante) : on se laisse tomber, on ne saute pas (sinon on dépasse le sol d en dessous)
+      var dropAhead = false, dy;
+      if (p.onGround && !floorAhead && floorHere) for (dy = 1; dy <= 7 && !dropAhead; dy++) dropAhead = solidAt(p.x + dir * 22, p.y + 4 + dy * TILE);
+      var needJump = wall || (p.onGround && !floorAhead && floorHere && !dropAhead) || spikeAhead;
       if (enemyNear) {
         var dx2 = (enemyNear.x - p.x) * dir;
         if (ab.shuriken && dx2 > 36) inp.throw = sim.time % 0.4 < 0.2;
