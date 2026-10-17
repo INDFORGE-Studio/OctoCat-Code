@@ -65,6 +65,7 @@ extra_javascript:
   - javascripts/engine.js
   - javascripts/hub.js
   - javascripts/credits.js
+  - javascripts/notfound.js
   - javascripts/level1.js
   - javascripts/level2.js
   - javascripts/level3.js
