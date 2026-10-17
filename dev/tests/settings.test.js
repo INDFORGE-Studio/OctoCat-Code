@@ -124,3 +124,32 @@ test("sauvegarde : la réinitialisation remet le niveau 1 seul d'ouvert", () => 
   assert.equal(P.get().unlocked, 1);
   assert.equal(Object.keys(P.get().completed).length, 0);
 });
+
+test("sauvegarde complète : progression + touches + options passent par un seul code, ancien code accepté", () => {
+  const { S, P } = load();
+  P.complete(1); P.complete(2);
+  S.bind("attack", "KeyF"); S.set("shake", false); S.set("relax", true);
+  const code = S.exportAll();
+  S.resetAll(); P.reset();
+  assert.equal(S.lookup("KeyF"), null); assert.equal(P.get().unlocked, 1);
+  assert.equal(S.importAll(code).ok, true);
+  assert.equal(S.lookup("KeyF"), "attack");
+  assert.equal(S.get("shake"), false); assert.equal(S.get("relax"), true);
+  assert.equal(P.get().unlocked, 3);
+  // ancien code : progression seule
+  const old = P.exportSave(); P.reset();
+  assert.equal(S.importAll(old).ok, true);
+  assert.equal(P.get().unlocked, 3);
+  // codes invalides : refusés, rien ne change
+  assert.equal(S.importAll("pas du json").ok, false);
+  assert.equal(S.importAll('{"v":2,"progress":{"unlocked":"x"}}').ok, false);
+  assert.equal(S.importAll("[]").ok, false);
+  assert.equal(P.get().unlocked, 3);
+});
+
+test("stockage : état lisible (ok / persistant) même sans navigateur", () => {
+  const { S } = load();
+  const st = S.storage();
+  assert.equal(st.ok, true);
+  assert.equal(typeof st.canPersist, "boolean");
+});

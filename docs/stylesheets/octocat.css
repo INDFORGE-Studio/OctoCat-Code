@@ -377,7 +377,8 @@ html:has(.octo-fs), body:has(.octo-fs) { overscroll-behavior: none; }
 @media (prefers-reduced-motion: reduce) { .octo-rotate__icon { animation: none; } }
 
 /* Menu réglages ⚙ (touches, son, affichage, jeu). */
-.octo-gear { font-size: 1em; }
+.octo-gear { font-size: 1em; position: relative; }
+.octo-gear--warn::after { content: "!"; position: absolute; top: -5px; right: -5px; width: 16px; height: 16px; border-radius: 50%; background: #f85149; color: #fff; font: 700 11px/16px system-ui, sans-serif; text-align: center; }
 .octo-set { display: none; position: absolute; inset: 0; z-index: 30; align-items: center; justify-content: center; padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); background: rgba(1, 4, 9, 0.72); }
 .octo-set.is-open { display: flex; }
 .octo-set__card {
