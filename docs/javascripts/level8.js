@@ -33,7 +33,7 @@
     },
 
     starter:
-      "# Le temple a v_marches marches. La 1re donne 1 pièce, la 2e en donne 2, etc.\n" +
+      "# 🏯 Le temple a v_marches marches. La 1re donne 1 pièce, la 2e en donne 2, etc.\n" +
       "# Additionne toutes les pièces dans v_total.\n" +
       "\n" +
       "v_total = 0\n" +
@@ -42,25 +42,25 @@
 
     briefing: {
       title: "Le Temple des Cumuls",
-      lore: "Le gardien du temple compte les offrandes marche par marche. Pour ouvrir la porte, il veut la somme exacte de toutes les pièces posées sur l'escalier.",
-      lesson: "Une boucle peut accumuler un résultat : on part d'une variable à 0 et on y ajoute quelque chose à chaque tour. Attention : range(1, n) s'arrête AVANT n ; pour aller jusqu'à n, on écrit range(1, n + 1).",
+      lore: "Le gardien du temple compte les offrandes **marche par marche**. Pour ouvrir la porte, il veut la **somme** de toutes les pièces posées sur l'escalier.",
+      lesson: "Une boucle peut **additionner au fur et à mesure** : on part d'une boîte à `0`, et à chaque tour on ajoute quelque chose dedans, comme une tirelire 🐷. Attention : `range(1, 5)` s'arrête **avant** 5 (il donne 1, 2, 3, 4). Pour aller **jusqu'à** 5, il faut écrire `range(1, 5 + 1)`.",
       examples: {
         "Pseudo-code": "v_total = 0\npour i de 1 a 4 faire\n  v_total = v_total + i\nfin pour",
         "Python": "v_total = 0\nfor i in range(1, 5):\n    v_total = v_total + i\n# v_total vaut 10",
         "JavaScript": "let v_total = 0;\nfor (let i = 1; i <= 4; i++) {\n  v_total = v_total + i;\n}"
       },
       tips: [
-        "i prend la valeur de la marche en cours : 1, 2, 3, …",
-        "range(1, 5) donne 1, 2, 3, 4 (le 5 est exclu).",
-        "Ton code doit marcher pour n'importe quel nombre de marches."
+        "`i` est le numéro de la marche en cours : 1, puis 2, puis 3…",
+        "`range(1, 5)` donne 1, 2, 3, 4 : le 5 n'est **pas** compris.",
+        "Ton code doit marcher quel que soit le nombre de marches."
       ],
-      goal: "complète la boucle pour que v_total soit la somme 1 + 2 + … + v_marches."
+      goal: "Complète la boucle pour que **`v_total`** soit **1 + 2 + 3 + … jusqu'à `v_marches`**. Il y a **2 trous** à remplir : la fin du `range` et ce qu'on ajoute à chaque tour."
     },
 
     hints: [
-      "À chaque tour, ajoute à v_total le numéro de la marche, c'est-à-dire la valeur de i.",
+      "À chaque tour, ajoute à v_total le numéro de la marche : c'est la valeur de i.",
       "La dernière marche est v_marches : range(1, ...) doit aller jusqu'à elle, donc s'arrêter à v_marches + 1.",
-      "for i in range(1, v_marches + 1):\n    v_total = v_total + i"
+      "La réponse : for i in range(1, v_marches + 1):\n    v_total = v_total + i"
     ],
 
     validate: function (code, engine) {

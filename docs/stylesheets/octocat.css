@@ -282,7 +282,14 @@ body:has(.octo-fs) { margin: 0; overflow: hidden; background: #150e24; }
 .octo-dialog__lore { margin: 0 0 0.8em; font-style: italic; color: #8b949e; }
 .octo-dialog__text { margin: 0 0 0.8em; }
 .octo-dialog__tip { margin: 0.2em 0; font-size: 0.92em; color: #a5b4c4; }
-.octo-dialog__goal { margin: 0.9em 0; padding: 0.6em 0.8em; background: #0d1117; border-left: 4px solid #e3b341; color: #ffe08a; font-weight: 600; }
+.octo-dialog__label { margin: 1.1em 0 0.35em; font: 0.7em/1.4 var(--octo-pixel); color: #58a6ff; letter-spacing: 0.04em; }
+.octo-dialog__goal { margin: 1.2em 0 0.4em; padding: 0.7em 0.9em 0.8em; background: linear-gradient(90deg, rgba(227, 179, 65, 0.16), #0d1117 70%); border-left: 5px solid #e3b341; border-radius: 0 6px 6px 0; color: #f0f6fc; }
+.octo-dialog__goal-title { margin-bottom: 0.3em; font: 0.7em/1.4 var(--octo-pixel); color: #ffe08a; }
+.octo-dialog__goal-text { margin: 0; font-size: 1.06em; line-height: 1.6; }
+.octo-dialog strong { color: #ffffff; }
+.octo-key { padding: 0.04em 0.4em; border: 1px solid #3a4a6a; border-radius: 4px; background: #0d1117; color: #ffe08a; font: 0.92em var(--md-code-font, monospace); white-space: nowrap; }
+.octo-dialog__goal .octo-key { color: #7ee787; border-color: #2f6a3a; }
+.octo-dialog__foot { position: sticky; bottom: -1.3em; margin: 0.6em -1.4em -1.3em; padding: 0.7em 1.4em 1.1em; background: linear-gradient(rgba(22, 27, 34, 0), #161b22 28%); }
 .octo-dialog__code { margin: 0 0 0.8em; padding: 0.6em 0.8em; background: #0d1117; border-radius: 0 4px 4px 4px; font: 0.95em var(--md-code-font); color: #e6edf3; }
 .octo-tabs { display: flex; gap: 2px; }
 .octo-tab { padding: 0.25em 0.8em; border: 0; border-radius: 4px 4px 0 0; background: #21262d; color: #8b949e; font: 0.8em var(--md-code-font); cursor: pointer; }
@@ -442,3 +449,6 @@ html:has(.octo-fs), body:has(.octo-fs) { overscroll-behavior: none; }
   .octo-set__row { padding: 6px 0; }
   .octo-set__lead { margin: 2px 0 4px; }
 }
+
+/* Pas de ligatures dans le code : « >= » doit se voir comme deux signes (pas « ≥ ») pour que les enfants sachent quoi taper. */
+.octo-key, .octo-dialog__code, .octo-editor, .octo-console, .octo-set__chip, .octo-set__ta { font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }

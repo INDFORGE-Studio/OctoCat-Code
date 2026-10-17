@@ -32,7 +32,7 @@
     },
 
     starter:
-      "# L'enclume forge UNE épée par tour de boucle.\n" +
+      "# ⚔️ L'enclume forge UNE épée à chaque tour de boucle.\n" +
       "# La commande est dans v_commande : forge exactement cette quantité !\n" +
       "\n" +
       "v_epees = 0\n" +
@@ -42,25 +42,25 @@
 
     briefing: {
       title: "La Forge des Répétitions",
-      lore: "La forge de GitHubia tourne jour et nuit, mais le forgeron Glitch tape toujours le même coup au lieu de répéter. Apprends-lui à compter.",
-      lesson: "Quand on connaît le nombre de répétitions, on utilise une boucle for : for i in range(5) répète 5 fois (i vaut 0, 1, 2, 3, 4). Le bloc répété est décalé en Python et entre { } en JavaScript.",
+      lore: "La forge de GitHubia tourne jour et nuit… mais le forgeron Glitch frappe toujours le même coup au lieu de recommencer. Apprends-lui à **répéter** !",
+      lesson: "Une **boucle** répète une action sans qu'on ait besoin de l'écrire 10 fois ! Avec `for i in range(5)`, l'action est faite **5 fois** (le compteur `i` vaut 0, 1, 2, 3, puis 4). Ce qui est répété est **décalé vers la droite** en Python, et mis entre `{ }` en JavaScript.",
       examples: {
         "Pseudo-code": "pour i de 1 a 5 faire\n  v_total = v_total + 1\nfin pour",
         "Python": "for i in range(5):\n    v_total = v_total + 1",
         "JavaScript": "for (let i = 0; i < 5; i++) {\n  v_total = v_total + 1;\n}"
       },
       tips: [
-        "range(n) répète n fois : le compteur i va de 0 à n - 1.",
-        "Le corps de la boucle est répété à chaque tour, dans l'ordre.",
-        "La commande change : utilise la variable v_commande, pas un nombre fixe."
+        "`range(n)` répète **n fois** : `range(3)` fait 3 tours.",
+        "Ce qui est dans la boucle est refait à **chaque tour**, dans l'ordre.",
+        "La commande change à chaque partie : utilise la variable `v_commande`, pas un nombre fixe."
       ],
-      goal: "complète range(…) pour forger exactement v_commande épées."
+      goal: "Complète `range(...)` pour forger **exactement** `v_commande` épées : écris **`v_commande`** entre les parenthèses, à la place des `???`."
     },
 
     hints: [
       "Une épée par tour : il faut autant de tours que d'épées commandées.",
-      "Le nombre de tours est v_commande : mets cette variable dans range(...).",
-      "for i in range(v_commande):"
+      "Le nombre de tours, c'est v_commande. Mets cette variable dans range(...).",
+      "La réponse : for i in range(v_commande):"
     ],
 
     validate: function (code, engine) {

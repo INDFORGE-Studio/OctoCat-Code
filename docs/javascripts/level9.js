@@ -32,8 +32,9 @@
     },
 
     starter:
-      "# Les glitches sont numérotés de 1 à v_n. Les numéros PAIRS sont dangereux.\n" +
-      "# Compte-les dans v_pairs. Un nombre est pair si le reste de sa division par 2 vaut 0.\n" +
+      "# 🔢 Les glitches sont numérotés de 1 à v_n. Les numéros PAIRS sont dangereux !\n" +
+      "# Compte-les dans v_pairs.\n" +
+      "# Astuce : un nombre est pair si le reste de sa division par 2 vaut 0.\n" +
       "\n" +
       "v_pairs = 0\n" +
       "\n" +
@@ -43,25 +44,25 @@
 
     briefing: {
       title: "Le Tri des Glitches",
-      lore: "Une chaîne de montage fabrique des Glitches numérotés. Seuls les numéros pairs sont instables : il faut les repérer avant qu'ils n'explosent.",
-      lesson: "On peut mettre une condition if DANS une boucle : elle est testée à chaque tour. L'opérateur % donne le reste de la division : 7 % 2 vaut 1, 8 % 2 vaut 0. Un nombre est pair quand n % 2 == 0.",
+      lore: "Une machine fabrique des Glitches numérotés. Seuls ceux qui ont un numéro **pair** sont instables : il faut les repérer avant qu'ils n'explosent !",
+      lesson: "On peut mettre un `if` **dans** une boucle : il est vérifié à **chaque tour**. Pour savoir si un nombre est **pair**, on utilise `%` (le **reste** de la division) : un nombre est pair quand le reste de sa division par 2 est `0`. Par exemple `8 % 2` vaut 0 (pair) et `7 % 2` vaut 1 (impair).",
       examples: {
         "Pseudo-code": "pour i de 1 a 10 faire\n  si i % 3 == 0 alors\n    v_n = v_n + 1\n  fin si\nfin pour",
         "Python": "for i in range(1, 11):\n    if i % 3 == 0:\n        v_n = v_n + 1",
         "JavaScript": "for (let i = 1; i <= 10; i++) {\n  if (i % 3 === 0) {\n    v_n = v_n + 1;\n  }\n}"
       },
       tips: [
-        "== compare, = affecte : écris bien i % 2 == 0 avec deux signes =.",
-        "% donne le reste : 9 % 2 vaut 1 (impair), 10 % 2 vaut 0 (pair).",
-        "La condition est évaluée à chaque tour, avec la valeur courante de i."
+        "`==` **compare** (deux signes `=`) et `=` **range**. Écris bien `i % 2 == 0`.",
+        "`%` donne le reste : `9 % 2` vaut 1 (impair), `10 % 2` vaut 0 (pair).",
+        "Le `if` est vérifié à chaque tour, avec le `i` du moment."
       ],
-      goal: "écris la condition qui reconnaît un numéro pair, pour compter les pairs de 1 à v_n."
+      goal: "Écris la condition qui reconnaît un numéro **pair**, pour compter combien il y en a de 1 à `v_n`. Remplace les `???` juste après le `if`."
     },
 
     hints: [
       "Un nombre est pair quand le reste de sa division par 2 est 0.",
-      "Le reste s'obtient avec % ; pour comparer à 0, on écrit ==.",
-      "if i % 2 == 0:"
+      "Le reste s'obtient avec %. Pour comparer à 0, on écrit ==.",
+      "La réponse : if i % 2 == 0:"
     ],
 
     validate: function (code, engine) {

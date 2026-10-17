@@ -22,10 +22,10 @@
   ];
 
   var ACHIEVEMENTS = {
-    first_compile: { icon: "⚡", title: "Premier Compile", desc: "Réussir une première compilation." },
-    flawless: { icon: "💎", title: "Sans faute", desc: "Terminer un niveau sans aucune erreur." },
-    curious: { icon: "💡", title: "Curieux", desc: "Demander un indice." },
-    polyglot: { icon: "🌐", title: "Polyglotte", desc: "Choisir un langage dans un sélecteur d'onglets." }
+    first_compile: { icon: "⚡", title: "Premier Compile", desc: "Ton tout premier code qui marche !" },
+    flawless: { icon: "💎", title: "Sans faute", desc: "Réussir un niveau du premier coup, sans erreur." },
+    curious: { icon: "💡", title: "Curieux", desc: "Demander un coup de pouce (le bouton 💡 Indice)." },
+    polyglot: { icon: "🌐", title: "Polyglotte", desc: "Essayer un autre langage (Python, JavaScript…)." }
   };
 
   function defaults() {

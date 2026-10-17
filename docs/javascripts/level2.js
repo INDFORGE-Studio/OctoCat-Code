@@ -21,33 +21,34 @@
     },
 
     starter:
-      "# Le portier exige le mot de passe : \"octocat\".\n" +
-      "# v_debut vaut déjà \"octo\". Colle-lui la fin \"cat\" avec le signe +.\n" +
+      "# 🗝️ Le gardien veut le mot secret : \"octocat\".\n" +
+      "# v_debut contient déjà le début : \"octo\".\n" +
+      "# Colle la fin \"cat\" avec le signe + à la place des ???\n" +
       "\n" +
       "v_debut = \"octo\"\n" +
       "v_mot = ???",
 
     briefing: {
       title: "Le Village des Chaînes",
-      lore: "Chaînville est un village de chaînes de caractères : ses habitants ne parlent qu'en mots. Le portier Glitch n'ouvre sa palissade qu'à celui qui connaît le mot de passe.",
-      lesson: "Un texte s'appelle une chaîne de caractères. On l'écrit entre guillemets. Le signe + colle deux textes bout à bout : c'est la concaténation. Attention : \"5\" (du texte) n'est pas 5 (un nombre).",
+      lore: "Bienvenue à Chaînville ! Ici, tout le monde parle avec des **mots**. Le gardien Glitch ne laisse entrer que ceux qui connaissent le mot secret : `\"octocat\"`.",
+      lesson: "Un mot ou une phrase, en programmation, s'appelle un **texte**. On l'écrit **entre guillemets** : `\"salut\"`. Et on peut **coller** deux textes ensemble avec le signe `+`, comme des briques de Lego : `\"octo\" + \"cat\"` fait `\"octocat\"`.",
       examples: {
         "Pseudo-code": "v_nom = \"Octo\" + \"Cat\"",
         "Python": "v_nom = \"Octo\" + \"Cat\"",
         "JavaScript": "let v_nom = \"Octo\" + \"Cat\";"
       },
       tips: [
-        "Un texte s'écrit toujours entre guillemets : \"octo\" (ou 'octo').",
-        "+ colle deux textes : \"a\" + \"b\" donne \"ab\".",
-        "Les majuscules comptent : \"Octo\" n'est pas \"octo\"."
+        "Un texte s'écrit toujours entre **guillemets** : `\"octo\"`.",
+        "`+` colle deux textes bout à bout : `\"a\" + \"b\"` donne `\"ab\"`.",
+        "Les **majuscules** comptent : `\"Octo\"` n'est pas pareil que `\"octo\"`."
       ],
-      goal: "donne à v_mot la valeur \"octocat\" (v_debut + \"cat\" fait l'affaire)."
+      goal: "Fais en sorte que **`v_mot`** contienne le mot secret `\"octocat\"`. `v_debut` vaut déjà `\"octo\"` : colle-lui la fin `\"cat\"` avec le signe `+`."
     },
 
     hints: [
-      "Un texte s'écrit entre guillemets. Pour en assembler deux, on utilise le signe +.",
-      "Le début est déjà dans v_debut : il reste à lui coller la fin « cat ».",
-      "v_mot = v_debut + \"cat\""
+      "Un texte s'écrit entre guillemets. Pour coller deux textes, on utilise le signe +.",
+      "Le début du mot est déjà dans v_debut. Il reste à lui coller la fin : \"cat\".",
+      "La réponse : v_mot = v_debut + \"cat\""
     ],
 
     validate: function (code, engine) {

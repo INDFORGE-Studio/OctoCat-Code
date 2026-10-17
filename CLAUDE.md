@@ -212,3 +212,7 @@ Chaque niveau = **trajet** (phase d'action, scène `run<N>`) → arrivée au ter
 - Stockage : `octocat-code:settings:v1` (réglages) et `octocat-code:v1` (progression). Logique pure testée (`dev/tests/settings.test.js`) ; `node dev/settings-check.mjs` rejoue le menu dans Chromium (pause, liaison clavier et souris, reset).
 - `play.js` lit les touches via `OctoSettings.lookup(code)` ; ne plus ajouter de touche en dur.
 - Piège corrigé : `.octo-fs` a `z-index: 50` ; sans cela une barre latérale Material invisible interceptait des clics dans le jeu.
+
+## 22. Textes du jeu : lisibles par un enfant de 8 ans
+
+Règle du PO : tous les textes (briefings, indices, messages de la console, succès) sont **ludiques, explicites et lisibles pour un enfant de 8 ans** (et corrects pour un adulte). Le briefing est découpé en sections : 📖 L'histoire · 🧠 Pour comprendre · 🎯 **Ta mission** (juste après, avant les exemples : c'est ce qu'il faut voir) · 👀 Un exemple · 💡 Petits conseils, avec un bouton « J'ai compris, je joue ! » fixé en bas. Dans les textes de niveau, **`code`** devient une pastille de code et **gras** du gras (`rich()` dans `engine.js`, sans `innerHTML`) : on y met **ce qu'il faut écrire** (noms, valeurs, signes). Les indices vont du doux au précis (la dernière donne la réponse). Les messages d'erreur disent ce qui ne va pas et quoi essayer (`OctoPuzzle.msg`), sans jargon (« petite faute d'écriture », « je ne trouve pas la boîte… »). Pas de ligature dans le code (`>=` doit rester deux signes).
