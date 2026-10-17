@@ -212,3 +212,7 @@ Chaque niveau = **trajet** (phase d'action, scène `run<N>`) → arrivée au ter
 - Stockage : `octocat-code:settings:v1` (réglages) et `octocat-code:v1` (progression). Logique pure testée (`dev/tests/settings.test.js`) ; `node dev/settings-check.mjs` rejoue le menu dans Chromium (pause, liaison clavier et souris, reset).
 - `play.js` lit les touches via `OctoSettings.lookup(code)` ; ne plus ajouter de touche en dur.
 - Piège corrigé : `.octo-fs` a `z-index: 50` ; sans cela une barre latérale Material invisible interceptait des clics dans le jeu.
+
+## 21. Mémoire du navigateur (réglages, son, progression)
+
+Tout vit dans le `localStorage` (`octocat-code:v1` progression, `octocat-code:settings:v1` réglages, `octocat-code:music:v2` / `octocat-code:volume` son). `node dev/persist-check.mjs` ferme et rouvre un vrai profil Chromium : tout est retrouvé. Si un navigateur efface les données des sites à la fermeture (Firefox : « Supprimer les cookies et données à la fermeture », navigation privée), rien ne peut être gardé côté site : le menu ⚙ → Jeu → **Ma mémoire** le dit en mots simples (statut du stockage, protection `navigator.storage.persist()`, pastille « ! » sur le ⚙ si l'écriture est impossible) et propose un **code de sauvegarde complet** (`OctoSettings.exportAll / importAll` : progression + touches + options + volume + musique ; l'ancien code « progression seule » reste accepté).
