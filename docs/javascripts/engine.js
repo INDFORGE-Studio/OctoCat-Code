@@ -798,18 +798,20 @@
     document.addEventListener("keydown", unlockAudio);
 
     var P = window.OctoProgress, cur = { name: null, def: null, ctrl: null }, busy = false;
+    var homeUrl = host.getAttribute("data-home"), forcedStart = host.getAttribute("data-start"); // page 404 : scène imposée, retour au jeu par une vraie adresse
     if (/[?&]unlock=all\b/.test(window.location.search)) P.unlockAll();
 
     function nextName(id) { return levels[id + 1] ? "level" + (id + 1) : "hub"; }
 
     /** Navigation : "hub", "levelN" (trajet puis énigme ; opts.skip = directement l'énigme). */
     function goTo(name, opts) {
+      if (name === "hub" && homeUrl) { window.location.assign(homeUrl); return; } // page 404 : « l'accueil » est le vrai jeu, à l'adresse du site
       var m = /^level(\d+)$/.exec(name), target = name;
       if (m && !P.isUnlocked(parseInt(m[1], 10))) { name = "hub"; target = "hub"; m = null; }
       else if (m && levels[m[1]] && levels[m[1]].run && !(opts && opts.skip)) target = "run" + m[1];
       busy = false;
       document.documentElement.setAttribute("data-octo-scene", name); // le menu ⚙ s'en sert (bouton « Accueil » seulement hors de l'accueil)
-      try { window.history.replaceState(null, "", name === "hub" ? window.location.pathname : "#" + name); } catch { /* ignoré */ }
+      if (name !== "notfound") { try { window.history.replaceState(null, "", name === "hub" ? window.location.pathname : "#" + name); } catch { /* ignoré */ } }
       k.go(target);
     }
 
@@ -899,6 +901,7 @@
     var start = /^#level\d+$/.test(window.location.hash) ? window.location.hash.slice(1) : "hub";
     if (/^level\d+$/.test(start) && !(levels[start.slice(5)] && P.isUnlocked(parseInt(start.slice(5), 10)))) start = "hub";
     if (P.creditsPending() && scenes.credits) start = "credits"; // le jeu est fini mais les crédits n'ont pas été vus (page fermée en route)
+    if (forcedStart && scenes[forcedStart]) start = forcedStart;
     k.onLoad(function () { goTo(start); });
 
     // Le format de la fenêtre a changé : on recompose la vue (rechargement). Jamais en plein écran : recharger la page

@@ -486,3 +486,7 @@ html.octo-hide-cursor:not(.octo-menu-open):not(.octo-puzzle) canvas { cursor: no
 .octo-lang__name { display: block; margin-bottom: 0.45em; font: 0.78em/1.4 var(--octo-pixel); color: #ffe08a; }
 .octo-lang__tag { display: block; font-size: 0.85em; line-height: 1.45; color: #a5b4c4; }
 .octo-lang__done { display: block; margin-top: 0.4em; font-size: 0.75em; color: #7ee787; }
+
+/* ---------- Page 404 : plein écran, rien d'autre que la scène (les commandes du son et des réglages sont cachées) ---------- */
+.octo-fs--404 { background: #0a0820; }
+html[data-octo-scene="notfound"] .octo-audio { display: none !important; }
