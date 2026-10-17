@@ -460,8 +460,8 @@ html:has(.octo-fs), body:has(.octo-fs) { overscroll-behavior: none; }
 
 /* Pas de ligatures dans le code : « >= » doit se voir comme deux signes (pas « ≥ ») pour que les enfants sachent quoi taper. */
 .octo-key, .octo-dialog__code, .octo-editor, .octo-console, .octo-set__chip, .octo-set__ta { font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
-/* Plein écran : la souris est cachée sur le décor (clic molette pour la montrer / cacher), mais reste visible sur tout ce qui
-   se clique ou se lit : fenêtres d'explication, éditeur, boutons (tout ce qui est dans .octo-ui) et menu ⚙. */
-html.octo-hide-cursor:not(.octo-menu-open) canvas { cursor: none !important; }
+/* Plein écran : la souris est cachée pendant l'action (clic molette pour la montrer / cacher), mais reste visible
+   dans l'énigme (fenêtre d'explication, éditeur, boutons : .octo-puzzle) et dans le menu ⚙. */
+html.octo-hide-cursor:not(.octo-menu-open):not(.octo-puzzle) canvas { cursor: none !important; }
 .octo-toast { position: absolute; left: 50%; bottom: 56px; transform: translateX(-50%); z-index: 40; padding: 0.5em 0.9em; border-radius: 4px; background: rgba(13, 17, 23, 0.92); border: 1px solid #58a6ff; color: #e6edf3; font: 0.72em/1.3 var(--octo-pixel, monospace); opacity: 0; pointer-events: none; transition: opacity 0.25s; white-space: nowrap; }
 .octo-toast.is-on { opacity: 1; }

@@ -546,7 +546,11 @@
       konsole.scrollTop = konsole.scrollHeight;
     }
 
-    function show(node, on) { node.classList.toggle("is-open", !!on); }
+    function show(node, on) {
+      node.classList.toggle("is-open", !!on);
+      // énigme (fenêtre ou éditeur ouverts) : la souris reste visible partout, même en plein écran
+      document.documentElement.classList.toggle("octo-puzzle", dialog.classList.contains("is-open") || panel.classList.contains("is-open"));
+    }
 
     /** Texte enrichi sans innerHTML : `code` devient une pastille de code, **gras** devient du gras (les deux peuvent s'imbriquer). */
     function rich(node, text) {
@@ -641,7 +645,8 @@
       showLevel: function (d) {
         def = d; hintIdx = 0;
         title.textContent = "NIVEAU " + d.id + " · " + d.title;
-        goal.textContent = (d.briefing && d.briefing.goal) || "";
+        goal.textContent = "";
+        rich(goal, (d.briefing && d.briefing.goal) || ""); // **gras** et `code` en vrais éléments (pas de signes visibles)
         editor.value = d.starter || "";
         editor.rows = Math.max(4, (d.starter || "").split("\n").length + 1);
         konsole.textContent = "";
