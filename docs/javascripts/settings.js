@@ -86,7 +86,7 @@
     BracketLeft: "[", BracketRight: "]", Backslash: "\\", Backquote: "`", Delete: "Suppr", Insert: "Inser", Home: "Début", End: "Fin",
     PageUp: "Page ↑", PageDown: "Page ↓"
   };
-  // Sans information de disposition (Firefox, Safari), les touches par défaut de WASD s'affichent pour QWERTY et AZERTY.
+  // Sans information de disposition du clavier (certains navigateurs ne la donnent pas), les touches par défaut de WASD s'affichent pour QWERTY et AZERTY.
   var FALLBACK = { KeyW: "W / Z", KeyA: "A / Q" };
 
   function label(code) {
@@ -167,7 +167,7 @@
   /* ---------- le navigateur garde-t-il nos données ? ---------- */
 
   // Les réglages et la progression vivent dans le localStorage du navigateur. Certains navigateurs les effacent à la fermeture
-  // (navigation privée, « effacer les données des sites à la fermeture » dans Firefox) : on le détecte quand c'est possible,
+  // (navigation privée, option « effacer les données des sites à la fermeture » de certains navigateurs) : on le détecte quand c'est possible,
   // on demande un stockage « persistant » (bouton du menu) et on propose un code de sauvegarde qui contient TOUT.
   var storage = { ok: true, persisted: null };
   try { window.localStorage.setItem(KEY + ":probe", "1"); window.localStorage.removeItem(KEY + ":probe"); } catch { storage.ok = false; }
@@ -403,7 +403,7 @@
       mem.appendChild(el("span", "octo-set__desc octo-set__desc--warn", "⚠️ Ce navigateur ne peut pas garder tes réglages ni ta progression (navigation privée ?). Ils seront perdus quand tu fermeras la page. Utilise le code de sauvegarde ci-dessous pour les retrouver."));
     } else {
       mem.appendChild(el("span", "octo-set__desc", "✅ Tes réglages, ton son et ta progression sont gardés dans ce navigateur, sur cet appareil."));
-      mem.appendChild(el("span", "octo-set__desc", stg.persisted ? "🔒 Le navigateur les protège : il ne les effacera pas tout seul." : "Si tu les retrouves vides au retour, ton navigateur efface peut-être les données des sites quand tu le fermes (Firefox : Réglages → Vie privée → Cookies et données de sites : décoche « Supprimer à la fermeture » ou ajoute ce site en exception). Tu peux aussi demander une protection :"));
+      mem.appendChild(el("span", "octo-set__desc", stg.persisted ? "🔒 Le navigateur les protège : il ne les effacera pas tout seul." : "Si tu les retrouves vides au retour, ton navigateur efface peut-être les données des sites quand tu le fermes (dans les réglages de confidentialité du navigateur, cherche « cookies et données de sites » : décoche l'effacement à la fermeture ou ajoute ce site en exception). Tu peux aussi demander une protection :"));
       if (!stg.persisted && stg.canPersist) {
         var pa = el("div", "octo-set__actions");
         pa.appendChild(button("🔒 Demander au navigateur de les garder", "", function () {

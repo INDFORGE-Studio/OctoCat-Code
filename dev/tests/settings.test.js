@@ -153,3 +153,35 @@ test("stockage : état lisible (ok / persistant) même sans navigateur", () => {
   assert.equal(st.ok, true);
   assert.equal(typeof st.canPersist, "boolean");
 });
+
+test("pièces : encaissées une seule fois par niveau, dépensées pour les indices, indices rendus payants à chaque passage", () => {
+  const { P } = load();
+  assert.equal(P.coins(), 0);
+  assert.equal(P.bank(1, 5), 5);
+  assert.equal(P.bank(1, 5), 0, "rejouer le même trajet ne rapporte rien");
+  assert.equal(P.bank(1, 7), 2, "seules les pièces en plus comptent");
+  assert.equal(P.coins(), 7);
+  assert.equal(P.payHint(1, 3), true);
+  assert.equal(P.coins(), 4);
+  assert.equal(P.paidHints(1), 1);
+  assert.equal(P.payHint(1, 9), false, "pas assez : rien ne change");
+  assert.equal(P.coins(), 4);
+  assert.equal(P.paidHints(1), 1);
+  P.complete(1);
+  assert.equal(P.paidHints(1), 0, "réussir le niveau : les indices sont à repayer au prochain passage");
+  assert.equal(P.coins(), 4, "les pièces restantes sont gardées");
+});
+
+test("pièces : elles passent dans le code de sauvegarde, valeurs hors limites ramenées à la raison", () => {
+  const { P } = load();
+  P.bank(2, 4); P.payHint(2, 1);
+  const code = P.exportSave();
+  const other = load().P;
+  assert.equal(other.importSave(code).ok, true);
+  assert.equal(other.coins(), 3);
+  assert.equal(other.paidHints(2), 1);
+  const bad = load().P;
+  assert.equal(bad.importSave(JSON.stringify({ unlocked: 2, coins: -5, banked: { 99: 4 }, paid: { 1: "x" } })).ok, true);
+  assert.equal(bad.coins(), 0);
+  assert.equal(bad.paidHints(1), 0);
+});

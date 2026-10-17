@@ -405,6 +405,7 @@
       enemies: [], items: [], lock: null, goT: 0, stats: { deaths: 0, kills: 0, bits: 0, bitsTotal: 0 },
       terminal: { x: L - 40, y: (yMin + yMax) / 2 }, waves: waves, abilities: {}, shots: [], stars: []
     };
+    sim.stats.bitsTotal = waves.reduce(function (n, w) { return n + w.spec.length; }, 0); // une pièce par ennemi vaincu
     sim.crates = (def.crates || []).map(function (c, i) {
       var block = c.kind === "block";
       return { x: c.x, y: c.y, kind: block ? "block" : "crate", hp: block ? 999 : 2, w: block ? 44 : 32, d: 12, h: block ? 30 : 26, alive: true, drop: c.drop || null, hit: 0, idx: i };
@@ -486,7 +487,7 @@
     }
     function damageEnemy(e, dmg, knock, stun) {
       e.hp -= dmg; e.hurt = stun; e.kb = knock; e.lunge = 0; e.wind = 0;
-      if (e.hp <= 0) { e.alive = false; sim.stats.kills++; emit("kill", e.x, e.y - 20); if ((e.wave + sim.stats.kills) % 3 === 0) sim.items.push({ x: e.x, y: e.y, kind: "heart", got: false }); }
+      if (e.hp <= 0) { e.alive = false; sim.stats.kills++; sim.stats.bits++; emit("kill", e.x, e.y - 20); emit("bit", e.x, e.y - 30); if ((e.wave + sim.stats.kills) % 3 === 0) sim.items.push({ x: e.x, y: e.y, kind: "heart", got: false }); }
       else emit("hit", e.x, e.y - 22);
     }
     function pickup(it) {
