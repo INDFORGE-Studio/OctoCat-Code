@@ -169,6 +169,16 @@
 
     var objs = new Map(), shurikenObjs = new Map(), bitObjs = [], candleObjs = [], cpObjs = [];
     var heartObjs = [], player, shadow, terminalObj, light = null;
+    var cave = null, curtain = null, sparkT = 0;
+    if (!brawl && sim.secret) { // salle secrète : fond de grotte + rideau qui cache le niveau (seulement quand on y est), tuyau de sortie
+      var scr = sim.secret, ex = scr.exit;
+      cave = k.add([k.rect(VW + 200, VH + 200), k.pos(-100, -100), k.color(rgb("#150f2a")), k.opacity(0), k.fixed(), k.z(4.6)]);
+      curtain = k.add([k.rect(scr.curtainR + 400, sim.h + 600), k.pos(-400, -300), k.color(rgb("#150f2a")), k.opacity(0), k.z(20)]);
+      k.add([k.rect(26, 34), k.pos(ex.x - 13, ex.y - 34), k.color(rgb("#2ea043")), k.z(5.8)]);
+      k.add([k.rect(36, 10), k.pos(ex.x - 18, ex.y - 44), k.color(rgb("#3fb950")), k.z(5.9)]);
+      k.add([k.rect(6, 26), k.pos(ex.x - 9, ex.y - 32), k.color(rgb("#7ee787")), k.opacity(0.5), k.z(5.95)]);
+      k.add([k.text("SORTIE", { size: 8, font: "monospace" }), k.pos(ex.x - 17, ex.y - 60), k.color(rgb("#7ee787")), k.z(6)]);
+    }
     /** Bougies, pièces et drapeaux du trajet (posés au départ, reposés quand tout le niveau recommence). */
     function buildPlatformDynamics() {
       sim.candles.forEach(function (c) {
@@ -367,7 +377,7 @@
       });
     }
 
-    var SFX = { jump: "jump", djump: "djump", land: "land", swing: "swing", hit: "hit", kill: "kill", stomp: "stomp", hurt: "hurt", bit: "bit", heart: "heart", throw: "throw", checkpoint: "checkpoint", finish: "finish", candle: "hit", die: "hurt", fall: "hurt", wave: "hurt", star: "star", power: "power", crate: "crate", "crate-hit": "crate-hit", shot: "shot", dash: "dash", bark: "bark", scare: "scare" };
+    var SFX = { jump: "jump", djump: "djump", land: "land", swing: "swing", hit: "hit", kill: "kill", stomp: "stomp", hurt: "hurt", bit: "bit", heart: "heart", throw: "throw", checkpoint: "checkpoint", finish: "finish", candle: "hit", die: "hurt", fall: "hurt", wave: "hurt", star: "star", power: "power", crate: "crate", "crate-hit": "crate-hit", shot: "shot", dash: "dash", bark: "bark", scare: "scare", secret: "power", "secret-out": "checkpoint" };
 
     function handle(ev) {
       var m = music();
@@ -386,7 +396,9 @@
         case "bit": burst(ev.x, ev.y, ["#e3b341", "#fff4c2"], 6, 0.6); break;
         case "heart": burst(ev.x, ev.y, ["#f85149", "#ffd6d6"], 8, 0.7); say("+ VIE", "#ff9aa0"); break;
         case "checkpoint": say("POINT DE CONTROLE", "#7ee787"); break;
-        case "restart": resetWorldObjs(); say("TOUT RECOMMENCE", "#f85149"); break;
+        case "restart": resetWorldObjs(); snapCam(); say("TOUT RECOMMENCE", "#f85149"); break;
+        case "secret": snapCam(); say("SALLE SECRETE !", "#ffd54a"); burst(ev.x, ev.y - 40, ["#ffd54a", "#fff4c2", "#ffffff"], 20, 0.9); break;
+        case "secret-out": snapCam(); say("DE RETOUR !", "#7ee787"); break;
         case "wave": say("ATTENTION !", "#f85149"); k.shake(5); break;
         case "star": say("INVINCIBLE !", "#ffffff"); burst(ev.x, ev.y, ["#ff6a6a", "#ffd54a", "#7ee787", "#58a6ff", "#bc8cff"], 26, 1.1); k.shake(3); break;
         case "power": say("SUPER SHURIKEN !", "#ffd54a"); burst(ev.x, ev.y, ["#ffd54a", "#fff4c2", "#ffffff"], 18, 0.9); break;
@@ -410,10 +422,12 @@
       } else {
         tx = p.x + p.facing * 40; ty = p.y - 80;
       }
-      tx = worldW <= VW ? worldW / 2 : clamp(tx, VW / 2, worldW - VW / 2);
+      var ww = sim.secret && !sim.secret.inRoom ? sim.secret.levelW : worldW; // la salle secrète est à droite du monde : la caméra ne la montre que quand on y est
+      tx = ww <= VW ? ww / 2 : clamp(tx, VW / 2, ww - VW / 2);
       ty = VH >= worldH ? worldH - VH / 2 : clamp(ty, VH / 2, worldH - VH / 2);
       return { x: tx, y: ty };
     }
+    function snapCam() { var q = camTarget(); cam.x = q.x; cam.y = q.y; }
     var c0 = camTarget(); cam.x = c0.x; cam.y = c0.y;
     k.camPos(cam.x, cam.y);
 
@@ -619,6 +633,13 @@
       cam.x += (c.x - cam.x) * Math.min(1, 6 * dt); cam.y += (c.y - cam.y) * Math.min(1, 5 * dt);
       k.camPos(Math.round(cam.x * 2) / 2, Math.round(cam.y * 2) / 2);
       skyLayer(cam.x, cam.y); landLayer(cam.x, cam.y);
+      if (cave) {
+        var inRoom = sim.secret.inRoom;
+        cave.opacity = inRoom ? 1 : 0; curtain.opacity = inRoom ? 1 : 0;
+        sparkT -= dt; // un léger scintillement au-dessus du trou secret (pour les curieux)
+        var gcx = (sim.secret.gapL + sim.secret.gapR) / 2;
+        if (!inRoom && sparkT <= 0 && Math.abs(p.x - gcx) < 380) { sparkT = 0.9; burst(gcx + (Math.random() - 0.5) * 40, worldH - 14, ["#ffd54a", "#fff4c2"], 2, 0.35); }
+      }
       clouds.forEach(function (cl) { cl.x -= cl.sp * dt; if (cl.x < -140) cl.x = VW + 40; cl.o.pos.x = cl.x; });
 
       // interface

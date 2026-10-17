@@ -261,3 +261,11 @@ Compagne fidèle de l'OctoCat (noir et blanc, poil ébouriffé, tache blanche su
 - **Une pièce prise ne revient jamais** (sinon on mourrait exprès pour en récolter) : plateformes, `bits[i].got` est conservé ; arène, `sim.coinsGot["vague:rang"]` garde la pièce de chaque ennemi déjà vaincu. Le compteur « PIECES » ne repart pas à zéro.
 - Son du coup dans le vide (`swing`) : souffle + glissando bien audibles (avant : trop faible pour être entendu).
 - Vérifié par `sim.test.js` (2 tests) et `node dev/restart-check.mjs` (vrai jeu, niveaux 1 et 2).
+
+## 26. Salle secrète (un trou par niveau à trous)
+
+Chaque parcours à plateformes qui a des trous (niveaux 1, 3, 4, 5, 7, 8, 9) cache une **salle secrète** : `addSecretRoom` (`playsim.js`) choisit **automatiquement un trou, jamais le dernier** (le trou du milieu parmi les précédents ; s'il n'y a qu'un seul trou, c'est lui). Tomber dedans ne coûte **aucun cœur** : l'OctoCat arrive dans une petite grotte pleine de pièces (~30 : sol, colline, rangées en l'air), puis le **tuyau vert « SORTIE »** le ramène **juste devant le dernier trou** du niveau (`sim.secret.out`, premier sol sans pic avant ce trou).
+- Géométrie : la salle est ajoutée à **droite de la grille**, derrière 3 colonnes de mur (`sim.w` = niveau + mur + salle ; `sim.secret.levelW` = fin du niveau). La caméra ne dépasse pas `levelW` tant qu'on est dans le niveau (`camTarget`), donc on ne voit jamais la salle de l'extérieur ; dans la salle, un fond de grotte (`cave`) et un rideau (`curtain`) cachent le niveau. Les points de contrôle ne s'allument pas dans la salle.
+- Les pièces de la salle sont de vraies pièces (`sim.bits`, comptées dans « PIECES n/N », jamais regagnables : §25). Les autres trous coûtent un cœur comme avant.
+- Indice discret : de petites étincelles dorées montent du trou secret quand on s'en approche. Événements `secret` / `secret-out` (message, caméra recadrée d'un coup).
+- Vérifié par `sim.test.js` (2 tests : sélection du trou, pas de cœur perdu, pièces, sortie ; tous les niveaux à trous ont une salle) et `node dev/secret-check.mjs` (vrai jeu, niveaux 1 et 7).

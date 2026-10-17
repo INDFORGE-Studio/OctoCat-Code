@@ -79,6 +79,7 @@ test("ennemis : les pics et les marcheurs blessent, l'écrasement et l'épée tu
   assert.equal(e2.alive, false, "coup de fouet");
 
   sim = S.createPlatform(S.buildCourse([{ t: "flat", n: 6 }, { t: "gap", n: 6 }, { t: "flat", n: 4 }, { t: "end", n: 8 }]), {});
+  sim.secret = null; // (ici on teste le trou ordinaire ; le trou secret a ses propres tests)
   run(sim, { right: true }, 6);
   assert.ok(sim.stats.deaths >= 1, "chute dans le vide");
   assert.ok(sim.player.x < 6 * 32, "retour au départ");
@@ -86,6 +87,7 @@ test("ennemis : les pics et les marcheurs blessent, l'écrasement et l'épée tu
 
 test("chute : un trou coûte un cœur ; à 0 cœur, on repart avec tous les cœurs", () => {
   const sim = S.createPlatform(S.buildCourse([{ t: "flat", n: 6 }, { t: "gap", n: 6 }, { t: "flat", n: 4 }, { t: "end", n: 8 }]), {});
+  sim.secret = null;
   const max = S.CFG.hpMax;
   assert.equal(sim.player.hp, max);
   let falls = 0, last = sim.stats.deaths;
@@ -387,4 +389,49 @@ test("plus de cœur dans l'arène : tout recommence (vagues, caisses) mais une p
   assert.equal(sim.enemies.length, 2, "les monstres sont revenus");
   hit(sim.enemies[0]);
   assert.equal(sim.stats.bits, 1, "même monstre vaincu une 2e fois : pas de nouvelle pièce");
+});
+
+test("salle secrète : un trou (jamais le dernier) mène à une salle pleine de pièces ; le tuyau ressort devant le dernier trou", () => {
+  const course = [{ t: "flat", n: 6 }, { t: "gap", n: 2 }, { t: "flat", n: 6, bits: [2] }, { t: "gap", n: 2 }, { t: "flat", n: 6 }, { t: "gap", n: 2 }, { t: "flat", n: 4 }, { t: "end", n: 8 }];
+  const sim = S.createPlatform(S.buildCourse(course), {});
+  const sc = sim.secret, T = 32;
+  assert.ok(sc, "le parcours a une salle secrète");
+  assert.equal(sc.gapL, 14 * T, "le 2e trou (jamais le dernier) est le trou secret");
+  assert.ok(sim.bits.filter((b) => b.x > sc.roomL).length >= 20, "la salle est pleine de pièces");
+  assert.ok(sim.w > sc.levelW + 3 * T, "la salle est collée à droite, derrière un mur");
+  // un trou ordinaire (le 1er) coûte un cœur
+  sim.player.x = 7 * T; sim.player.y = sim.h + 130; run(sim, idle, 0.1);
+  assert.equal(sim.stats.deaths, 1);
+  assert.equal(sc.inRoom, false);
+  // le trou secret : pas de cœur perdu, on arrive dans la salle
+  const hp = sim.player.hp;
+  sim.player.x = (sc.gapL + sc.gapR) / 2; sim.player.y = sim.h + 130; run(sim, idle, 0.1);
+  assert.equal(sc.inRoom, true);
+  assert.equal(sim.stats.deaths, 1, "pas une chute");
+  assert.equal(sim.player.hp, hp);
+  assert.ok(sim.player.x >= sc.roomL);
+  assert.equal(sim.checkpoints.length, 0);
+  // il ramasse des pièces en marchant jusqu'au tuyau
+  run(sim, { right: true }, 1.5);
+  assert.ok(sim.stats.bits >= 3, "pièces ramassées dans la salle");
+  sim.player.x = sc.exit.x; sim.player.y = sc.exit.y; run(sim, idle, 0.1);
+  assert.equal(sc.inRoom, false, "sorti");
+  const lastGapL = 22 * T;
+  assert.ok(sim.player.x < lastGapL && sim.player.x > lastGapL - 4 * T, "il ressort juste devant le dernier trou");
+  assert.ok(sim.player.x < sc.levelW, "dans le niveau");
+  // un seul trou : c'est le trou secret, sortie devant ce même trou
+  const one = S.createPlatform(S.buildCourse([{ t: "flat", n: 6 }, { t: "gap", n: 2 }, { t: "flat", n: 4 }, { t: "end", n: 6 }]), {});
+  assert.equal(one.secret.gapL, 6 * T);
+  assert.ok(one.secret.out.x < 6 * T);
+  // sans trou : pas de salle
+  assert.equal(S.createPlatform(S.buildCourse([{ t: "flat", n: 6 }, { t: "end", n: 6 }]), {}).secret, null);
+});
+
+test("salle secrète : les niveaux à trous en ont une, que les bots n'activent pas par hasard", () => {
+  for (const id of [1, 3, 4, 5, 7, 8, 9]) {
+    const run_ = engine.levels[id].run;
+    const sim = S.createPlatform(S.buildCourse(run_.course), run_.abilities);
+    assert.ok(sim.secret, `niveau ${id} : salle secrète`);
+    assert.ok(sim.bits.filter((b) => b.x > sim.secret.roomL).length >= 20, `niveau ${id} : pièces`);
+  }
 });

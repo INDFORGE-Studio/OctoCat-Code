@@ -32,7 +32,7 @@ for (const lvl of [1, 2]) {
   await page.waitForFunction(() => window.OctoPlay && window.OctoPlay.current, null, { timeout: 15000 });
   await page.waitForTimeout(1000);
   // il avance, prend une pièce (plateformes) ou vainc un monstre (arène), puis un monstre l'achève
-  const s0 = await sim(() => {
+  await sim(() => {
     const s = window.OctoPlay.current.sim;
     if (s.mode === "brawl") { s.player.x = s.waves[0].at; return { x: s.player.x, mode: s.mode }; }
     s.bits[0].got = true; s.stats.bits = 1; if (s.checkpoints[0]) s.player.x = s.checkpoints[0].x + 30;

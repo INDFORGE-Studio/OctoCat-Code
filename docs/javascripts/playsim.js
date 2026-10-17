@@ -163,14 +163,55 @@
    * 2. Simulation « platform »
    * ==================================================================== */
 
+  /**
+   * Salle secrète : un des trous du parcours (jamais le dernier, sauf s'il n'y en a qu'un) mène, au lieu de coûter un cœur,
+   * à une petite salle pleine de pièces, collée à droite de la grille derrière un mur (la caméra ne la montre pas depuis le niveau).
+   * On en ressort par un tuyau, juste devant le dernier trou du niveau. Renvoie { rows, info } ou null si le parcours n'a aucun trou.
+   */
+  function addSecretRoom(rows) {
+    var R = rows.length, cols = rows[0].length, gaps = [], cur = null, c, r, i;
+    for (c = 0; c < cols; c++) {
+      var ground = false;
+      for (r = 0; r < R; r++) if (rows[r].charAt(c) === "#") { ground = true; break; }
+      if (ground) cur = null;
+      else if (cur) cur.c1 = c;
+      else { cur = { c0: c, c1: c }; gaps.push(cur); }
+    }
+    if (!gaps.length) return null;
+    var last = gaps[gaps.length - 1];
+    var pick = gaps.length > 1 ? gaps[Math.min(gaps.length - 2, Math.floor((gaps.length - 1) / 2))] : last;
+    // sortie : le sol juste avant le dernier trou (sans pic)
+    var out = null;
+    for (c = last.c0 - 1; c >= 0 && !out; c--) {
+      for (r = 0; r < R; r++) if (rows[r].charAt(c) === "#") break;
+      if (r < R && r > 0 && rows[r - 1].charAt(c) !== "^") out = { x: (c + 0.5) * TILE, y: r * TILE };
+    }
+    var SEP = 3, W = 26, hs = [], room = [], put2 = function (ci, ri, ch) { if (ri >= 0 && ri < R) room[ri][ci] = ch; };
+    for (i = 0; i < W; i++) hs.push(i < 11 ? 2 : i < 15 ? 3 : i < 19 ? 4 : i < 23 ? 3 : 2); // sol, puis une petite colline à franchir
+    for (r = 0; r < R; r++) { room.push([]); for (i = 0; i < W; i++) room[r].push(R - r <= hs[i] ? "#" : " "); }
+    [3, 5, 7, 9].forEach(function (ci) { put2(ci, R - hs[ci] - 1, "o"); });
+    for (i = 11; i < 23; i++) { put2(i, R - hs[i] - 1, "o"); put2(i, R - hs[i] - 2, "o"); } // une rangée sur la colline, une en l'air (en sautant)
+    var r0 = cols + SEP;
+    var info = {
+      gapL: pick.c0 * TILE, gapR: (pick.c1 + 1) * TILE, levelW: cols * TILE, curtainR: (cols + SEP - 1) * TILE, roomL: r0 * TILE,
+      spawn: { x: (r0 + 2.5) * TILE, y: (R - 2) * TILE }, out: out || { x: TILE * 2.5, y: TILE * 7 }, inRoom: false, visits: 0
+    };
+    var ex = (r0 + 24.5) * TILE;
+    info.exit = { x: ex, y: (R - 2) * TILE, l: ex - 18, r: ex + 18, t: (R - 2) * TILE - 46, b: (R - 2) * TILE };
+    var wall = ""; for (i = 0; i < SEP; i++) wall += "#";
+    return { rows: rows.map(function (row, ri) { return row + wall + room[ri].join(""); }), info: info };
+  }
+
   function createPlatform(rows, abilities) {
     var ab = abilities || {};
+    var secretRoom = addSecretRoom(rows);
+    if (secretRoom) rows = secretRoom.rows;
     var cols = rows[0].length, R = rows.length;
     var sim = {
       mode: "platform", w: cols * TILE, h: R * TILE, abilities: ab, time: 0, finished: false,
       events: [], stats: { bits: 0, bitsTotal: 0, deaths: 0, kills: 0 },
       enemies: [], bits: [], candles: [], items: [], spikes: [], checkpoints: [], shurikens: [], terminal: null,
-      player: null, cp: null, solid: [], dog: null
+      player: null, cp: null, solid: [], dog: null, secret: secretRoom ? secretRoom.info : null
     };
     var spawn = { x: TILE * 2.5, y: TILE * 7 };
 
@@ -250,9 +291,14 @@
     function restartLevel() {
       scan(false);
       sim.cp = { x: spawn.x, y: spawn.y };
+      if (sim.secret) sim.secret.inRoom = false;
       p.hp = CFG.hpMax; p.x = spawn.x; p.y = spawn.y; p.vx = 0; p.vy = 0; p.inv = 1.5; p.swing = 0; p.star = 0; p.power = 0; p.facing = 1;
       sim.dog.x = p.x - 46; sim.dog.y = p.y; sim.dog.state = "follow"; sim.dog.cd = 0; sim.dog.vx = 0;
       emit("restart", spawn.x, spawn.y);
+    }
+    function teleport(to) {
+      p.x = to.x; p.y = to.y; p.vx = 0; p.vy = 0; p.inv = 1.5; p.swing = 0; p.onGround = false;
+      sim.dog.x = p.x - 46; sim.dog.y = p.y; sim.dog.state = "follow"; sim.dog.vx = 0;
     }
     function respawn(fell) {
       sim.stats.deaths++;
@@ -474,9 +520,16 @@
       }
       for (i = 0; i < sim.checkpoints.length; i++) {
         var ck = sim.checkpoints[i];
-        if (!ck.on && p.x > ck.x) { ck.on = true; sim.cp = { x: ck.x, y: ck.y }; emit("checkpoint", ck.x, ck.y); }
+        if (!ck.on && p.x > ck.x && !(sim.secret && sim.secret.inRoom)) { ck.on = true; sim.cp = { x: ck.x, y: ck.y }; emit("checkpoint", ck.x, ck.y); }
       }
-      if (p.y > sim.h + 120) respawn(true);
+      var sec = sim.secret;
+      if (sec && sec.inRoom && overlap(pr, sec.exit)) { // le tuyau : retour dans le niveau, devant le dernier trou
+        sec.inRoom = false; teleport(sec.out); emit("secret-out", p.x, p.y);
+      }
+      if (p.y > sim.h + 120) {
+        if (sec && !sec.inRoom && p.x > sec.gapL - 10 && p.x < sec.gapR + 10) { sec.inRoom = true; sec.visits++; teleport(sec.spawn); emit("secret", p.x, p.y); }
+        else respawn(true);
+      }
       if (sim.terminal && !sim.finished && overlap(pr, sim.terminal)) { sim.finished = true; emit("finish", p.x, p.y); }
     }
 
@@ -485,9 +538,10 @@
       var n = Math.max(1, Math.ceil(dt / (1 / 120))), h = dt / n;
       for (var i = 0; i < n; i++) stepOnce(input || {}, h);
     };
-    sim.progress = function () { return clamp(p.x / sim.w, 0, 1); };
+    sim.progress = function () { var sc = sim.secret; return clamp((sc && sc.inRoom ? sc.gapL : p.x) / (sc ? sc.levelW : sim.w), 0, 1); };
     sim.nearestThreat = function () {
       var best = Infinity;
+      if (sim.secret && sim.secret.inRoom) return best;
       sim.enemies.forEach(function (e) { if (e.alive) best = Math.min(best, Math.abs(e.x - p.x) + Math.abs(e.y - p.y) * 0.5); });
       return best;
     };
