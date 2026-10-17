@@ -190,7 +190,7 @@
   function music() { return window.OctoMusic || null; }
 
   var TABS = [["keys", "Touches"], ["sound", "Son"], ["screen", "Affichage"], ["game", "Jeu"]];
-  var overlay = null, bodyEl = null, tabsEl = null, msgEl = null, closeBtn = null, openState = false, tab = "keys", capturing = null, lastFocus = null, confirmReset = false;
+  var homeBtn = null, overlay = null, bodyEl = null, tabsEl = null, msgEl = null, closeBtn = null, openState = false, tab = "keys", capturing = null, lastFocus = null, confirmReset = false;
 
   function say(text, bad) { if (msgEl) { msgEl.textContent = text || ""; msgEl.classList.toggle("is-bad", !!bad); } }
 
@@ -422,9 +422,12 @@
     });
     msgEl = el("div", "octo-set__msg"); msgEl.setAttribute("aria-live", "polite");
     bodyEl = el("div", "octo-set__body");
-    var foot = el("div", "octo-set__foot");
+    var foot = el("div", "octo-set__foot"), footBtns = el("div", "octo-set__footbtns");
     foot.appendChild(el("span", "", "Échap : ouvrir / fermer · la partie est en pause"));
-    foot.appendChild(button("Fermer", "octo-set__btn--ok", function () { Settings.close(); }));
+    homeBtn = button("⌂ Retour à l'accueil", "", function () { Settings.close(); document.dispatchEvent(new CustomEvent("octo:home")); });
+    footBtns.appendChild(homeBtn);
+    footBtns.appendChild(button("Fermer", "octo-set__btn--ok", function () { Settings.close(); }));
+    foot.appendChild(footBtns);
     card.appendChild(head); card.appendChild(tabsEl); card.appendChild(msgEl); card.appendChild(bodyEl); card.appendChild(foot);
     overlay.appendChild(card);
     overlay.addEventListener("pointerdown", function (e) { if (e.target === overlay && !capturing) Settings.close(); });
@@ -438,6 +441,7 @@
     host.appendChild(overlay);
     lastFocus = document.activeElement;
     openState = true; confirmReset = false; say("");
+    homeBtn.style.display = document.documentElement.getAttribute("data-octo-scene") === "hub" ? "none" : ""; // déjà à l'accueil : pas de bouton
     overlay.classList.add("is-open");
     render();
     try { closeBtn.focus({ preventScroll: true }); } catch { /* ignoré */ }
