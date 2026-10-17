@@ -39,6 +39,19 @@
     return b.outline(OUT);
   }
 
+  function kennelBuf() { // niche en bois : toit en pente, planches, porte voutee sombre
+    var b = new Buf(34, 28), y;
+    b.rect(4, 11, 26, 17, "#a1713b");
+    for (y = 14; y < 28; y += 4) b.rect(4, y, 26, 1, "#86592c");
+    b.rect(4, 11, 2, 17, "#c28f52"); b.rect(28, 11, 2, 17, "#7a5230");
+    b.poly([[0, 12], [17, 0.5], [34, 12]], "#b4533f");
+    b.poly([[3, 12], [17, 3], [31, 12]], "#cf6a52");
+    b.rect(0, 11, 34, 2, "#8c3f30");
+    b.ellipse(17, 20, 6, 6, "#1d1530"); b.rect(11, 20, 12, 8, "#1d1530");
+    b.rect(11, 27, 12, 1, "#5a3a4a");
+    return b.outline(OUT);
+  }
+
   function terminalBuf() { // borne d'accès : écran vert, antenne rouge
     var b = new Buf(24, 32);
     b.rect(11, 1, 2, 5, "#6e7681"); b.rect(10, 0, 4, 2, "#f85149");
@@ -315,6 +328,7 @@
     k.loadSprite("heart", single(heartBuf()));
     k.loadSprite("spike", single(spikeBuf()));
     k.loadSprite("terminal", single(terminalBuf()));
+    k.loadSprite("kennel", single(kennelBuf()));
     k.loadSprite("candle", single(candleBuf()));
     k.loadSprite("bat", sheet([batBuf(true), batBuf(false)], 18, 14), { sliceX: 2, anims: { fly: { from: 0, to: 1, loop: true, speed: 8 } } });
     k.loadSprite("shuriken", single(shurikenBuf()));

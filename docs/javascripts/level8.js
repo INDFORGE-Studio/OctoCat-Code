@@ -27,8 +27,9 @@
         { t: "down", n: 2 }, { t: "flat", n: 7, dash: [2], en: [5], fly: [4] },
         { t: "up", n: 2 }, { t: "flat", n: 4, bits: [1, 2] },
         { t: "up", n: 2 }, { t: "flat", n: 4, cp: 0 },
-        { t: "gap", n: 3 }, { t: "down", n: 2 }, { t: "flat", n: 5 },
-        { t: "end", n: 9 }
+        { t: "down", n: 6 }, { t: "flat", n: 4 }, // on descend vers le dernier trou : la falaise d en face est trop haute pour y grimper
+        { t: "gap", n: 3 }, // le dernier saut se fait DANS le trou : l entree de la grotte est sur sa paroi
+        { t: "cave", n: 14, open: 5 }
       ]
     },
 

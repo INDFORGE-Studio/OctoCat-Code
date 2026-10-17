@@ -42,11 +42,14 @@
       k.add([k.text("APPRENDS A CODER EN T'AMUSANT", { size: fsz(11), font: "monospace" }), k.pos(cx, tagY + 1), k.anchor("center"),
         k.color(rgb("#f0f6fc")), k.fixed(), k.z(32)]);
       // invite : bandeau sombre presque opaque, filets or, ombre portée ; la lueur pulse sans jamais devenir illisible
-      var pw = Math.min(VW - 12, 360 * fit), ph = 20 * Math.max(0.85, fit), py = tagY + 28 * fit;
+      var promptTxt = "[ CLIQUE = COMMENCER ]";
+      var tw; // encadré à la taille du texte
+      try { tw = k.formatText({ text: promptTxt, size: fsz(12), font: "monospace" }).width; } catch { tw = 0; }
+      if (!tw || !isFinite(tw)) tw = promptTxt.length * fsz(12) * 0.62;
+      var pw = Math.min(VW - 12, tw + 34 * fit), ph = 20 * Math.max(0.85, fit), py = tagY + 28 * fit;
       k.add([k.rect(pw, ph), k.pos(cx, py), k.anchor("center"), k.color(rgb("#150c33")), k.opacity(0.88), k.fixed(), k.z(30.6)]);
       k.add([k.rect(pw, 1), k.pos(cx, py - ph / 2), k.anchor("center"), k.color(rgb("#ffe08a")), k.opacity(0.9), k.fixed(), k.z(30.7)]);
       k.add([k.rect(pw, 1), k.pos(cx, py + ph / 2), k.anchor("center"), k.color(rgb("#ffe08a")), k.opacity(0.9), k.fixed(), k.z(30.7)]);
-      var promptTxt = info.started ? "[ CLIQUE : CONTINUER ]" : "[ CLIQUE : ENTRER DANS LE PORTAIL ]";
       var promptShadow = k.add([k.text(promptTxt, { size: fsz(12), font: "monospace" }), k.pos(cx + 1, py + 2), k.anchor("center"), k.color(rgb("#000000")), k.opacity(0.8), k.fixed(), k.z(31.9)]);
       var prompt = k.add([k.text(promptTxt, { size: fsz(12), font: "monospace" }), k.pos(cx, py + 1), k.anchor("center"), k.color(rgb("#ffe08a")), k.fixed(), k.z(32)]);
       k.add([k.text("NIVEAUX TERMINES : " + done + "/" + P.levels.length, { size: 10, font: "monospace" }), k.pos(10, 8),
@@ -56,6 +59,16 @@
       var shadow = sc.shadow(80, 0.85);
       var octo = k.add([k.sprite("octo", { anim: "idle" }), k.pos(80, BASE_Y), k.anchor("bot"), k.scale(S), k.opacity(1), k.z(9)]);
       sc.follow(octo);
+      // Laita attend devant sa niche (son nom sur une petite plaque), tournée vers l'OctoCat
+      var KX = 352, LX = 288;
+      k.add([k.sprite("kennel"), k.pos(KX, BASE_Y + 1), k.anchor("bot"), k.scale(2.6), k.z(6.6)]);
+      k.add([k.rect(46, 13), k.pos(KX, BASE_Y - 78), k.anchor("center"), k.color(rgb("#150c33")), k.opacity(0.9), k.z(6.8)]);
+      k.add([k.rect(46, 1), k.pos(KX, BASE_Y - 84), k.anchor("center"), k.color(rgb("#ffe08a")), k.opacity(0.9), k.z(6.9)]);
+      k.add([k.rect(46, 1), k.pos(KX, BASE_Y - 72), k.anchor("center"), k.color(rgb("#ffe08a")), k.opacity(0.9), k.z(6.9)]);
+      k.add([k.text("LAITA", { size: 10, font: "monospace" }), k.pos(KX, BASE_Y - 78), k.anchor("center"), k.color(rgb("#ffe08a")), k.z(7)]);
+      var laitaShadow = sc.shadow(LX, 0.6);
+      var laita = k.add([k.sprite("laita", { anim: "sit" }), k.pos(LX, BASE_Y), k.anchor("bot"), k.scale(3), k.opacity(1), k.z(8.5)]);
+      laita.flipX = true;
       var goal = 80, wait = 1.2, state = "wait", entering = false;
 
       sc.onFrame(function (t) {
@@ -63,10 +76,11 @@
         prompt.opacity = 0.8 + 0.2 * Math.abs(Math.sin(t * 2.6));
         shadow.pos.x = octo.pos.x;
         shadow.opacity = 0.6 * octo.opacity;
+        laitaShadow.pos.x = laita.pos.x; laitaShadow.opacity = 0.5 * octo.opacity; laita.opacity = octo.opacity;
         if (entering) return;
         if (state === "wait") {
           wait -= k.dt();
-          if (wait <= 0) { goal = k.rand(40, 380); state = "walk"; octo.play("run"); }
+          if (wait <= 0) { goal = k.rand(40, 235); state = "walk"; octo.play("run"); }
         } else {
           var dx = goal - octo.pos.x, step = 70 * k.dt();
           octo.flipX = dx < 0;

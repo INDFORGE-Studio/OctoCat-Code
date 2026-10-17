@@ -227,6 +227,21 @@
       sim.spikes.forEach(function (s) { k.add([k.sprite("spike"), k.pos(s.l - 5, s.b - T), k.scale(2), k.z(5.5)]); });
       buildPlatformDynamics();
       var tm = sim.terminal;
+      if (sim.cave) { // fin en grotte : fond sombre, torches, lueurs ; l'entrée s'ouvre sur la paroi du dernier trou (un panneau le dit)
+        var cv = sim.cave;
+        k.add([k.rect(cv.r - cv.l, cv.b - cv.t), k.pos(cv.l, cv.t), k.color(rgb("#120d24")), k.z(4.8)]);
+        [cv.l + 30, cv.l + (cv.r - cv.l) * 0.5].forEach(function (tx2) {
+          k.add([k.sprite("torch"), k.pos(tx2, cv.b), k.anchor("bot"), k.scale(2.4), k.z(5.6)]);
+          k.add([k.sprite("glow"), k.pos(tx2, cv.b - 34), k.anchor("center"), k.scale(4), k.color(rgb("#ffb347")), k.opacity(0.32), k.z(5.7)]);
+        });
+        k.add([k.sprite("glow"), k.pos(tm.x, tm.y - 20), k.anchor("center"), k.scale(3.6), k.color(rgb("#39c5cf")), k.opacity(0.3), k.z(5.7)]);
+        var pc = Math.floor(cv.l / T) - 1, pr = -1, rr;
+        while (pc > 0) { for (rr = 0; rr < rowsN; rr++) if (solid[rr][pc]) { pr = rr; break; } if (pr >= 0) break; pc--; }
+        if (pr >= 0) { // pc = dernière colonne de sol avant le trou
+          k.add([k.sprite("sign"), k.pos((pc - 1) * T, pr * T + 2), k.anchor("bot"), k.scale(2.4), k.z(5.9)]);
+          k.add([k.text("GROTTE >", { size: 8, font: "monospace" }), k.pos((pc - 1) * T - 26, pr * T - 58), k.color(rgb("#7ee787")), k.z(6)]);
+        }
+      }
       terminalObj = k.add([k.sprite("terminal"), k.pos(tm.x, tm.y), k.anchor("bot"), k.scale(2), k.z(6)]);
       if (theme.light) light = k.add([k.sprite("glow"), k.pos(0, 0), k.anchor("center"), k.scale(7), k.color(rgb(theme.light)), k.opacity(0.22), k.z(28.4)]);
     }

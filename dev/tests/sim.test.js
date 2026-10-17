@@ -435,3 +435,21 @@ test("salle secrète : les niveaux à trous en ont une, que les bots n'activent 
     assert.ok(sim.bits.filter((b) => b.x > sim.secret.roomL).length >= 20, `niveau ${id} : pièces`);
   }
 });
+
+test("niveau 8 : fin en grotte (terminal dans un tunnel ouvert sur la paroi du dernier trou, falaise inescaladable)", () => {
+  const run_ = engine.levels[8].run;
+  const grid = S.buildCourse(run_.course);
+  const sim = S.createPlatform(grid, run_.abilities);
+  const c = sim.cave, T = S.TILE;
+  assert.ok(c, "le niveau 8 a une grotte");
+  assert.ok(sim.terminal.x > c.l && sim.terminal.x < c.r && sim.terminal.y === c.b, "le terminal est au fond du tunnel");
+  // dernier trou : colonnes vides juste avant la falaise ; le sol d'en face est au moins 5 tuiles plus bas que le haut de la falaise (hors d'atteinte, même en double saut)
+  const col = (x) => { let r = 0; while (r < grid.length && grid[r].charAt(x) !== "#") r++; return r; };
+  const c0 = c.l / T;
+  let pit = c0 - 1; while (col(pit) === grid.length) pit--;
+  assert.ok(col(pit) - col(c0) >= 5, `falaise trop basse : ${col(pit) - col(c0)} tuiles`);
+  assert.ok(c.t / T < col(pit) && c.b / T > col(pit), "l'entrée du tunnel est à hauteur du trou");
+  const r = S.simulate(sim, S.platformBot, 150);
+  assert.equal(r.finished, true);
+  assert.equal(r.deaths, 0, "le bot entre dans la grotte sans tomber");
+});
