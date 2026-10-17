@@ -29,7 +29,7 @@
   };
 
   function defaults() {
-    return { version: 1, unlocked: 1, completed: {}, language: null, achievements: {}, fails: {} };
+    return { version: 1, unlocked: 1, completed: {}, language: null, achievements: {}, fails: {}, coins: 0, banked: {}, paid: {} };
   }
 
   // Repli en mémoire si localStorage est indisponible (navigation privée, etc.).
@@ -71,12 +71,41 @@
 
     failsFor: function (id) { return read().fails[id] || 0; },
 
+    /* ----- Pièces : gagnées pendant les trajets, dépensées pour acheter les indices ----- */
+
+    /** Nombre de pièces en poche. */
+    coins: function () { return Math.max(0, Math.floor(read().coins) || 0); },
+
+    /** Encaisse les pièces d'un trajet : seulement celles qu'on n'avait pas déjà gagnées à ce niveau (pas de pièces à l'infini en rejouant). Renvoie le gain. */
+    bank: function (id, n) {
+      var s = read(), have = Math.floor(s.banked[id]) || 0, now = Math.max(0, Math.floor(n) || 0), gain = Math.max(0, now - have);
+      if (!gain) return 0;
+      s.banked[id] = now; s.coins = Progress.coins() + gain;
+      write(s);
+      return gain;
+    },
+
+    /** Nombre d'indices déjà payés pour ce niveau (ils restent visibles jusqu'à la réussite du niveau). */
+    paidHints: function (id) { return Math.max(0, Math.floor(read().paid[id]) || 0); },
+
+    /** Paie l'indice suivant du niveau : renvoie true si le prix a pu être payé (sinon rien ne change). */
+    payHint: function (id, price) {
+      var s = read();
+      price = Math.max(0, Math.floor(price) || 0);
+      if (Progress.coins() < price) return false;
+      s.coins = Progress.coins() - price;
+      s.paid[id] = Progress.paidHints(id) + 1;
+      write(s);
+      return true;
+    },
+
     /** Marque un niveau comme terminé, débloque le suivant et renvoie les succès obtenus. */
     complete: function (id) {
       var s = read();
       var flawless = !(s.fails[id] > 0);
       var gained = [];
       s.completed[id] = { at: Date.now(), flawless: flawless };
+      delete s.paid[id]; // au prochain passage, les indices sont à repayer
       s.unlocked = Math.max(s.unlocked, id + 1);
       function grant(key) {
         if (!s.achievements[key]) { s.achievements[key] = Date.now(); gained.push(key); }
@@ -130,6 +159,16 @@
       if (o.fails && typeof o.fails === "object") Object.keys(o.fails).forEach(function (id) {
         var i = parseInt(id, 10), v = Math.floor(Number(o.fails[id]));
         if (i >= 1 && i <= max && v > 0) s.fails[i] = v;
+      });
+      var c = Math.floor(Number(o.coins));
+      if (c > 0) s.coins = Math.min(c, 99999);
+      if (o.banked && typeof o.banked === "object") Object.keys(o.banked).forEach(function (id) {
+        var i = parseInt(id, 10), v = Math.floor(Number(o.banked[id]));
+        if (i >= 1 && i <= max && v > 0) s.banked[i] = Math.min(v, 999);
+      });
+      if (o.paid && typeof o.paid === "object") Object.keys(o.paid).forEach(function (id) {
+        var i = parseInt(id, 10), v = Math.floor(Number(o.paid[id]));
+        if (i >= 1 && i <= max && v > 0) s.paid[i] = Math.min(v, 9);
       });
       write(s);
       return { ok: true };

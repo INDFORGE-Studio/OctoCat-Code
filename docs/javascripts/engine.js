@@ -505,9 +505,16 @@
     var bBrief = el("button", "octo-btn", "📜 Briefing");
     var bMenu = el("button", "octo-btn octo-btn--right", "⌂ Menu");
     [bCompile, bReset, bHint, bBrief, bMenu].forEach(function (b) { b.type = "button"; actions.appendChild(b); });
+    var wallet = el("span", "octo-wallet", "🪙 0");
+    wallet.setAttribute("title", "Tes pièces : elles servent à acheter des indices 💡");
+    bBrief.after(wallet);
+    var hintsBox = el("div", "octo-hints"); // les indices déjà payés restent affichés ici
+    hintsBox.setAttribute("aria-live", "polite");
+    var head = el("div", "octo-panel__head");
+    head.appendChild(bar); head.appendChild(hintsBox);
     var konsole = el("pre", "octo-console");
     konsole.setAttribute("aria-live", "polite");
-    panel.appendChild(bar); panel.appendChild(editor); panel.appendChild(actions); panel.appendChild(konsole);
+    panel.appendChild(head); panel.appendChild(editor); panel.appendChild(actions); panel.appendChild(konsole);
     root.appendChild(dialog); root.appendChild(panel);
     // bouton son : la musique démarre au premier geste, ce bouton la coupe / la relance
     var audio = el("div", "octo-audio");
@@ -539,7 +546,30 @@
     document.addEventListener("octo:audio", syncMute);
     host.appendChild(root);
 
-    var hintIdx = 0, def = null;
+    var def = null;
+    var HINT_MAX_PRICE = 3;
+    function hintPrice(i) { return Math.min(i + 1, HINT_MAX_PRICE); } // 1er indice : 1 pièce, 2e : 2, puis 3
+
+    /** Affiche ce qui est payé (indices + mission), le prix du prochain indice et les pièces en poche. */
+    function refreshHints() {
+      if (!def) return;
+      var P = window.OctoProgress, hints = def.hints || [], n = Math.min(P.paidHints(def.id), hints.length), coins = P.coins(), i;
+      hintsBox.textContent = "";
+      for (i = 0; i < n; i++) {
+        var line = el("div", "octo-hint");
+        line.appendChild(document.createTextNode("💡 Indice " + (i + 1) + "/" + hints.length + " : "));
+        hintsBox.appendChild(rich(line, hints[i]));
+      }
+      var goalText = (def.briefing && def.briefing.goal) || "", locked = hints.length > 0 && n === 0;
+      goal.textContent = "";
+      goal.classList.toggle("is-locked", locked);
+      if (locked) goal.textContent = "🔒 La mission s'affiche ici quand tu achètes un indice 💡";
+      else rich(goal, goalText); // **gras** et `code` en vrais éléments (pas de signes visibles)
+      wallet.textContent = "🪙 " + coins;
+      if (n >= hints.length) { bHint.textContent = "💡 Plus d'indice"; bHint.disabled = !!hints.length; bHint.classList.remove("is-poor"); }
+      else { bHint.disabled = false; bHint.textContent = "💡 Indice · " + hintPrice(n) + " 🪙"; bHint.classList.toggle("is-poor", coins < hintPrice(n)); }
+    }
+    document.addEventListener("octo:progress", refreshHints);
 
     function log(text, kind) {
       konsole.appendChild(el("div", "octo-console__line" + (kind ? " octo-console__line--" + kind : ""), text));
@@ -617,12 +647,18 @@
     });
     bBrief.addEventListener("click", function () { show(panel, false); openBriefing(function () { show(panel, true); }); });
     bHint.addEventListener("click", function () {
-      var hints = def.hints || [];
-      if (!hints.length) return;
-      log("💡 Indice " + (hintIdx % hints.length + 1) + "/" + hints.length + " : " + hints[hintIdx % hints.length], "hint");
-      hintIdx++;
-      window.OctoProgress.grant("curious");
+      var P = window.OctoProgress, hints = def.hints || [], n = P.paidHints(def.id);
+      if (!hints.length || n >= hints.length) return;
+      var price = hintPrice(n);
+      if (!P.payHint(def.id, price)) { // pas assez de pièces : rien n'est payé ni montré
+        log("🪙 Pas assez de pièces : cet indice coûte " + price + " 🪙 et tu en as " + P.coins() + ". Ramasse des pièces pendant les trajets ! (Le bouton 📜 Briefing, lui, est gratuit.)", "hint");
+        refreshHints();
+        return;
+      }
+      P.grant("curious");
       emit("hint", { level: def.id });
+      refreshHints(); // « octo:progress » l'a déjà fait, mais on ne dépend pas de l'ordre des écouteurs
+      log("💡 Indice acheté (−" + price + " 🪙). Il reste affiché en haut.", "dim");
     });
     editor.addEventListener("keydown", function (e) {
       if (e.key === "Tab" && !e.shiftKey) { // indentation plutôt que perte de focus
@@ -643,10 +679,9 @@
       hide: function () { show(dialog, false); show(panel, false); def = null; },
       /** Niveau : briefing d'abord, puis éditeur. */
       showLevel: function (d) {
-        def = d; hintIdx = 0;
+        def = d;
         title.textContent = "NIVEAU " + d.id + " · " + d.title;
-        goal.textContent = "";
-        rich(goal, (d.briefing && d.briefing.goal) || ""); // **gras** et `code` en vrais éléments (pas de signes visibles)
+        refreshHints();
         editor.value = d.starter || "";
         editor.rows = Math.max(4, (d.starter || "").split("\n").length + 1);
         konsole.textContent = "";
@@ -755,7 +790,7 @@
           });
         } else {
           P.recordFail(def.id);
-          ui.log("✗ Pas encore… lis le message ci-dessus et réessaie : tu peux y arriver ! (Le bouton 💡 Indice t'aide.)", "err");
+          ui.log("✗ Pas encore… lis le message ci-dessus et réessaie : tu peux y arriver ! (Le bouton 💡 Indice t'aide, il coûte des pièces 🪙.)", "err");
           emit("fail", { level: def.id, result: result });
           music().hit();
           cur.ctrl.fail(result).then(function () { busy = false; ui.setBusy(false); });

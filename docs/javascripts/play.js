@@ -223,7 +223,7 @@
     /* ----- interface fixe ----- */
     var hpMax = brawl ? sim.player.hpMax : Sim.CFG.hpMax;
     for (var hi = 0; hi < hpMax; hi++) heartObjs.push(k.add([k.sprite("heart"), k.pos(10 + hi * 20, 8), k.scale(1.7), k.fixed(), k.z(31)]));
-    var bitsTxt = brawl ? null : k.add([k.text("BITS 0/" + sim.stats.bitsTotal, { size: 11, font: "monospace" }), k.pos(10, 30), k.color(rgb("#e3b341")), k.fixed(), k.z(31)]);
+    var bitsTxt = k.add([k.text("PIECES 0/" + sim.stats.bitsTotal, { size: 11, font: "monospace" }), k.pos(10, 30), k.color(rgb("#e3b341")), k.fixed(), k.z(31)]);
     var progress = k.add([k.rect(1, 3), k.pos(0, 0), k.color(rgb("#3fb950")), k.fixed(), k.z(31.5)]);
     var plate = k.add([k.rect(Math.min(VW - 20, 300), 62), k.pos(VW / 2, VH * 0.3 + 8), k.anchor("center"), k.color(rgb("#0d1117")), k.opacity(0.5), k.fixed(), k.z(31.8)]);
     var banner = k.add([k.text("NIVEAU " + def.id, { size: 22, font: "monospace" }), k.pos(VW / 2, VH * 0.3), k.anchor("center"), k.color(rgb("#ffffff")), k.opacity(1), k.fixed(), k.z(32)]);
@@ -494,10 +494,19 @@
       shotObjs.forEach(function (o, sh) { if (!liveShots.has(sh)) { o.destroy(); shotObjs.delete(sh); } });
     }
 
+    // Les pièces ramassées passent dans la poche du joueur (elles paient les indices) ; seules les nouvelles comptent.
+    var banked = false;
+    function bankCoins() {
+      if (banked || !window.OctoProgress) return 0;
+      banked = true;
+      return window.OctoProgress.bank(def.id, sim.stats.bits);
+    }
+
     function finishRun() {
       if (ended) return;
       ended = true; endT = 0;
-      say("TERMINAL ATTEINT", "#7ee787");
+      var gain = bankCoins();
+      say(gain ? "TERMINAL ATTEINT  +" + gain + " PIECES" : "TERMINAL ATTEINT", "#7ee787");
       music().sfx("finish");
       burst(sim.terminal.x, sim.terminal.y - 30, ["#3fb950", "#39c5cf", "#ffffff", "#bc8cff"], 26);
     }
@@ -518,7 +527,7 @@
         if (sim.finished) finishRun();
       } else {
         endT += dt;
-        if (endT > 1) { destroyed = true; hooks.finish(); return; }
+        if (endT > 1) { destroyed = true; bankCoins(); hooks.finish(); return; }
       }
 
       // joueur
@@ -567,7 +576,7 @@
 
       // interface
       heartObjs.forEach(function (o, i) { o.opacity = i < p.hp ? 1 : 0.2; });
-      if (bitsTxt) bitsTxt.text = "BITS " + sim.stats.bits + "/" + sim.stats.bitsTotal;
+      bitsTxt.text = "PIECES " + sim.stats.bits + "/" + sim.stats.bitsTotal;
       progress.width = Math.max(1, VW * sim.progress());
       var introT = Math.max(0, 2.6 - time);
       banner.opacity = Math.min(1, introT); sub.opacity = Math.min(1, introT); plate.opacity = 0.5 * Math.min(1, introT);
