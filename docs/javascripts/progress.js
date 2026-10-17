@@ -134,6 +134,12 @@
       return gained;
     },
 
+    /** Easter egg des torches : ouvre le niveau suivant SANS valider celui-ci (ni pièces, ni succès, ni fin de tour). */
+    unlockAfter: function (id) {
+      var s = read(), n = Math.min(LEVELS.length, Math.floor(id) + 1);
+      if (n > s.unlocked) { s.unlocked = n; write(s); }
+    },
+
     /* ----- Tours : 10 niveaux = 1 tour ; après chaque tour OctoCat et Laita changent d'apparence, et on choisit un langage ----- */
     LAPS: LAPS,
     languages: LANG_LIST,

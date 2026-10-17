@@ -158,7 +158,7 @@
      * Chaque torche s'éteint dans un « pschiit » (fumée, étincelles) et libère un feu follet qui file vers le portail.
      * Quand les deux sont éteintes : la nuit tombe, le portail explose en anneaux arc-en-ciel, une pluie d'étoiles tombe,
      * OctoCat et Laita fêtent ça, puis les torches se rallument — enchantées, aux couleurs de l'arc-en-ciel. Succès « Magicien ». */
-    var magicOn = opts.magic !== false, magicDone = false;
+    var magicOn = opts.magic !== false, magicDone = false, magicHero = null; // magicHero : l'OctoCat de la scène (posé par sc.laita)
     var RAINBOW = ["#ff5d73", "#ffb347", "#ffe066", "#7ee787", "#58d6ff", "#bc8cff", "#ff7eb6"];
     function sfx(name) { if (window.OctoMusic && window.OctoMusic.sfx) window.OctoMusic.sfx(name); }
     /** Particule simple : (x, y, vx, vy, durée, gravité, forme, couleur, taille). */
@@ -200,6 +200,13 @@
       magicDone = true;
       if (window.OctoProgress && window.OctoProgress.grant) window.OctoProgress.grant("magic");
       sfx("magic");
+      // Le moteur peut accepter de laisser OctoCat entrer dans le portail à la fin du spectacle, sans avoir résolu l'énigme
+      // (événement `octo:magic` : il répond en mettant detail.take à true ; il n'accepte pas si une animation est en cours).
+      var take = { take: false }, walk = false;
+      if (magicHero && magicHero.opacity >= 1 && Math.abs(magicHero.pos.y - BASE_Y) < 1.5 && Math.abs(magicHero.pos.x - magicHero.__home) < 3) {
+        document.dispatchEvent(new CustomEvent("octo:magic", { detail: take }));
+        walk = take.take === true;
+      }
       var cy = k.camPos().y, veil = k.add([k.rect(3600, 1200), k.pos(-1500, cy - 600), k.color(rgb("#05030f")), k.opacity(0), k.z(7.4)]);
       var pz = portal.z, gz = portalGlow.z;
       portal.z = 7.6; portalGlow.z = 7.5; // le portail reste lumineux dans la nuit
@@ -235,7 +242,29 @@
           h.tween(1.4, function (e) { msg.pos.y = GROUND_Y - 118 - 26 * e; msg.opacity = 1 - e * e; }).then(function () { msg.destroy(); });
           return h.tween(0.7, function (e) { veil.opacity = 0.62 * (1 - e); });
         })
-        .then(function () { veil.destroy(); portal.z = pz; portalGlow.z = gz; });
+        .then(function () { veil.destroy(); portal.z = pz; portalGlow.z = gz; })
+        .then(function () { return walk ? walkIn() : null; });
+    }
+    /** Fin de l'Easter egg : le portail s'ouvre tout seul, OctoCat y entre, puis le moteur (`octo:magic-exit`) ouvre le niveau suivant. */
+    function walkIn() {
+      var o = magicHero, S = o.scale.x, x0 = o.pos.x;
+      if (!o.exists()) return null;
+      o.play("run");
+      return h.tween(Math.max(0.4, 1.1 * (PORTAL_X - 60 - x0) / (PORTAL_X - 60 - 70)), function (e) { o.pos.x = x0 + (PORTAL_X - 60 - x0) * e; }, function (p) { return p; })
+        .then(function () { o.play("success"); portal.play("opening"); k.shake(4); return h.wait(0.35); })
+        .then(function () {
+          portalOpen = true; portalGlow.color = rgb("#58a6ff"); portal.play("open");
+          sfx("bit");
+          var t = k.add([k.text("PORTAIL OUVERT !", { size: 16, font: "monospace" }), k.pos(PORTAL_X - 30, GROUND_Y - 118), k.anchor("center"), k.color(rgb("#ffffff")), k.opacity(1), k.z(32)]);
+          h.tween(1.2, function (e) { t.opacity = 1 - e * e; }).then(function () { t.destroy(); });
+          for (var j = 0; j < 28; j++) dust(PORTAL_X + k.rand(-8, 8), GROUND_Y - 60, k.rand(-140, 140), k.rand(-200, -40), k.rand(0.5, 0.9), 520, RAINBOW[j % RAINBOW.length], 4);
+          return h.wait(0.5);
+        })
+        .then(function () {
+          o.play("run");
+          return h.tween(0.7, function (e) { o.pos.x = PORTAL_X - 60 + 60 * e; o.opacity = 1 - e; var s = S * (1 - 0.6 * e); o.scale = k.vec2(s, s); });
+        })
+        .then(function () { document.dispatchEvent(new CustomEvent("octo:magic-exit")); });
     }
     /** Position (en pixels de la page) des deux torches : sert aux tests de navigateur (dev/magic-check.mjs). */
     window.OctoScenery.torchPoints = function () {
@@ -295,6 +324,7 @@
       laita: function (octo, ox) {
         var homeX = ox + 84, dog = k.add([k.sprite("laita", { anim: "sit" }), k.pos(homeX, BASE_Y), k.anchor("bot"), k.scale(3), k.opacity(1), k.z(8.5)]);
         var shade = this.shadow(homeX, 0.6), mode = "sit";
+        octo.__home = ox; magicHero = octo;
         dog.flipX = true;
         frameHooks.push(function () {
           var dt = k.dt(), want = octo.pos.x > ox + 6 ? octo.pos.x - 56 : homeX, dx = want - dog.pos.x, step = 320 * dt;
