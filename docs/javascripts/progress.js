@@ -110,18 +110,19 @@
       return true;
     },
 
-    /** Marque un niveau comme terminé, débloque le suivant et renvoie les succès obtenus. */
-    complete: function (id) {
-      var s = read();
-      var flawless = !(s.fails[id] > 0);
+    /** Marque un niveau comme terminé, débloque le suivant et renvoie les succès obtenus.
+     *  opts.magic : niveau passé grâce à l'Easter egg des torches (énigme non résolue) : il compte pour le tour et la fin du jeu, mais ne donne ni succès de niveau ni « sans faute ». */
+    complete: function (id, opts) {
+      var s = read(), magic = !!(opts && opts.magic);
+      var flawless = !magic && !(s.fails[id] > 0);
       var gained = [];
-      s.completed[id] = { at: Date.now(), flawless: flawless };
+      if (!(magic && s.completed[id])) s.completed[id] = magic ? { at: Date.now(), flawless: false, magic: true } : { at: Date.now(), flawless: flawless }; // la magie ne remplace pas une vraie réussite
       delete s.paid[id]; // au prochain passage, les indices sont à repayer
       s.unlocked = Math.max(s.unlocked, id + 1);
       function grant(key) {
         if (!s.achievements[key]) { s.achievements[key] = Date.now(); gained.push(key); }
       }
-      grant("first_compile");
+      if (!magic) grant("first_compile");
       if (flawless) grant("flawless");
       // les 10 niveaux sont finis : un tour de plus (nouvelle apparence, autre langage) ; au 3e tour, c'est la fin du jeu (crédits)
       gained.lap = null;
@@ -132,12 +133,6 @@
       }
       write(s);
       return gained;
-    },
-
-    /** Easter egg des torches : ouvre le niveau suivant SANS valider celui-ci (ni pièces, ni succès, ni fin de tour). */
-    unlockAfter: function (id) {
-      var s = read(), n = Math.min(LEVELS.length, Math.floor(id) + 1);
-      if (n > s.unlocked) { s.unlocked = n; write(s); }
     },
 
     /* ----- Tours : 10 niveaux = 1 tour ; après chaque tour OctoCat et Laita changent d'apparence, et on choisit un langage ----- */
@@ -190,7 +185,7 @@
       if (o.completed && typeof o.completed === "object") Object.keys(o.completed).forEach(function (id) {
         var i = parseInt(id, 10), c = o.completed[id];
         if (i >= 1 && i <= max && c && typeof c === "object") {
-          s.completed[i] = { at: Number(c.at) || 0, flawless: !!c.flawless };
+          s.completed[i] = c.magic === true ? { at: Number(c.at) || 0, flawless: false, magic: true } : { at: Number(c.at) || 0, flawless: !!c.flawless };
           s.unlocked = Math.max(s.unlocked, Math.min(max, i + 1));
         }
       });

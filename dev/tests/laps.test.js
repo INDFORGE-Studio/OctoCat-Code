@@ -90,19 +90,39 @@ test("tours : le 2e tour donne l'apparence 2, le 3e tour la fin du jeu : crédit
   assert.equal(P.creditsPending(), false);
 });
 
-test("magie des torches : unlockAfter ouvre le niveau suivant sans valider celui-ci (ni pièces, ni tour)", () => {
+test("magie des torches : un niveau passé par la magie compte pour le tour et la fin (mais sans pièces ni succès de niveau)", () => {
   const P = load();
-  assert.equal(P.isUnlocked(2), false);
-  P.unlockAfter(1);
+  const r = P.complete(1, { magic: true });
+  assert.equal(P.isCompleted(1), true);
   assert.equal(P.isUnlocked(2), true);
-  assert.equal(P.isUnlocked(3), false);
-  assert.equal(P.isCompleted(1), false);
   assert.equal(P.coins(), 0);
-  P.unlockAfter(1); // jamais en arrière
-  assert.equal(P.isUnlocked(2), true);
-  P.unlockAfter(10);
-  assert.equal(P.laps(), 0, "le niveau 10 « magique » ne finit pas le tour");
-  assert.equal(P.pendingLap(), false);
+  assert.equal(r.includes("first_compile"), false);
+  assert.equal(r.includes("flawless"), false);
+  assert.equal(P.get().completed[1].magic, true);
+  // une vraie réussite n'est jamais remplacée par la magie
+  P.complete(2);
+  P.complete(2, { magic: true });
+  assert.equal(P.get().completed[2].magic, undefined);
+  // la magie sauvegardée reste marquée après import
+  const Q = load();
+  assert.equal(Q.importSave(P.exportSave()).ok, true);
+  assert.equal(Q.get().completed[1].magic, true);
+});
+
+test("magie des torches : 10 niveaux passés par la magie = tour fini, puis fin du jeu au 3e tour (crédits)", () => {
+  const P = load();
+  let last = null;
+  for (let id = 1; id <= 10; id++) last = P.complete(id, { magic: true });
+  assert.equal(last.lap, "lap");
+  assert.equal(P.laps(), 1);
+  assert.equal(P.pendingLap(), true);
+  P.startLap("JavaScript");
+  for (let id = 1; id <= 10; id++) last = P.complete(id, { magic: true });
+  assert.equal(last.lap, "lap");
+  P.startLap("Pseudo-code");
+  for (let id = 1; id <= 10; id++) last = P.complete(id, { magic: true });
+  assert.equal(last.lap, "end");
+  assert.equal(P.creditsPending(), true);
 });
 
 test("tours : ne pas avoir fini les 10 niveaux ne change rien (niveau 10 seul)", () => {

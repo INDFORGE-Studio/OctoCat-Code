@@ -65,7 +65,8 @@ for (const lvl of [1, 4]) {
   try { await page.waitForFunction((t) => window.location.hash === t, target, { timeout: 12000 }); arrived = true; } catch { /* ci-dessous */ }
   ok(`niveau ${lvl} : OctoCat entre dans le portail → ${target}`, arrived, await page.evaluate(() => window.location.hash));
   const st = await page.evaluate(() => window.OctoProgress.get());
-  ok(`niveau ${lvl} : l'énigme n'est PAS validée (ni niveau fini, ni pièces)`, !st.completed[lvl], JSON.stringify(Object.keys(st.completed)));
+  ok(`niveau ${lvl} : le niveau compte comme fini (pour le tour et les crédits), marqué « magie »`, !!st.completed[lvl] && st.completed[lvl].magic === true, JSON.stringify(st.completed));
+  ok(`niveau ${lvl} : mais ni pièces ni succès de niveau`, st.coins === 0 && !st.achievements.first_compile && !st.achievements.flawless, JSON.stringify(st.achievements));
   await page.screenshot({ path: path.join(OUT, `magic-${lvl}-7-next.png`) });
 }
 

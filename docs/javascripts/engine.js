@@ -849,8 +849,8 @@
       }
     });
 
-    // Easter egg des torches (scenery.js) : la magie ouvre le portail sans avoir résolu l'énigme. Rien n'est validé (ni pièces, ni succès de niveau,
-    // ni fin de tour) : on débloque seulement le niveau suivant. Le moteur refuse pendant une animation (compilation en cours).
+    // Easter egg des torches (scenery.js) : la magie ouvre le portail sans avoir résolu l'énigme. Le niveau compte comme fini (tour, générique),
+    // mais ne donne ni succès de niveau ni « sans faute ». Le moteur refuse pendant une animation (compilation en cours).
     var magicTaken = false;
     document.addEventListener("octo:magic", function (e) {
       if (busy || !cur.def || !/^level\d+$/.test(cur.name || "") || !e.detail) return;
@@ -860,9 +860,9 @@
     document.addEventListener("octo:magic-exit", function () {
       if (!magicTaken || !cur.def) return;
       magicTaken = false;
-      ui.log(levels[cur.def.id + 1] ? "→ Tu passes le portail vers le niveau suivant (l'énigme t'attendra si tu reviens !)" : "→ Retour à l'accueil…", "dim");
-      P.unlockAfter(cur.def.id);
-      window.setTimeout(function () { goTo(nextName(cur.def.id)); }, 300);
+      var id = cur.def.id, lapUp = P.complete(id, { magic: true }).lap; // le niveau compte (tour, générique), sans pièces ni succès de niveau
+      ui.log(lapUp === "end" ? "→ Les crédits arrivent…" : lapUp === "lap" ? "→ Tour terminé ! Retour à l'accueil…" : levels[id + 1] ? "→ Tu passes le portail vers le niveau suivant !" : "→ Retour à l'accueil…", "dim");
+      window.setTimeout(function () { goTo(lapUp === "end" && scenes.credits ? "credits" : nextName(id)); }, 300);
     });
 
     function leave() { magicTaken = false; if (cur.ctrl && cur.ctrl.destroy) cur.ctrl.destroy(); cur.ctrl = null; }
