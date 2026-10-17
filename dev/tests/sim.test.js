@@ -345,3 +345,46 @@ test("Laita dans l'arène : les ennemis effrayés ne frappent plus, ne lancent p
   run(sim, idle, 1);
   assert.equal(sim.player.hp, hp);
 });
+
+test("plus de cœur : tout le niveau recommence au début (drapeaux, pièces, bougies, ennemis remis à zéro)", () => {
+  const sim = S.createPlatform(S.buildCourse([{ t: "flat", n: 14, bits: [3], en: [9], candles: [5], cp: 6 }, { t: "end", n: 8 }]));
+  const start = { x: sim.player.x, y: sim.player.y };
+  sim.player.x = sim.checkpoints[0].x + 40; // il passe le drapeau et ramasse des pièces
+  sim.bits[0].got = true; sim.stats.bits = 1; sim.candles[0].alive = false; sim.enemies[0].alive = false;
+  run(sim, idle, 0.2);
+  assert.equal(sim.checkpoints[0].on, true);
+  sim.player.hp = 1; sim.player.inv = 0;
+  const en = sim.enemies[0]; en.alive = true; en.x = sim.player.x; en.y = sim.player.y; // un monstre le touche : plus de cœur
+  run(sim, idle, 0.1);
+  assert.equal(sim.stats.deaths, 1);
+  assert.equal(sim.player.hp, S.CFG.hpMax, "cœurs pleins");
+  assert.ok(Math.abs(sim.player.x - start.x) < 8, "retour tout au début, pas au drapeau");
+  assert.equal(sim.checkpoints.every((c) => !c.on), true, "drapeaux réinitialisés");
+  assert.deepEqual({ x: sim.cp.x, y: sim.cp.y }, start);
+  assert.equal(sim.stats.bits, 1, "les pièces gagnées sont gardées");
+  assert.equal(sim.bits[0].got, true, "une pièce prise ne revient jamais");
+  assert.equal(sim.candles.every((c) => c.alive), true);
+  assert.equal(sim.enemies.every((e) => e.alive), true);
+  assert.ok(sim.events.some((e) => e.t === "restart"));
+});
+
+test("plus de cœur dans l'arène : tout recommence (vagues, caisses) mais une pièce gagnée ne se regagne jamais", () => {
+  const sim = S.createBrawl({ length: 900, waves: [{ at: 200, enemies: [["grunt", "right"], ["grunt", "right"]] }], crates: [{ x: 120, y: 290, kind: "crate", drop: "heart" }] });
+  const hit = (e) => { e.hp = 1; sim.player.x = e.x - 20; sim.player.y = e.y; sim.player.facing = 1; run(sim, (t) => ({ attack: t < 0.1 }), 0.8); };
+  sim.player.x = 200; run(sim, idle, 0.5);
+  sim.crates[0].alive = false;
+  hit(sim.enemies[0]); // un monstre vaincu : une pièce
+  assert.equal(sim.stats.bits, 1);
+  sim.player.hp = 1; sim.player.inv = 0; sim.player.x = sim.enemies[0].x; sim.player.y = sim.enemies[0].y;
+  run(sim, idle, 6); // l'autre monstre l'achève
+  assert.ok(sim.stats.deaths >= 1, "K.O.");
+  assert.equal(sim.player.hp, sim.player.hpMax);
+  assert.ok(sim.player.x < 150, "retour au début");
+  assert.equal(sim.crates[0].alive, true, "caisse remise");
+  assert.equal(sim.waves[0].started, false, "vague remise");
+  assert.equal(sim.stats.bits, 1, "la pièce gagnée est gardée");
+  sim.player.x = 200; run(sim, idle, 0.5);
+  assert.equal(sim.enemies.length, 2, "les monstres sont revenus");
+  hit(sim.enemies[0]);
+  assert.equal(sim.stats.bits, 1, "même monstre vaincu une 2e fois : pas de nouvelle pièce");
+});

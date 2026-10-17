@@ -169,6 +169,29 @@
 
     var objs = new Map(), shurikenObjs = new Map(), bitObjs = [], candleObjs = [], cpObjs = [];
     var heartObjs = [], player, shadow, terminalObj, light = null;
+    /** Bougies, pièces et drapeaux du trajet (posés au départ, reposés quand tout le niveau recommence). */
+    function buildPlatformDynamics() {
+      sim.candles.forEach(function (c) {
+        var o2 = k.add([k.sprite("candle"), k.pos(c.x, c.y), k.anchor("bot"), k.scale(2), k.z(6.5)]);
+        candleObjs.push({ c: c, o: o2 });
+      });
+      sim.bits.forEach(function (b) { if (!b.got) bitObjs.push({ b: b, o: k.add([k.sprite("bit"), k.pos(b.x, b.y), k.anchor("center"), k.scale(1.6), k.z(6)]) }); });
+      sim.checkpoints.forEach(function (c) {
+        var pole = k.add([k.rect(3, 40), k.pos(c.x - 1, c.y - 40), k.color(rgb("#8b949e")), k.z(5.8)]);
+        var flag = k.add([k.rect(18, 11), k.pos(c.x + 2, c.y - 40), k.color(rgb("#f85149")), k.z(5.9)]);
+        cpObjs.push({ c: c, pole: pole, flag: flag });
+      });
+    }
+    /** Plus de cœur : tout le niveau recommence, on efface les anciens objets du décor et on repose les nouveaux. */
+    function resetWorldObjs() {
+      var gone = function (q) { if (q && q.exists && q.exists()) q.destroy(); };
+      bitObjs.forEach(function (b) { gone(b.o); }); bitObjs.length = 0;
+      candleObjs.forEach(function (c) { gone(c.o); }); candleObjs.length = 0;
+      cpObjs.forEach(function (c) { gone(c.pole); gone(c.flag); }); cpObjs.length = 0;
+      k.destroyAll("octo-item");
+      crateObjs.forEach(function (o) { gone(o); }); crateObjs.clear();
+      if (!brawl) buildPlatformDynamics();
+    }
     var worldW = sim.w, worldH = sim.h;
 
     if (brawl) {
@@ -192,16 +215,7 @@
         return null;
       }, Math.floor(colsN / 5), 2.3);
       sim.spikes.forEach(function (s) { k.add([k.sprite("spike"), k.pos(s.l - 5, s.b - T), k.scale(2), k.z(5.5)]); });
-      sim.candles.forEach(function (c) {
-        var o2 = k.add([k.sprite("candle"), k.pos(c.x, c.y), k.anchor("bot"), k.scale(2), k.z(6.5)]);
-        candleObjs.push({ c: c, o: o2 });
-      });
-      sim.bits.forEach(function (b) { bitObjs.push({ b: b, o: k.add([k.sprite("bit"), k.pos(b.x, b.y), k.anchor("center"), k.scale(1.6), k.z(6)]) }); });
-      sim.checkpoints.forEach(function (c) {
-        var pole = k.add([k.rect(3, 40), k.pos(c.x - 1, c.y - 40), k.color(rgb("#8b949e")), k.z(5.8)]);
-        var flag = k.add([k.rect(18, 11), k.pos(c.x + 2, c.y - 40), k.color(rgb("#f85149")), k.z(5.9)]);
-        cpObjs.push({ c: c, pole: pole, flag: flag });
-      });
+      buildPlatformDynamics();
       var tm = sim.terminal;
       terminalObj = k.add([k.sprite("terminal"), k.pos(tm.x, tm.y), k.anchor("bot"), k.scale(2), k.z(6)]);
       if (theme.light) light = k.add([k.sprite("glow"), k.pos(0, 0), k.anchor("center"), k.scale(7), k.color(rgb(theme.light)), k.opacity(0.22), k.z(28.4)]);
@@ -368,10 +382,11 @@
         case "stomp": burst(ev.x, ev.y, ["#ffffff", "#39c5cf"], 10); k.shake(3); break;
         case "candle": burst(ev.x, ev.y, ["#f0883e", "#ffe08a"], 10); break;
         case "hurt": hurtFlash = 0.35; k.shake(8); burst(ev.x, py - 10, ["#f85149", "#ffffff"], 10); break;
-        case "die": case "fall": hurtFlash = 0.6; k.shake(10); say(ev.t === "fall" ? "CHUTE !" : "K.O. - ON REPREND", "#f85149"); break;
+        case "die": case "fall": hurtFlash = 0.6; k.shake(10); say(ev.t === "fall" ? "CHUTE !" : "K.O. !", "#f85149"); break;
         case "bit": burst(ev.x, ev.y, ["#e3b341", "#fff4c2"], 6, 0.6); break;
         case "heart": burst(ev.x, ev.y, ["#f85149", "#ffd6d6"], 8, 0.7); say("+ VIE", "#ff9aa0"); break;
         case "checkpoint": say("POINT DE CONTROLE", "#7ee787"); break;
+        case "restart": resetWorldObjs(); say("TOUT RECOMMENCE", "#f85149"); break;
         case "wave": say("ATTENTION !", "#f85149"); k.shake(5); break;
         case "star": say("INVINCIBLE !", "#ffffff"); burst(ev.x, ev.y, ["#ff6a6a", "#ffd54a", "#7ee787", "#58a6ff", "#bc8cff"], 26, 1.1); k.shake(3); break;
         case "power": say("SUPER SHURIKEN !", "#ffd54a"); burst(ev.x, ev.y, ["#ffd54a", "#fff4c2", "#ffffff"], 18, 0.9); break;
@@ -454,8 +469,8 @@
       // objets ramassables apparus en cours de partie (cœurs, bits des bougies)
       sim.items.forEach(function (it) {
         if (!it.o) {
-          it.o = k.add([k.sprite(it.kind === "power" ? "power" : "heart"), k.pos(it.x, it.y), k.anchor("center"), k.scale(it.kind === "power" ? 1.5 : 1.6), k.z(6)]);
-          if (it.kind === "power") it.g = k.add([k.sprite("glow"), k.pos(it.x, it.y), k.anchor("center"), k.scale(1.3), k.color(rgb("#ffd54a")), k.opacity(0.35), k.z(5.9)]);
+          it.o = k.add([k.sprite(it.kind === "power" ? "power" : "heart"), k.pos(it.x, it.y), k.anchor("center"), k.scale(it.kind === "power" ? 1.5 : 1.6), k.z(6), "octo-item"]);
+          if (it.kind === "power") it.g = k.add([k.sprite("glow"), k.pos(it.x, it.y), k.anchor("center"), k.scale(1.3), k.color(rgb("#ffd54a")), k.opacity(0.35), k.z(5.9), "octo-item"]);
         }
         if (!it.got) { it.o.pos.y = it.y + Math.sin(t * 5 + it.x) * 2; if (it.g) { it.g.pos.y = it.o.pos.y; it.g.opacity = 0.28 + 0.1 * Math.sin(t * 8); } }
         if (it.got) { if (it.o.exists()) it.o.destroy(); if (it.g && it.g.exists()) it.g.destroy(); }
@@ -481,8 +496,8 @@
     function syncBrawlWorld() {
       sim.items.forEach(function (it) {
         if (!it.o) {
-          it.o = k.add([k.sprite(it.kind === "power" ? "power" : "heart"), k.pos(it.x, it.y - 6), k.anchor("center"), k.scale(it.kind === "power" ? 1.7 : 1.8), k.z(6 + it.y / 400)]);
-          if (it.kind === "power") it.g = k.add([k.sprite("glow"), k.pos(it.x, it.y - 8), k.anchor("center"), k.scale(1.5), k.color(rgb("#ffd54a")), k.opacity(0.35), k.z(5.9 + it.y / 400)]);
+          it.o = k.add([k.sprite(it.kind === "power" ? "power" : "heart"), k.pos(it.x, it.y - 6), k.anchor("center"), k.scale(it.kind === "power" ? 1.7 : 1.8), k.z(6 + it.y / 400), "octo-item"]);
+          if (it.kind === "power") it.g = k.add([k.sprite("glow"), k.pos(it.x, it.y - 8), k.anchor("center"), k.scale(1.5), k.color(rgb("#ffd54a")), k.opacity(0.35), k.z(5.9 + it.y / 400), "octo-item"]);
         }
         if (!it.got) { it.o.pos.y = it.y - 12 + Math.sin(time * 5 + it.x) * 2; if (it.g) { it.g.pos.y = it.o.pos.y; it.g.opacity = 0.28 + 0.1 * Math.sin(time * 8); } }
         if (it.got) { if (it.o.exists()) it.o.destroy(); if (it.g && it.g.exists()) it.g.destroy(); }

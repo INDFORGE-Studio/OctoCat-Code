@@ -172,7 +172,7 @@
       case "land": noise(t, 0.05, 0.05, "lowpass", 600, sfx); break;
       case "bit": tone("triangle", 988, t, 0.09, 0.09, sfx, 0.003); tone("triangle", 1319, t + 0.07, 0.16, 0.09, sfx, 0.003); break;
       case "heart": [523, 659, 784].forEach(function (f, i) { tone("triangle", f, t + i * 0.07, 0.2, 0.09, sfx, 0.004); }); break;
-      case "swing": noise(t, 0.09, 0.07, "bandpass", 2600, sfx); break;
+      case "swing": noise(t, 0.14, 0.2, "bandpass", 1500, sfx); sweep("triangle", 620, 240, t, 0.11, 0.07); break; // « fouiii » : souffle + glissando, même dans le vide
       case "hit": noise(t, 0.08, 0.12, "bandpass", 1400, sfx); sweep("square", 220, 110, t, 0.09, 0.06); break;
       case "kill": sweep("sawtooth", 400, 90, t, 0.22, 0.08); noise(t, 0.14, 0.09, "lowpass", 1800, sfx); break;
       case "stomp": sweep("square", 300, 120, t, 0.12, 0.09); break;

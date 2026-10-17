@@ -254,3 +254,10 @@ Compagne fidèle de l'OctoCat (noir et blanc, poil ébouriffé, tache blanche su
 - Le **shuriken** n'est plus sur le clic droit (clavier `C` / `K`, bouton tactile ★). D'anciens réglages enregistrés avec « clic droit = shuriken » sont migrés (`sanitize` dans `settings.js`).
 - Les appuis très courts (clic rapide, tape) sont mémorisés jusqu'à l'image suivante (`latch` dans `createInput`) : un clic n'est plus perdu.
 - Vérifié par `node dev/dog-check.mjs` (clic droit réel dans Chromium, niveaux 1 et 2 : suit, charge, effraie, ne tue pas, revient) et par `sim.test.js` / `settings.test.js`.
+
+## 25. Plus de cœur = tout le niveau recommence
+
+À 0 cœur (coups, bouteilles, ou dernière chute), `restartLevel()` (`playsim.js`, plateformes et arène) remet **tout** au début : joueur au départ, cœurs pleins, **drapeaux de contrôle éteints** (retour au départ, plus au dernier drapeau), ennemis, bougies, vagues, caisses, cœurs/étoiles au sol, Laita à côté du joueur ; événement `restart` (`play.js` efface et repose les objets du décor : « TOUT RECOMMENCE »). Une chute qui laisse des cœurs ramène seulement au dernier drapeau.
+- **Une pièce prise ne revient jamais** (sinon on mourrait exprès pour en récolter) : plateformes, `bits[i].got` est conservé ; arène, `sim.coinsGot["vague:rang"]` garde la pièce de chaque ennemi déjà vaincu. Le compteur « PIECES » ne repart pas à zéro.
+- Son du coup dans le vide (`swing`) : souffle + glissando bien audibles (avant : trop faible pour être entendu).
+- Vérifié par `sim.test.js` (2 tests) et `node dev/restart-check.mjs` (vrai jeu, niveaux 1 et 2).

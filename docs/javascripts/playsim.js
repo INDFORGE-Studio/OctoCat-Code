@@ -174,11 +174,16 @@
     };
     var spawn = { x: TILE * 2.5, y: TILE * 7 };
 
+    /** Pose (ou repose) tout ce qui vit dans le niveau : ennemis, pièces, bougies, pics, drapeaux, terminal. Les tableaux gardent leur identité. */
+    function scan(first) {
+      var gots = sim.bits.map(function (b) { return b.got; }); // une pièce prise ne revient jamais (sinon on mourrait exprès pour en récolter)
+      ["enemies", "bits", "candles", "items", "spikes", "checkpoints", "shurikens"].forEach(function (key) { sim[key].length = 0; });
+      sim.terminal = null; sim.stats.bitsTotal = 0; sim.stats.kills = 0;
     for (var ty = 0; ty < R; ty++) {
-      sim.solid.push([]);
+      if (first) sim.solid.push([]);
       for (var tx = 0; tx < cols; tx++) {
         var ch = rows[ty].charAt(tx), cx = tx * TILE + TILE / 2, by = (ty + 1) * TILE;
-        sim.solid[ty].push(ch === "#" || ch === "=");
+        if (first) sim.solid[ty].push(ch === "#" || ch === "=");
         if (ch === "S") spawn = { x: cx, y: by };
         else if (ch === "e" || ch === "E") sim.enemies.push({ type: ch === "E" ? "tough" : "walker", x: cx, y: by, w: 22, h: 28, vx: 0, vy: 0, dir: -1, hp: ch === "E" ? 2 : 1, hurt: 0, alive: true, tx: tx });
         else if (ch === "h") sim.enemies.push({ type: "hopper", x: cx, y: by, w: 22, h: 24, vx: 0, vy: 0, dir: -1, hp: 1, hurt: 0, alive: true, hopT: 0.5 + (tx % 3) * 0.3, onG: false });
@@ -191,6 +196,9 @@
         else if (ch === "T") sim.terminal = { l: tx * TILE - 8, r: tx * TILE + TILE + 8, t: ty * TILE - TILE, b: by, x: cx, y: by };
       }
     }
+      gots.forEach(function (g, i) { if (g && sim.bits[i]) sim.bits[i].got = true; });
+    }
+    scan(true);
     sim.cp = { x: spawn.x, y: spawn.y };
     var p = sim.player = {
       x: spawn.x, y: spawn.y, w: 18, h: 34, vx: 0, vy: 0, facing: 1, onGround: false, hp: CFG.hpMax, inv: 0,
@@ -238,11 +246,22 @@
 
     function groundAt(x, y) { return isSolid(Math.floor(x / TILE), Math.floor((y + 2) / TILE)); }
 
+    /** Plus un seul cœur : tout le niveau recommence au début (ennemis, bougies, drapeaux, cœurs remis à zéro) ; les pièces déjà prises restent prises. */
+    function restartLevel() {
+      scan(false);
+      sim.cp = { x: spawn.x, y: spawn.y };
+      p.hp = CFG.hpMax; p.x = spawn.x; p.y = spawn.y; p.vx = 0; p.vy = 0; p.inv = 1.5; p.swing = 0; p.star = 0; p.power = 0; p.facing = 1;
+      sim.dog.x = p.x - 46; sim.dog.y = p.y; sim.dog.state = "follow"; sim.dog.cd = 0; sim.dog.vx = 0;
+      emit("restart", spawn.x, spawn.y);
+    }
     function respawn(fell) {
       sim.stats.deaths++;
       emit(fell ? "fall" : "die", p.x, p.y);
-      // une chute coûte une vie (un cœur) ; à 0 cœur on repart avec tous les cœurs
-      if (fell) { if (!sim.relax) { p.hp -= 1; if (p.hp <= 0) p.hp = CFG.hpMax; } } else p.hp = CFG.hpMax;
+      // une chute coûte un cœur et ramène au dernier drapeau ; à 0 cœur (chute ou coups), tout recommence au début du niveau
+      if (fell && !sim.relax) p.hp -= 1;
+      if (!fell || p.hp <= 0) {
+        if (!fell || p.hp <= 0) { restartLevel(); return; }
+      }
       p.x = sim.cp.x; p.y = sim.cp.y; p.vx = 0; p.vy = 0; p.inv = 1.5; p.swing = 0;
     }
     function hurtPlayer(fromX, amount) {
@@ -501,11 +520,15 @@
       enemies: [], items: [], lock: null, goT: 0, stats: { deaths: 0, kills: 0, bits: 0, bitsTotal: 0 },
       terminal: { x: L - 40, y: (yMin + yMax) / 2 }, waves: waves, abilities: {}, shots: [], stars: []
     };
+    sim.coinsGot = {}; // « vague:rang » des ennemis dont la pièce est déjà prise
     sim.stats.bitsTotal = waves.reduce(function (n, w) { return n + w.spec.length; }, 0); // une pièce par ennemi vaincu
-    sim.crates = (def.crates || []).map(function (c, i) {
-      var block = c.kind === "block";
-      return { x: c.x, y: c.y, kind: block ? "block" : "crate", hp: block ? 999 : 2, w: block ? 44 : 32, d: 12, h: block ? 30 : 26, alive: true, drop: c.drop || null, hit: 0, idx: i };
-    });
+    function makeCrates() {
+      return (def.crates || []).map(function (c, i) {
+        var block = c.kind === "block";
+        return { x: c.x, y: c.y, kind: block ? "block" : "crate", hp: block ? 999 : 2, w: block ? 44 : 32, d: 12, h: block ? 30 : 26, alive: true, drop: c.drop || null, hit: 0, idx: i };
+      });
+    }
+    sim.crates = makeCrates();
     sim.stats.crates = 0;
     var p = sim.player = { x: 60, y: (yMin + yMax) / 2, jz: 0, vz: 0, facing: 1, hp: hpMax, hpMax: hpMax, inv: 0, atk: 0, atkCd: 0, combo: 0, comboT: 0, hitDone: false, air: false, star: 0, power: 0, throwCd: 0 };
     var prev = { jump: false, attack: false, throw: false, dog: false };
@@ -517,7 +540,7 @@
       w.spec.forEach(function (sp, i) {
         var kind = KINDS[sp[0]] || KINDS.grunt, left = sp[1] === "left";
         var e = {
-          kind: sp[0], x: left ? lock.l - 24 - i * 16 : lock.r + 24 + i * 16, y: yMin + 10 + ((i * 29 + w.idx * 13) % (yMax - yMin - 20)),
+          sid: w.idx + ":" + i, kind: sp[0], x: left ? lock.l - 24 - i * 16 : lock.r + 24 + i * 16, y: yMin + 10 + ((i * 29 + w.idx * 13) % (yMax - yMin - 20)),
           hp: kind.hp, maxHp: kind.hp, facing: left ? 1 : -1, cd: 0.8 + i * 0.25, wind: 0, hurt: 0, kb: 0, alive: true, w: 26, wave: w.idx, lunge: 0, lungeHit: false
         };
         sim.enemies.push(e);
@@ -537,15 +560,19 @@
       p.x += (p.x < e.x ? -1 : 1) * 14;
       if (p.hp <= 0) {
         sim.stats.deaths++; emit("die", p.x, p.y);
-        var w = waves.filter(function (q) { return q.started && !q.done; })[0];
-        p.hp = hpMax; p.inv = 1.5;
-        if (w) { // la vague recommence
-          sim.enemies = sim.enemies.filter(function (q) { return q.wave !== w.idx; });
-          sim.shots.length = 0;
-          p.x = sim.lock.l + 70; p.y = (yMin + yMax) / 2;
-          spawnWave(w);
-        }
+        restartLevel();
       }
+    }
+    /** Plus un seul cœur : toute l'arène recommence au début (vagues, caisses, pièces remises à zéro). */
+    function restartLevel() {
+      waves.forEach(function (w) { w.started = false; w.done = false; });
+      sim.enemies = []; sim.items = []; sim.shots = []; sim.stars = []; sim.lock = null; sim.goT = 0;
+      sim.crates = makeCrates();
+      sim.stats.kills = 0; sim.stats.crates = 0; // les pièces déjà gagnées (sim.coinsGot) restent gagnées
+      p.x = 60; p.y = (yMin + yMax) / 2; p.jz = 0; p.vz = 0; p.air = false; p.facing = 1; p.hp = hpMax; p.inv = 1.5;
+      p.atk = 0; p.atkCd = 0; p.combo = 0; p.comboT = 0; p.star = 0; p.power = 0; p.throwCd = 0;
+      sim.dog.x = p.x - 46; sim.dog.y = p.y; sim.dog.state = "follow"; sim.dog.cd = 0; sim.dog.vx = 0;
+      emit("restart", p.x, p.y);
     }
 
     /* ----- caisses : obstacles, cassables, butin ----- */
@@ -584,7 +611,7 @@
     }
     function damageEnemy(e, dmg, knock, stun) {
       e.hp -= dmg; e.hurt = stun; e.kb = knock; e.lunge = 0; e.wind = 0;
-      if (e.hp <= 0) { e.alive = false; sim.stats.kills++; sim.stats.bits++; emit("kill", e.x, e.y - 20); emit("bit", e.x, e.y - 30); if ((e.wave + sim.stats.kills) % 3 === 0) sim.items.push({ x: e.x, y: e.y, kind: "heart", got: false }); }
+      if (e.hp <= 0) { e.alive = false; sim.stats.kills++; emit("kill", e.x, e.y - 20); if (!sim.coinsGot[e.sid]) { sim.coinsGot[e.sid] = true; sim.stats.bits++; emit("bit", e.x, e.y - 30); } if ((e.wave + sim.stats.kills) % 3 === 0) sim.items.push({ x: e.x, y: e.y, kind: "heart", got: false }); }
       else emit("hit", e.x, e.y - 22);
     }
     function pickup(it) {
