@@ -849,7 +849,23 @@
       }
     });
 
-    function leave() { if (cur.ctrl && cur.ctrl.destroy) cur.ctrl.destroy(); cur.ctrl = null; }
+    // Easter egg des torches (scenery.js) : la magie ouvre le portail sans avoir résolu l'énigme. Rien n'est validé (ni pièces, ni succès de niveau,
+    // ni fin de tour) : on débloque seulement le niveau suivant. Le moteur refuse pendant une animation (compilation en cours).
+    var magicTaken = false;
+    document.addEventListener("octo:magic", function (e) {
+      if (busy || !cur.def || !/^level\d+$/.test(cur.name || "") || !e.detail) return;
+      magicTaken = true; busy = true; ui.setBusy(true); e.detail.take = true;
+      ui.log("✨ La magie ouvre le portail… même sans la solution !", "gold");
+    });
+    document.addEventListener("octo:magic-exit", function () {
+      if (!magicTaken || !cur.def) return;
+      magicTaken = false;
+      ui.log(levels[cur.def.id + 1] ? "→ Tu passes le portail vers le niveau suivant (l'énigme t'attendra si tu reviens !)" : "→ Retour à l'accueil…", "dim");
+      P.unlockAfter(cur.def.id);
+      window.setTimeout(function () { goTo(nextName(cur.def.id)); }, 300);
+    });
+
+    function leave() { magicTaken = false; if (cur.ctrl && cur.ctrl.destroy) cur.ctrl.destroy(); cur.ctrl = null; }
 
     /** Trajet au clavier (plateformes / beat'em up) avant l'énigme du niveau. */
     function enterRun(def) {

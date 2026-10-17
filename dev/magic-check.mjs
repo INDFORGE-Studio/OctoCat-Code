@@ -54,11 +54,19 @@ for (const lvl of [1, 4]) {
   await page.screenshot({ path: path.join(OUT, `magic-${lvl}-4-finale.png`) });
   await page.waitForTimeout(1000);
   await page.screenshot({ path: path.join(OUT, `magic-${lvl}-5-rain.png`) });
-  await page.waitForTimeout(2200);
-  await page.screenshot({ path: path.join(OUT, `magic-${lvl}-6-after.png`) });
+  await page.waitForTimeout(1200);
+  await page.screenshot({ path: path.join(OUT, `magic-${lvl}-6-walk.png`) });
   ok(`niveau ${lvl} : les deux torches éteintes → succès « Magicien »`, await page.evaluate(() => !!window.OctoProgress.get().achievements.magic));
-  // l'énigme reste jouable après la magie : le bouton Compiler répond
-  ok(`niveau ${lvl} : l'éditeur reste utilisable`, await page.locator(".octo-btn--primary", { hasText: "Compiler" }).isEnabled());
+  // pendant la fin du spectacle, Compiler est bloqué (OctoCat marche vers le portail)
+  ok(`niveau ${lvl} : Compiler bloqué pendant que le portail s'ouvre`, await page.locator(".octo-btn--primary", { hasText: "Compiler" }).isDisabled());
+  // le portail s'ouvre tout seul et OctoCat entre : on arrive au trajet du niveau suivant, sans que l'énigme soit validée
+  const target = `#level${lvl + 1}`;
+  let arrived = false;
+  try { await page.waitForFunction((t) => window.location.hash === t, target, { timeout: 12000 }); arrived = true; } catch { /* ci-dessous */ }
+  ok(`niveau ${lvl} : OctoCat entre dans le portail → ${target}`, arrived, await page.evaluate(() => window.location.hash));
+  const st = await page.evaluate(() => window.OctoProgress.get());
+  ok(`niveau ${lvl} : l'énigme n'est PAS validée (ni niveau fini, ni pièces)`, !st.completed[lvl], JSON.stringify(Object.keys(st.completed)));
+  await page.screenshot({ path: path.join(OUT, `magic-${lvl}-7-next.png`) });
 }
 
 console.log(out.join("\n"), "\nerreurs :", errs.length ? errs : "aucune");
