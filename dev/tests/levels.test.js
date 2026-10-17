@@ -39,9 +39,9 @@ test("les énigmes du code de départ ne sont jamais déjà résolues", () => {
 test("niveau 2 : chaînes et concaténation", () => {
   for (const ok of ['v_debut = "octo"\nv_mot = v_debut + "cat"', 'v_mot = "octocat"', "v_mot = 'octo' + 'cat'", 'let v_mot = "octo" + "cat";']) assert.equal(v(2, ok).ok, true, ok);
   assert.match(v(2, 'v_mot = "Octocat"').messages[0], /majuscules/);
-  assert.match(v(2, "v_mot = 5").messages[0], /TypeError/);
+  assert.match(v(2, "v_mot = 5").messages[0], /doit contenir/);
   assert.match(v(2, 'v_mot = "octo" + 5').messages[0], /octo5/);
-  assert.match(v(2, "v_mot = octocat").messages[0], /pas défini|SyntaxError/);
+  assert.match(v(2, "v_mot = octocat").messages[0], /pas défini|faute d.écriture/);
 });
 
 test("niveau 3 : multiplication, juste pour tous les nombres de caisses", () => {
@@ -49,14 +49,14 @@ test("niveau 3 : multiplication, juste pour tous les nombres de caisses", () => 
   assert.match(v(3, "v_charge = 150").messages[0], /v_caisses = 3/);
   assert.match(v(3, "v_charge = v_caisses + v_poids_caisse").messages[0], /alors qu'il devrait/);
   assert.match(v(3, "v_charge = v_caisses * 25").messages[0], /v_poids_caisse = 40/);
-  assert.match(v(3, 'v_charge = "150"').messages[0], /TypeError/);
+  assert.match(v(3, 'v_charge = "150"').messages[0], /doit contenir/);
 });
 
 test("niveau 4 : logique et / non, pour les 4 combinaisons", () => {
   for (const ok of ["v_porte_ouverte = v_cle and not v_garde", "v_porte_ouverte = v_cle && !v_garde", "v_porte_ouverte = v_cle et non v_garde", "v_porte_ouverte = not v_garde and v_cle", "v_porte_ouverte = v_cle == true and v_garde == false"]) assert.equal(v(4, ok).ok, true, ok);
   assert.match(v(4, "v_porte_ouverte = v_cle").messages[0], /v_garde = true/);
   assert.match(v(4, "v_porte_ouverte = v_cle or not v_garde").messages[0], /devrait valoir/);
-  assert.match(v(4, "v_porte_ouverte = 1").messages[0], /TypeError/);
+  assert.match(v(4, "v_porte_ouverte = 1").messages[0], /doit contenir/);
 });
 
 test("niveau 6 : if / elif / else, pour 7 bourses", () => {

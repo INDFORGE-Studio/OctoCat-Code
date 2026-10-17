@@ -12,6 +12,13 @@
 
   var NL = "\n";
 
+  /** Messages d'aide communs (écrits pour être compris par un enfant de 8 ans). */
+  var MSG = {
+    empty: "L'éditeur est vide. Écris ton code dedans ✏️",
+    todo: "Oups, il reste des « ??? » ! Remplace-les par ta réponse.",
+    syntax: function (e) { return "Ligne " + e.line + " : petite faute d'écriture → " + e.msg; }
+  };
+
   function describeEnv(env) {
     var keys = Object.keys(env || {});
     return keys.length ? "Avec " + keys.map(function (n) { return n + " = " + JSON.stringify(env[n]); }).join(" et ") + ", " : "";
@@ -24,37 +31,37 @@
    */
   function validateCases(code, engine, spec) {
     var run = engine.interpreter.run, name = spec.name, i;
-    if (!code.trim()) return { ok: false, messages: ["Aucun code détecté : l'éditeur est vide."] };
-    if (/\?\?\?/.test(code)) return { ok: false, messages: ["Il reste des « ??? » à remplacer par ta solution."] };
+    if (!code.trim()) return { ok: false, messages: [MSG.empty] };
+    if (/\?\?\?/.test(code)) return { ok: false, messages: [MSG.todo] };
 
     var first = run(code, spec.cases[0].env);
     if (first.errors.length) {
-      return { ok: false, messages: first.errors.map(function (e) { return "Ligne " + e.line + " — SyntaxError : " + e.msg; }) };
+      return { ok: false, messages: first.errors.map(MSG.syntax) };
     }
     for (i = 0; i < spec.cases.length; i++) {
       var c = spec.cases[i], r = run(code, c.env);
       if (r.errors.length) {
-        return { ok: false, messages: r.errors.map(function (e) { return describeEnv(c.env) + "ligne " + e.line + " — erreur : " + e.msg; }) };
+        return { ok: false, messages: r.errors.map(function (e) { return describeEnv(c.env) + "ligne " + e.line + " : " + e.msg; }) };
       }
       if (!Object.prototype.hasOwnProperty.call(r.vars, name)) {
         var near = Object.keys(r.vars).filter(function (n) { return n.toLowerCase().replace(/_/g, "") === name.toLowerCase().replace(/_/g, ""); });
         return {
           ok: false,
           messages: [near.length
-            ? "NameError : « " + near[0] + " » n'est pas « " + name + " ». Les noms de variables respectent la casse et les underscores."
-            : "NameError : la variable « " + name + " » n'a jamais reçu de valeur."]
+            ? "Je ne trouve pas la boîte « " + name + " ». Tu as écrit « " + near[0] + " » : fais attention aux majuscules et aux _ !"
+            : "La boîte « " + name + " » n'existe pas encore : donne-lui une valeur avec le signe =."]
         };
       }
       var got = r.vars[name];
       if (typeof got !== spec.type) {
-        var human = { number: "un nombre", string: "du texte (entre guillemets)", boolean: "un booléen (true / false)" }[spec.type];
-        return { ok: false, messages: ["TypeError : " + name + " doit être " + human + "."] };
+        var human = { number: "un nombre (comme 200)", string: "du texte entre guillemets (comme \"salut\")", boolean: "true ou false (vrai ou faux)" }[spec.type];
+        return { ok: false, messages: [name + " doit contenir " + human + "."] };
       }
       if (got !== c.expect) {
         var tip = spec.type === "string" && typeof got === "string" && got.toLowerCase() === String(c.expect).toLowerCase() ? " (attention aux majuscules)" : "";
         return {
           ok: false,
-          messages: [describeEnv(c.env) + name + " vaut " + show(got) + " alors qu'il devrait valoir " + show(c.expect) + tip + "."]
+          messages: [describeEnv(c.env) + name + " vaut " + show(got) + " alors qu'il devrait valoir " + show(c.expect) + tip + ". Presque ! Relis ta mission 🎯."]
         };
       }
     }
@@ -162,5 +169,5 @@
     };
   }
 
-  window.OctoPuzzle = { validateCases: validateCases, scene: scene, NL: NL };
+  window.OctoPuzzle = { msg: MSG, validateCases: validateCases, scene: scene, NL: NL };
 })();

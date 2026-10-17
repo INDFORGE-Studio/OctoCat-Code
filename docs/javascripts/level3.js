@@ -31,33 +31,33 @@
     },
 
     starter:
-      "# Les variables v_caisses et v_poids_caisse existent déjà.\n" +
-      "# L'ascenseur démarre avec la charge totale :\n" +
-      "# nombre de caisses × poids d'une caisse.\n" +
+      "# 📦 v_caisses = le nombre de caisses. v_poids_caisse = le poids d'une caisse.\n" +
+      "# La charge totale = le nombre de caisses × le poids d'une caisse.\n" +
+      "# (Le signe pour multiplier est * )\n" +
       "\n" +
       "v_charge = ???",
 
     briefing: {
       title: "La Mine des Opérations",
-      lore: "Au fond de la mine, un ascenseur rouillé ne démarre que si on lui annonce la charge exacte de ses caisses. Les Glitches ont effacé le calcul du contremaître.",
-      lesson: "Un ordinateur calcule avec + (addition), - (soustraction), * (multiplication), / (division) et % (reste de la division). On peut utiliser des variables dans un calcul. La multiplication passe avant l'addition ; les parenthèses changent l'ordre.",
+      lore: "Au fond de la mine, un vieil ascenseur ne démarre que si on lui dit combien pèsent **toutes** les caisses. Les Glitches ont effacé le calcul du chef de mine. Aide-le !",
+      lesson: "Un ordinateur est très fort en calcul ! On utilise `+` (ajouter), `-` (enlever), `*` (**multiplier**), `/` (diviser) et `%` (le **reste** d'une division). On peut même calculer avec des variables : `v_a * v_b`.",
       examples: {
         "Pseudo-code": "v_surface = v_largeur * v_hauteur",
         "Python": "v_surface = v_largeur * v_hauteur\nv_reste = 17 % 5   # 2",
         "JavaScript": "let v_surface = v_largeur * v_hauteur;\nlet v_reste = 17 % 5;   // 2"
       },
       tips: [
-        "* multiplie ; / divise ; % donne le reste de la division.",
-        "2 + 3 * 4 vaut 14 : on multiplie d'abord. (2 + 3) * 4 vaut 20.",
-        "Ton calcul doit marcher avec n'importe quel nombre de caisses, pas seulement celui que tu vois."
+        "`*` multiplie : 3 sacs de 5 billes, c'est `3 * 5` = 15 billes.",
+        "`%` donne le **reste** : `17 % 5` = 2 (17, c'est 5 + 5 + 5, et il reste 2).",
+        "Ton calcul doit marcher avec **n'importe quel** nombre de caisses, pas seulement celui que tu vois."
       ],
-      goal: "calcule v_charge = nombre de caisses × poids d'une caisse."
+      goal: "Calcule **`v_charge`** : le **nombre de caisses** multiplié par le **poids d'une caisse**. Utilise les deux variables qui existent déjà : `v_caisses` et `v_poids_caisse`."
     },
 
     hints: [
-      "La charge totale, c'est le nombre de caisses multiplié par le poids d'une caisse.",
-      "Le signe de la multiplication est *. Utilise les deux variables existantes.",
-      "v_charge = v_caisses * v_poids_caisse"
+      "La charge totale, c'est le nombre de caisses multiplié par le poids d'une seule caisse.",
+      "Le signe pour multiplier est *. Utilise les deux variables qui existent déjà.",
+      "La réponse : v_charge = v_caisses * v_poids_caisse"
     ],
 
     validate: function (code, engine) {

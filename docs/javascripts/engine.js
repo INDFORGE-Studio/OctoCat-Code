@@ -548,13 +548,31 @@
 
     function show(node, on) { node.classList.toggle("is-open", !!on); }
 
+    /** Texte enrichi sans innerHTML : `code` devient une pastille de code, **gras** devient du gras (les deux peuvent s'imbriquer). */
+    function rich(node, text) {
+      var re = /\*\*(.+?)\*\*|`([^`]+)`/g, last = 0, m;
+      text = String(text);
+      while ((m = re.exec(text))) {
+        if (m.index > last) node.appendChild(document.createTextNode(text.slice(last, m.index)));
+        if (m[1] != null) { var strong = el("strong"); rich(strong, m[1]); node.appendChild(strong); }
+        else node.appendChild(el("code", "octo-key", m[2]));
+        last = re.lastIndex;
+      }
+      if (last < text.length) node.appendChild(document.createTextNode(text.slice(last)));
+      return node;
+    }
+    function label(text) { return el("div", "octo-dialog__label", text); }
+
     function openBriefing(then) {
       var b = def.briefing || {};
       card.textContent = "";
       card.appendChild(el("h2", "octo-dialog__title", b.title || def.title));
-      if (b.lore) card.appendChild(el("p", "octo-dialog__lore", b.lore));
-      if (b.lesson) card.appendChild(el("p", "octo-dialog__text", b.lesson));
+      if (b.lore) { card.appendChild(label("📖 L'histoire")); card.appendChild(rich(el("p", "octo-dialog__lore"), b.lore)); }
+      if (b.lesson) { card.appendChild(label("🧠 Pour comprendre")); card.appendChild(rich(el("p", "octo-dialog__text"), b.lesson)); }
+      // la mission passe avant les exemples : c'est ce qu'il faut absolument voir (surtout sur petit écran)
+      if (b.goal) { var g = el("div", "octo-dialog__goal"); g.appendChild(el("div", "octo-dialog__goal-title", "🎯 TA MISSION")); g.appendChild(rich(el("p", "octo-dialog__goal-text"), b.goal)); card.appendChild(g); }
       if (b.examples) {
+        card.appendChild(label("👀 Regarde un exemple"));
         var tabs = el("div", "octo-tabs"), code = el("pre", "octo-dialog__code");
         Object.keys(b.examples).forEach(function (name, i) {
           var t = el("button", "octo-tab" + (i === 0 ? " is-on" : ""), name);
@@ -569,16 +587,17 @@
         });
         card.appendChild(tabs); card.appendChild(code);
       }
-      (b.tips || []).forEach(function (t) { card.appendChild(el("p", "octo-dialog__tip", "▸ " + t)); });
-      if (b.goal) card.appendChild(el("p", "octo-dialog__goal", "OBJECTIF : " + b.goal));
-      var go = el("button", "octo-btn octo-btn--primary", def.comingSoon ? "◂ RETOUR AU MENU" : "COMMENCER ▶");
+      if ((b.tips || []).length) card.appendChild(label("💡 Petits conseils"));
+      (b.tips || []).forEach(function (t) { var p = el("p", "octo-dialog__tip", "▸ "); card.appendChild(rich(p, t)); });
+      var foot = el("div", "octo-dialog__foot");
+      var go = el("button", "octo-btn octo-btn--primary", def.comingSoon ? "◂ RETOUR AU MENU" : "J'AI COMPRIS, JE JOUE ! ▶");
       go.type = "button";
       go.addEventListener("click", function () {
         show(dialog, false);
         if (def.comingSoon) hooks.menu(); else { show(panel, true); editor.focus(); }
         if (then) then();
       });
-      card.appendChild(go);
+      foot.appendChild(go); card.appendChild(foot);
       show(dialog, true);
       go.focus();
     }
@@ -589,7 +608,7 @@
     bMenu.addEventListener("click", function () { hooks.menu(); });
     bReset.addEventListener("click", function () {
       editor.value = def.starter; konsole.textContent = "";
-      log("// Code réinitialisé.", "dim");
+      log("// Le code est revenu au début. Tu peux recommencer !", "dim");
       hooks.reset();
     });
     bBrief.addEventListener("click", function () { show(panel, false); openBriefing(function () { show(panel, true); }); });
@@ -626,7 +645,7 @@
         editor.value = d.starter || "";
         editor.rows = Math.max(4, (d.starter || "").split("\n").length + 1);
         konsole.textContent = "";
-        log("// Écris ta solution puis clique sur « Compiler » (Ctrl+Entrée).", "dim");
+        log("// Écris ta réponse à la place des ???, puis clique sur ⚡ Compiler (ou Ctrl+Entrée).", "dim");
         setBusy(false); show(panel, false);
         openBriefing();
       }
@@ -721,7 +740,7 @@
         busy = true; ui.setBusy(true);
         if (result.ok) {
           var gained = P.complete(def.id);
-          ui.log("✔ Compilation réussie.", "ok");
+          ui.log("✔ Bravo, ça marche ! 🎉", "ok");
           gained.forEach(function (key) { ui.log("🏆 Succès débloqué : " + P.achievements[key].title, "gold"); });
           emit("success", { level: def.id, result: result });
           music().victory();
@@ -731,7 +750,7 @@
           });
         } else {
           P.recordFail(def.id);
-          ui.log("✗ Compilation échouée.", "err");
+          ui.log("✗ Pas encore… lis le message ci-dessus et réessaie : tu peux y arriver ! (Le bouton 💡 Indice t'aide.)", "err");
           emit("fail", { level: def.id, result: result });
           music().hit();
           cur.ctrl.fail(result).then(function () { busy = false; ui.setBusy(false); });
