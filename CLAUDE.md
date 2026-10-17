@@ -212,3 +212,7 @@ Chaque niveau = **trajet** (phase d'action, scène `run<N>`) → arrivée au ter
 - Stockage : `octocat-code:settings:v1` (réglages) et `octocat-code:v1` (progression). Logique pure testée (`dev/tests/settings.test.js`) ; `node dev/settings-check.mjs` rejoue le menu dans Chromium (pause, liaison clavier et souris, reset).
 - `play.js` lit les touches via `OctoSettings.lookup(code)` ; ne plus ajouter de touche en dur.
 - Piège corrigé : `.octo-fs` a `z-index: 50` ; sans cela une barre latérale Material invisible interceptait des clics dans le jeu.
+
+## 19. Logo de l'accueil
+
+`docs/javascripts/logo.js` (`OctoLogo`) : le titre « OCTOCAT-CODE » est dessiné au chargement avec les tampons de pixels (police 5×7 maison, 0 octet de fichier) : dégradé chaud pour OCTOCAT (oreilles de chat sur le premier O), tiret cyan, dégradé « terminal » vert pour CODE, biseau, double contour, ombre portée. Animation : chute en cascade, flottement, vague de lumière, étincelles. `hub.js` le pose avec une taille entière qui tient dans la largeur ET dans 22 % de la hauteur (pas de recouvrement des commandes en haut à droite sur téléphone), puis le bandeau de la devise et l'invite. Repli sur du texte si le module manque. Le tag du navigateur reste « OCTOCAT-CODE ».

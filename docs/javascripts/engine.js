@@ -669,6 +669,7 @@
     k.shake = function (n) { if (!window.OctoSettings || window.OctoSettings.get("shake")) rawShake.call(k, n); };
     window.OctoSprites.registerAll(k);
     if (window.OctoSprites.registerRun) window.OctoSprites.registerRun(k);
+    if (window.OctoLogo) window.OctoLogo.register(k); // lettres du logo de l'accueil
     var applyFx = window.OctoFX ? window.OctoFX.install(k) : function () {}; // post-traitement (halo, étalonnage)
     var helpers = {
       wait: function (s) { return wait(k, s); },

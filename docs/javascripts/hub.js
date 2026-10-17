@@ -30,14 +30,20 @@
       // ----- interface fixe (indépendante de la caméra et du format d'écran ; police KAPLAY sans accents) -----
       var VW = sc.viewW, cx = VW / 2, fit = Math.min(1, VW / 420); // réduit les textes sur écrans étroits
       function fsz(n) { return Math.max(7, Math.round(n * fit)); }
-      k.add([k.rect(Math.min(420, VW - 12), 92 * Math.max(0.7, fit)), k.pos(cx, 70), k.anchor("center"),
-        k.color(rgb("#1a1040")), k.opacity(0.38), k.fixed(), k.z(30.6)]);
-      k.add([k.text("OCTOCAT-CODE", { size: fsz(38), font: "monospace" }), k.pos(cx + 2, 50), k.anchor("center"), k.color(rgb("#1a1040")), k.fixed(), k.z(31)]);
-      k.add([k.text("OCTOCAT-CODE", { size: fsz(38), font: "monospace" }), k.pos(cx, 48), k.anchor("center"), k.color(rgb("#f0f6fc")), k.fixed(), k.z(32)]);
-      k.add([k.text("APPRENDS A CODER EN T'AMUSANT", { size: fsz(11), font: "monospace" }), k.pos(cx, 80), k.anchor("center"),
+      // logo animé (pixel art procédural, voir logo.js) ; repli sur du texte si le module manque
+      var logo = window.OctoLogo ? window.OctoLogo.add(k, { cx: cx, top: 12, maxW: Math.min(VW - 16, 560), maxH: k.height() * 0.22, rgb: rgb, z: 32 }) : null;
+      var logoBottom = logo ? 12 + logo.height + 4 : 60;
+      if (!logo) k.add([k.text("OCTOCAT-CODE", { size: fsz(38), font: "monospace" }), k.pos(cx, 48), k.anchor("center"), k.color(rgb("#f0f6fc")), k.fixed(), k.z(32)]);
+      // bandeau de la devise : filets or, fond sombre
+      var tagW = Math.min(VW - 12, Math.max(260 * fit, 300)), tagY = logoBottom + 14 * fit;
+      k.add([k.rect(tagW, 18 * Math.max(0.8, fit)), k.pos(cx, tagY), k.anchor("center"), k.color(rgb("#150c33")), k.opacity(0.7), k.fixed(), k.z(30.6)]);
+      k.add([k.rect(tagW, 1), k.pos(cx, tagY - 9 * Math.max(0.8, fit)), k.anchor("center"), k.color(rgb("#e3b341")), k.opacity(0.9), k.fixed(), k.z(30.7)]);
+      k.add([k.rect(tagW, 1), k.pos(cx, tagY + 9 * Math.max(0.8, fit)), k.anchor("center"), k.color(rgb("#e3b341")), k.opacity(0.9), k.fixed(), k.z(30.7)]);
+      k.add([k.text("APPRENDS A CODER EN T'AMUSANT", { size: fsz(11), font: "monospace" }), k.pos(cx, tagY + 1), k.anchor("center"),
         k.color(rgb("#f0f6fc")), k.fixed(), k.z(32)]);
+      k.add([k.rect(Math.min(VW - 12, 340 * fit), 16 * Math.max(0.8, fit)), k.pos(cx, tagY + 26 * fit), k.anchor("center"), k.color(rgb("#150c33")), k.opacity(0.55), k.fixed(), k.z(30.6)]);
       var prompt = k.add([k.text(info.started ? "[ CLIQUE : CONTINUER ]" : "[ CLIQUE : ENTRER DANS LE PORTAIL ]", { size: fsz(12), font: "monospace" }),
-        k.pos(cx, 104), k.anchor("center"), k.color(rgb("#ffe08a")), k.fixed(), k.z(32)]);
+        k.pos(cx, tagY + 26 * fit), k.anchor("center"), k.color(rgb("#ffe08a")), k.fixed(), k.z(32)]);
       k.add([k.text("NIVEAUX TERMINES : " + done + "/" + P.levels.length, { size: 10, font: "monospace" }), k.pos(10, 8),
         k.color(rgb("#f0f6fc")), k.fixed(), k.z(32)]);
 
@@ -48,6 +54,7 @@
       var goal = 80, wait = 1.2, state = "wait", entering = false;
 
       sc.onFrame(function (t) {
+        if (logo) logo.update(t);
         prompt.opacity = 0.55 + 0.45 * Math.abs(Math.sin(t * 2.6));
         shadow.pos.x = octo.pos.x;
         shadow.opacity = 0.6 * octo.opacity;
