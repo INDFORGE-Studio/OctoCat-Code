@@ -698,9 +698,12 @@
       if (m && !P.isUnlocked(parseInt(m[1], 10))) { name = "hub"; target = "hub"; m = null; }
       else if (m && levels[m[1]] && levels[m[1]].run && !(opts && opts.skip)) target = "run" + m[1];
       busy = false;
+      document.documentElement.setAttribute("data-octo-scene", name); // le menu ⚙ s'en sert (bouton « Accueil » seulement hors de l'accueil)
       try { window.history.replaceState(null, "", name === "hub" ? window.location.pathname : "#" + name); } catch { /* ignoré */ }
       k.go(target);
     }
+
+    document.addEventListener("octo:home", function () { goTo("hub"); }); // bouton « Accueil » du menu ⚙
 
     var ui = createUI(host, {
       menu: function () { goTo("hub"); },

@@ -429,6 +429,7 @@ html:has(.octo-fs), body:has(.octo-fs) { overscroll-behavior: none; }
 .octo-set__block { display: flex; flex-direction: column; gap: 4px; padding: 10px 0; border-bottom: 1px solid #21262d; }
 .octo-set__block strong { color: #e6edf3; font-weight: 600; }
 .octo-set__ta { box-sizing: border-box; width: 100%; resize: vertical; padding: 8px; border: 1px solid #30363d; border-radius: 4px; background: #0d1117; color: #c9d1d9; font: 12px/1.4 var(--md-code-font, monospace); }
+.octo-set__footbtns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .octo-set__foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 16px 12px; border-top: 1px solid #30363d; color: #6e7681; font-size: 12px; }
 @media (max-width: 600px), (max-height: 480px) {
   .octo-set { padding: 4px; }
