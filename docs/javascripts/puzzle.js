@@ -37,7 +37,7 @@
   function validateCases(code, engine, spec) {
     var run = engine.interpreter.run, name = spec.name, i;
     if (!code.trim()) return { ok: false, messages: [MSG.empty] };
-    if (/\?\?\?/.test(code)) return { ok: false, messages: [MSG.todo] };
+    if (hasBlank(code)) return { ok: false, messages: [MSG.todo] };
 
     var first = run(code, spec.cases[0].env);
     if (first.errors.length) {
@@ -104,6 +104,7 @@
       var glitchShadow = sc.shadow(GLITCH_X, 0.9);
       var glitch = k.add([k.sprite("glitch", { anim: "idle" }), k.pos(GLITCH_X, BASE_Y), k.anchor("bot"), k.scale(S), k.color(), k.opacity(0), k.z(8)]);
       var octo = k.add([k.sprite("octo", { anim: "idle" }), k.pos(OCTO_X, BASE_Y), k.anchor("bot"), k.scale(S), k.color(), k.opacity(1), k.rotate(0), k.z(9)]);
+      sc.laita(octo, OCTO_X);
       var deco = (opts.decorate && opts.decorate(k, sc, h, hud, { octo: octo, rgb: rgb })) || {};
 
       var bob = 0;

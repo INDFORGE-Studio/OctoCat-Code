@@ -510,8 +510,10 @@
     bBrief.after(wallet);
     var hintsBox = el("div", "octo-hints"); // les indices déjà payés restent affichés ici
     hintsBox.setAttribute("aria-live", "polite");
+    var confirmBox = el("div", "octo-confirm"); // « tu veux vraiment la réponse ? » (vide = caché)
+    confirmBox.setAttribute("role", "alertdialog");
     var head = el("div", "octo-panel__head");
-    head.appendChild(bar); head.appendChild(hintsBox);
+    head.appendChild(bar); head.appendChild(hintsBox); head.appendChild(confirmBox);
     var konsole = el("pre", "octo-console");
     konsole.setAttribute("aria-live", "polite");
     panel.appendChild(head); panel.appendChild(editor); panel.appendChild(actions); panel.appendChild(konsole);
@@ -547,8 +549,10 @@
     host.appendChild(root);
 
     var def = null;
-    var HINT_MAX_PRICE = 3;
-    function hintPrice(i) { return Math.min(i + 1, HINT_MAX_PRICE); } // 1er indice : 1 pièce, 2e : 2, puis 3
+    // Les indices doux coûtent 5 pièces ; le DERNIER donne la réponse toute faite : 15 pièces (un trajet moyen en rapporte ~10), avec une demande de confirmation.
+    var HINT_PRICE = 5, ANSWER_PRICE = 15;
+    function hintPrice(i, total) { return total && i >= total - 1 ? ANSWER_PRICE : HINT_PRICE; }
+    function isAnswerHint(i) { var t = (def && def.hints || []).length; return t > 0 && i === t - 1; }
 
     /** Affiche ce qui est payé (indices + mission), le prix du prochain indice et les pièces en poche. */
     function refreshHints() {
@@ -567,7 +571,11 @@
       else rich(goal, goalText); // **gras** et `code` en vrais éléments (pas de signes visibles)
       wallet.textContent = "🪙 " + coins;
       if (n >= hints.length) { bHint.textContent = "💡 Plus d'indice"; bHint.disabled = !!hints.length; bHint.classList.remove("is-poor"); }
-      else { bHint.disabled = false; bHint.textContent = "💡 Indice · " + hintPrice(n) + " 🪙"; bHint.classList.toggle("is-poor", coins < hintPrice(n)); }
+      else {
+        var pr = hintPrice(n, hints.length);
+        bHint.disabled = false; bHint.textContent = (isAnswerHint(n) ? "💡 La réponse · " : "💡 Indice · ") + pr + " 🪙"; bHint.classList.toggle("is-poor", coins < pr);
+      }
+      if (!isAnswerHint(n)) confirmBox.textContent = ""; // plus de question en attente
     }
     document.addEventListener("octo:progress", refreshHints);
 
@@ -649,17 +657,50 @@
     bHint.addEventListener("click", function () {
       var P = window.OctoProgress, hints = def.hints || [], n = P.paidHints(def.id);
       if (!hints.length || n >= hints.length) return;
-      var price = hintPrice(n);
-      if (!P.payHint(def.id, price)) { // pas assez de pièces : rien n'est payé ni montré
-        log("🪙 Pas assez de pièces : cet indice coûte " + price + " 🪙 et tu en as " + P.coins() + ". Ramasse des pièces pendant les trajets ! (Le bouton 📜 Briefing, lui, est gratuit.)", "hint");
-        refreshHints();
-        return;
-      }
+      var price = hintPrice(n, hints.length);
+      if (P.coins() < price) { refreshHints(); refuse(n, price); return; } // pas assez de pièces : refus (gentil), rien n'est payé ni montré
+      if (isAnswerHint(n)) { askAnswer(n, price); return; } // la réponse toute faite : on demande d'abord
+      buyHint(price);
+    });
+    function buyHint(price) {
+      var P = window.OctoProgress;
+      confirmBox.textContent = "";
+      if (!P.payHint(def.id, price)) { refreshHints(); return; }
       P.grant("curious");
       emit("hint", { level: def.id });
       refreshHints(); // « octo:progress » l'a déjà fait, mais on ne dépend pas de l'ordre des écouteurs
       log("💡 Indice acheté (−" + price + " 🪙). Il reste affiché en haut.", "dim");
-    });
+    }
+    /** Pas assez de pièces : un refus rigolo, avec ce qu'il manque et comment en gagner. Rien n'est payé. */
+    function refuse(n, price) {
+      var have = window.OctoProgress.coins(), lack = price - have, answer = isAnswerHint(n);
+      confirmBox.textContent = "";
+      var msg = el("div", "octo-confirm__text");
+      rich(msg, answer
+        ? "🐕 **Ouaf, refusé !** Laita a fouillé ta poche : la réponse toute faite coûte **" + price + " 🪙** et tu n'en as que **" + have + "**. Il t'en manque **" + lack + "** ! Ramasse des pièces (et cherche les trous secrets 🤫), ou creuse-toi la tête : tu en es capable ! 💪"
+        : "🐕 **Ouaf, la poche est trop légère !** Cet indice coûte **" + price + " 🪙** et tu en as **" + have + "**. Il t'en manque **" + lack + "** : ramasse des pièces pendant les trajets, ou relis le 📜 Briefing, il est gratuit !");
+      var row = el("div", "octo-confirm__row"), ok = el("button", "octo-btn", "OK, je cherche encore !");
+      ok.type = "button";
+      ok.addEventListener("click", function () { confirmBox.textContent = ""; });
+      row.appendChild(ok); confirmBox.appendChild(msg); confirmBox.appendChild(row);
+      confirmBox.classList.add("is-refused");
+      log("🪙 Pas assez de pièces (" + have + "/" + price + ").", "hint");
+    }
+    /** Avertissement avant l'indice qui donne la réponse : il faut confirmer. */
+    function askAnswer(n, price) {
+      var coins = window.OctoProgress.coins();
+      confirmBox.textContent = ""; confirmBox.classList.remove("is-refused");
+      var msg = el("div", "octo-confirm__text");
+      rich(msg, "⚠️ **Attention !** Cet indice te donne **la réponse toute faite** : il n'y aura plus rien à chercher. Il coûte **" + price + " 🪙** (tu en as " + coins + "). Tu veux vraiment le payer ?");
+      var row = el("div", "octo-confirm__row");
+      var yes = el("button", "octo-btn octo-btn--warn", "Oui, je paie " + price + " 🪙"), no = el("button", "octo-btn", "Non, je garde mes pièces");
+      yes.type = "button"; no.type = "button";
+      yes.addEventListener("click", function () { buyHint(price); });
+      no.addEventListener("click", function () { confirmBox.textContent = ""; log("👍 D'accord, tes pièces sont gardées.", "dim"); });
+      row.appendChild(yes); row.appendChild(no);
+      confirmBox.appendChild(msg); confirmBox.appendChild(row);
+      no.focus(); // par sécurité, « Non » est sélectionné d'office
+    }
     editor.addEventListener("keydown", function (e) {
       if (e.key === "Tab" && !e.shiftKey) { // indentation plutôt que perte de focus
         e.preventDefault();
@@ -679,7 +720,7 @@
       hide: function () { show(dialog, false); show(panel, false); def = null; },
       /** Niveau : briefing d'abord, puis éditeur. */
       showLevel: function (d) {
-        def = d;
+        def = d; confirmBox.textContent = "";
         title.textContent = "NIVEAU " + d.id + " · " + d.title;
         refreshHints();
         editor.value = d.starter || "";

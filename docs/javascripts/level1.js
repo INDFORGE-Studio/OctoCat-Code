@@ -102,6 +102,7 @@
         k.color(), k.opacity(1), k.z(8)]);
       var octo = k.add([k.sprite("octo", { anim: "idle" }), k.pos(OCTO_X, BASE_Y), k.anchor("bot"), k.scale(S),
         k.color(), k.opacity(1), k.rotate(0), k.z(9)]);
+      sc.laita(octo, OCTO_X); // Laita attend, assise devant l'OctoCat
 
       // HUD (la police par défaut de KAPLAY n'a pas les accents : texte en capitales sans accents)
       k.add([k.text("FORET DES SYNTAXES - NIVEAU 1", { size: 11, font: "monospace" }), k.pos(10, 8), k.color(rgb("#e6edf3")), k.fixed(), k.z(31)]);

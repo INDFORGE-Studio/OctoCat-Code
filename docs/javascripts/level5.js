@@ -133,6 +133,7 @@
       var octoShadow = sc.shadow(OCTO_X, 0.85);
       var octo = k.add([k.sprite("octo", { anim: "idle" }), k.pos(OCTO_X, BASE_Y), k.anchor("bot"), k.scale(S),
         k.color(), k.opacity(1), k.rotate(0), k.z(9)]);
+      sc.laita(octo, OCTO_X); // Laita attend, assise devant l'OctoCat
 
       // HUD (capitales sans accents : la police par défaut de KAPLAY n'a pas les accents)
       k.add([k.rect(sc.viewW, 16), k.pos(0, 40), k.color(rgb("#0d1117")), k.opacity(0.42), k.fixed(), k.z(30.5)]); // prolonge la barre du HUD sous la 3e ligne
