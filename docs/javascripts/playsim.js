@@ -192,6 +192,12 @@
     if (!gaps.length) return null;
     var last = gaps[gaps.length - 1];
     var pick = gaps.length > 1 ? gaps[Math.min(gaps.length - 2, Math.floor((gaps.length - 1) / 2))] : last;
+    // hauteur du sol de chaque côté du trou secret : c'est là que montent les étincelles qui le trahissent
+    var gapTop = 0, seen = false;
+    [pick.c0 - 1, pick.c1 + 1].forEach(function (cc) {
+      for (var rr = 0; rr < R && cc >= 0 && cc < cols; rr++) if (rows[rr].charAt(cc) === "#") { gapTop = Math.max(gapTop, rr * TILE); seen = true; break; }
+    });
+    if (!seen) gapTop = (R - 3) * TILE; // (le côté le plus bas : c'est là que la bouche du trou s'ouvre)
     // sortie : le sol juste avant le dernier trou (sans pic)
     var out = null;
     for (c = last.c0 - 1; c >= 0 && !out; c--) {
@@ -205,7 +211,7 @@
     for (i = 11; i < 23; i++) { put2(i, R - hs[i] - 1, "o"); put2(i, R - hs[i] - 2, "o"); } // une rangée sur la colline, une en l'air (en sautant)
     var r0 = cols + SEP;
     var info = {
-      gapL: pick.c0 * TILE, gapR: (pick.c1 + 1) * TILE, levelW: cols * TILE, curtainR: (cols + SEP - 1) * TILE, roomL: r0 * TILE,
+      gapL: pick.c0 * TILE, gapR: (pick.c1 + 1) * TILE, gapTop: gapTop, levelW: cols * TILE, curtainR: (cols + SEP - 1) * TILE, roomL: r0 * TILE,
       spawn: { x: (r0 + 2.5) * TILE, y: (R - 2) * TILE }, out: out || { x: TILE * 2.5, y: TILE * 7 }, inRoom: false, visits: 0
     };
     var ex = (r0 + 24.5) * TILE;

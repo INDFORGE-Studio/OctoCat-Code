@@ -433,6 +433,7 @@ test("salle secrète : les niveaux à trous en ont une, que les bots n'activent 
     const sim = S.createPlatform(S.buildCourse(run_.course), run_.abilities);
     assert.ok(sim.secret, `niveau ${id} : salle secrète`);
     assert.ok(sim.bits.filter((b) => b.x > sim.secret.roomL).length >= 20, `niveau ${id} : pièces`);
+    assert.ok(sim.secret.gapTop > 0 && sim.secret.gapTop < sim.h, `niveau ${id} : hauteur du sol au bord du trou (là où montent les étincelles)`);
   }
 });
 

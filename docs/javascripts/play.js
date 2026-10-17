@@ -171,7 +171,7 @@
 
     var objs = new Map(), shurikenObjs = new Map(), bitObjs = [], candleObjs = [], cpObjs = [];
     var heartObjs = [], player, shadow, terminalObj, light = null;
-    var cave = null, curtain = null, sparkT = 0;
+    var cave = null, curtain = null, sparkT = 0, sparkGlow = null;
     if (!brawl && sim.secret) { // salle secrète : fond de grotte + rideau qui cache le niveau (seulement quand on y est), tuyau de sortie
       var scr = sim.secret, ex = scr.exit;
       cave = k.add([k.rect(VW + 200, VH + 200), k.pos(-100, -100), k.color(rgb("#150f2a")), k.opacity(0), k.fixed(), k.z(4.6)]);
@@ -180,6 +180,7 @@
       k.add([k.rect(36, 10), k.pos(ex.x - 18, ex.y - 44), k.color(rgb("#3fb950")), k.z(5.9)]);
       k.add([k.rect(6, 26), k.pos(ex.x - 9, ex.y - 32), k.color(rgb("#7ee787")), k.opacity(0.5), k.z(5.95)]);
       k.add([k.text("SORTIE", { size: 8, font: "monospace" }), k.pos(ex.x - 17, ex.y - 60), k.color(rgb("#7ee787")), k.z(6)]);
+      sparkGlow = k.add([k.sprite("glow"), k.pos((scr.gapL + scr.gapR) / 2, scr.gapTop - 8), k.anchor("center"), k.scale((scr.gapR - scr.gapL) / 22, 1.4), k.color(rgb("#ffd54a")), k.opacity(0.26), k.z(5.7)]); // une lueur dorée au ras du trou secret
     }
     /** Bougies, pièces et drapeaux du trajet (posés au départ, reposés quand tout le niveau recommence). */
     function buildPlatformDynamics() {
@@ -658,8 +659,18 @@
         var inRoom = sim.secret.inRoom;
         cave.opacity = inRoom ? 1 : 0; curtain.opacity = inRoom ? 1 : 0;
         sparkT -= dt; // un léger scintillement au-dessus du trou secret (pour les curieux)
-        var gcx = (sim.secret.gapL + sim.secret.gapR) / 2;
-        if (!inRoom && sparkT <= 0 && Math.abs(p.x - gcx) < 380) { sparkT = 0.9; burst(gcx + (Math.random() - 0.5) * 40, worldH - 14, ["#ffd54a", "#fff4c2"], 2, 0.35); }
+        var gcx = (sim.secret.gapL + sim.secret.gapR) / 2, near = !inRoom && Math.abs(p.x - gcx) < 420;
+        if (sparkGlow) sparkGlow.opacity = near ? 0.2 + 0.1 * Math.sin(time * 4) : 0;
+        if (near && sparkT <= 0) { // des étincelles dorées montent du trou (à la hauteur du sol, bien visibles) : le secret se devine
+          sparkT = 0.12;
+          var gw = sim.secret.gapR - sim.secret.gapL, sx = sim.secret.gapL + 4 + Math.random() * (gw - 8), sy = sim.secret.gapTop - 2;
+          var sp = k.add([k.rect(4, 4), k.pos(sx, sy), k.color(rgb(Math.random() < 0.5 ? "#ffd54a" : "#fff4c2")), k.opacity(1), k.z(15), "secretspark"]), sage = 0, svy = -(28 + Math.random() * 34), svx = (Math.random() - 0.5) * 16;
+          sp.onUpdate(function () {
+            sage += k.dt(); sp.pos.y += svy * k.dt(); sp.pos.x += svx * k.dt() + Math.sin(sage * 9) * 0.25;
+            sp.opacity = Math.max(0, 1 - sage / 1.1) * (0.6 + 0.4 * Math.abs(Math.sin(sage * 18)));
+            if (sage >= 1.1) sp.destroy();
+          });
+        }
       }
       clouds.forEach(function (cl) { cl.x -= cl.sp * dt; if (cl.x < -140) cl.x = VW + 40; cl.o.pos.x = cl.x; });
 
