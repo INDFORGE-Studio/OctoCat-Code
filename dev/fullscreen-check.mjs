@@ -31,7 +31,7 @@ await page.waitForTimeout(1500);
 await page.evaluate(() => { window.__marker = 1; });
 await page.locator(".octo-gear").click();
 await page.locator(".octo-set__tab", { hasText: "Affichage" }).click();
-await page.locator(".octo-set__row", { hasText: "Plein écran" }).locator("button").click();
+await page.locator(".octo-set__btn", { hasText: "Activer" }).click();
 await page.waitForTimeout(500);
 ok("plein écran actif", await page.evaluate(() => !!document.fullscreenElement));
 // le plein écran change le format de la fenêtre (barres du navigateur masquées) : on l'émule
@@ -44,7 +44,22 @@ ok("toujours en plein écran", await page.evaluate(() => !!document.fullscreenEl
 const r = await page.evaluate(() => { const c = document.querySelector(".octo-canvas").getBoundingClientRect(); return { w: Math.round(c.width), h: Math.round(c.height), a: document.documentElement.className }; });
 const wantA = await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".octo-hero")).getPropertyValue("--octo-aspect")));
 ok("format du canvas conservé", Math.abs(r.w / r.h - wantA) < 0.02, `${r.w}×${r.h} vs ${wantA}`);
+const cursorOf = () => page.evaluate(() => getComputedStyle(document.querySelector("canvas")).cursor);
+ok("menu ouvert : souris visible", (await cursorOf()) !== "none");
 await page.keyboard.press("Escape"); // ferme le menu
+await page.waitForTimeout(300);
+ok("plein écran : souris cachée", (await cursorOf()) === "none");
+await page.mouse.click(640, 300, { button: "middle" });
+await page.waitForTimeout(200);
+ok("clic molette : souris visible", (await cursorOf()) !== "none");
+await page.mouse.click(640, 300, { button: "middle" });
+await page.waitForTimeout(200);
+ok("clic molette encore : souris cachée", (await cursorOf()) === "none");
+await page.keyboard.press("Escape");
+await page.waitForTimeout(200);
+ok("menu rouvert : souris visible", (await cursorOf()) !== "none");
+await page.keyboard.press("Escape");
+await page.waitForTimeout(200);
 await page.screenshot({ path: path.join(OUT, "_fs.png") });
 await page.evaluate(() => document.exitFullscreen());
 await metrics(620);

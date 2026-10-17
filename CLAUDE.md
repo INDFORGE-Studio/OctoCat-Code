@@ -213,3 +213,4 @@
 `- `play.js` lit les touches via `OctoSettings.lookup(code)` ; ne plus ajouter de touche en dur.
 `- Piège corrigé : `.octo-fs` a `z-index: 50` ; sans cela une barre latérale Material invisible interceptait des clics dans le jeu.
 `- Plein écran (onglet Affichage) : le moteur recharge la page quand le format de la fenêtre change, mais **jamais en plein écran** (recharger quitte le plein écran : écran noir puis retour à la fenêtre). En plein écran le canvas garde son format (\`--octo-aspect\`) et se centre entre des bandes ciel / sol (\`html.octo-fs-on\`). Vérifié par \`node dev/fullscreen-check.mjs\` (reproduit le bug avec l'ancien code).
+- Plein écran : la souris est **cachée** (même dans un niveau) ; un **clic molette** la montre ou la cache à nouveau (petit message à l'écran) ; elle reste visible dans le menu ⚙. Réglage « Cacher la souris en plein écran » (onglet Affichage, activé par défaut). Classes `html.octo-hide-cursor` / `octo-menu-open`.

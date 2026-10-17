@@ -779,8 +779,24 @@
       if (Math.abs(window.innerWidth / window.innerHeight / aspect - 1) > 0.06) window.location.reload();
     }
     window.addEventListener("resize", function () { window.clearTimeout(timer); timer = window.setTimeout(relayout, 400); });
+    // Plein écran : la souris est cachée (même dans un niveau) ; un clic molette la montre ou la cache à nouveau.
+    var root = document.documentElement, cursorToast = null;
+    function toast(text) {
+      if (!cursorToast) { cursorToast = el("div", "octo-toast"); host.appendChild(cursorToast); }
+      cursorToast.textContent = text; cursorToast.classList.add("is-on");
+      window.clearTimeout(cursorToast.__t); cursorToast.__t = window.setTimeout(function () { cursorToast.classList.remove("is-on"); }, 2600);
+    }
+    document.addEventListener("mousedown", function (e) {
+      if (e.button !== 1 || !document.fullscreenElement) return;
+      e.preventDefault();
+      toast(root.classList.toggle("octo-hide-cursor") ? "Souris cachée · clic molette pour la montrer" : "Souris visible · clic molette pour la cacher");
+    });
+    document.addEventListener("auxclick", function (e) { if (e.button === 1 && document.fullscreenElement) e.preventDefault(); });
     document.addEventListener("fullscreenchange", function () {
-      document.documentElement.classList.toggle("octo-fs-on", !!document.fullscreenElement);
+      root.classList.toggle("octo-fs-on", !!document.fullscreenElement);
+      var hide = !!document.fullscreenElement && (!window.OctoSettings || window.OctoSettings.get("hideCursor") !== false);
+      root.classList.toggle("octo-hide-cursor", hide);
+      if (hide) toast("Souris cachée · clic molette pour la montrer");
       window.clearTimeout(timer);
       if (!document.fullscreenElement) timer = window.setTimeout(relayout, 900); // retour à la fenêtre : format redevenu normal, sinon on recompose
     });

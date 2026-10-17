@@ -28,7 +28,7 @@
     left: ["ArrowLeft", "KeyA"], right: ["ArrowRight", "KeyD"], up: ["ArrowUp", "KeyW"], down: ["ArrowDown", "KeyS"],
     jump: ["Space"], attack: ["KeyX", "KeyJ", "Mouse0"], throw: ["KeyC", "KeyK", "Mouse2"]
   };
-  var DEFAULT_OPTS = { sfx: true, shake: true, hints: true, pad: "auto", relax: false, skipAlways: false };
+  var DEFAULT_OPTS = { sfx: true, shake: true, hints: true, pad: "auto", relax: false, skipAlways: false, hideCursor: true };
   var PAD_MODES = ["auto", "on", "off"];
   var MAX_BINDS = 4;
   var BLOCKED = /^(Escape|Tab|F\d{1,2}|MetaLeft|MetaRight|OSLeft|OSRight|ContextMenu|PrintScreen)$/;
@@ -340,6 +340,7 @@
         if (p && p.then) p.then(function () { render(); }, function () { say("Le plein écran n'est pas disponible ici.", true); });
       });
       frow.appendChild(ft); frow.appendChild(fb); bodyEl.appendChild(frow);
+      bodyEl.appendChild(toggleRow("hideCursor", "Cacher la souris en plein écran", "Clic molette : la montrer ou la cacher quand tu veux."));
     }
   }
 
@@ -438,6 +439,7 @@
     host.appendChild(overlay);
     lastFocus = document.activeElement;
     openState = true; confirmReset = false; say("");
+    document.documentElement.classList.add("octo-menu-open"); // la souris reste visible dans le menu
     overlay.classList.add("is-open");
     render();
     try { closeBtn.focus({ preventScroll: true }); } catch { /* ignoré */ }
@@ -447,6 +449,7 @@
     if (!openState) return;
     stopCapture();
     openState = false;
+    document.documentElement.classList.remove("octo-menu-open");
     overlay.classList.remove("is-open");
     if (lastFocus && lastFocus.blur) lastFocus.blur();
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
