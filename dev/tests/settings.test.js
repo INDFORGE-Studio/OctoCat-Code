@@ -189,6 +189,7 @@ test("pièces : elles passent dans le code de sauvegarde, valeurs hors limites r
   assert.equal(bad.paidHints(1), 0);
 });
 
+
 test("réglages : d'anciens réglages (clic droit = shuriken) passent à Laita sans perdre les autres touches", () => {
   const { S } = load({ "octocat-code:settings:v1": JSON.stringify({ keys: { throw: ["KeyC", "Mouse2"], attack: ["KeyX"] }, sfx: false }) });
   assert.equal(S.lookup("Mouse2"), "dog", "le clic droit appelle Laita");

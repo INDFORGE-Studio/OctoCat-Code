@@ -245,6 +245,7 @@ Les **pièces** (« PIECES n/N » en haut à gauche du trajet) sont la monnaie d
 - Vérifié par `node dev/hints-check.mjs` (mission cachée, prix, rien payé sans pièces, indices qui restent, repaiement) et par les tests `settings.test.js` (pièces).
 - Textes du jeu : rester **génériques** pour les navigateurs (pas de nom de navigateur dans ce que le joueur lit).
 
+
 ## 24. Laita, la chienne de l'OctoCat
 
 Compagne fidèle de l'OctoCat (noir et blanc, poil ébouriffé, tache blanche sur le front, langue rose : dessinée à l'image de la vraie Laita, sprite procédural `laitaBuf` dans `sprites-run.js`, jamais une photo). Présente dans **tous les trajets**, plateformes et arène.
