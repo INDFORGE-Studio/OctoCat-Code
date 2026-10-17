@@ -21,12 +21,13 @@
     { id: "up", label: "Haut", note: "saute en plateforme, monte dans l'arène" },
     { id: "down", label: "Bas", note: "descend dans l'arène" },
     { id: "attack", label: "Frapper" },
-    { id: "throw", label: "Lancer un shuriken", note: "niveaux avec shuriken" }
+    { id: "throw", label: "Lancer un shuriken", note: "niveaux avec shuriken" },
+    { id: "dog", label: "Appeler Laita", note: "elle fait fuir le monstre le plus proche" }
   ];
 
   var DEFAULT_KEYS = {
     left: ["ArrowLeft", "KeyA"], right: ["ArrowRight", "KeyD"], up: ["ArrowUp", "KeyW"], down: ["ArrowDown", "KeyS"],
-    jump: ["Space"], attack: ["KeyX", "KeyJ", "Mouse0"], throw: ["KeyC", "KeyK", "Mouse2"]
+    jump: ["Space"], attack: ["KeyX", "KeyJ", "Mouse0"], throw: ["KeyC", "KeyK"], dog: ["Mouse2", "KeyV"]
   };
   var DEFAULT_OPTS = { sfx: true, shake: true, hints: true, pad: "auto", relax: false, skipAlways: false, hideCursor: true };
   var PAD_MODES = ["auto", "on", "off"];
@@ -48,8 +49,11 @@
       });
       if (PAD_MODES.indexOf(out.pad) < 0) out.pad = "auto";
     }
+    // Anciennes réglages (avant Laita) : le clic droit lançait le shuriken ; il appelle maintenant Laita, le shuriken garde ses touches du clavier.
+    var legacy = !!(raw && raw.keys && !Array.isArray(raw.keys.dog));
     ACTIONS.forEach(function (a) {
       var src = raw && raw.keys && Array.isArray(raw.keys[a.id]) ? raw.keys[a.id] : DEFAULT_KEYS[a.id], list = [];
+      if (legacy && a.id === "throw") src = src.filter(function (c) { return c !== "Mouse2"; });
       src.forEach(function (c) {
         if (typeof c === "string" && VALID.test(c) && !BLOCKED.test(c) && !used[c] && list.length < MAX_BINDS) { used[c] = 1; list.push(c); }
       });

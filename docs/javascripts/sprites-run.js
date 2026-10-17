@@ -69,6 +69,50 @@
     return b.outline(OUT);
   }
 
+  /**
+   * Laita, la chienne de l'OctoCat : chien noir et blanc, poil ébouriffé, tache blanche sur le front, museau blanc, langue rose,
+   * oreille tombante, pattes blanches. Vue de profil (regarde à droite), 24×16, 4 images : debout (queue haute, queue qui remue), course A, course B.
+   * Dessiné pour le projet (ressemblance d'ambiance avec la vraie Laita, aucune image copiée).
+   */
+  function laitaBuf(pose) {
+    var b = new Buf(24, 16), BK = "#1d1d27", BK2 = "#34344a", WH = "#f6f6fb", WH2 = "#c9cde0", PK = "#ff7f9f", EYE = "#7a4220";
+    var wag = pose === 1;
+    // queue (haute, ou un peu penchée quand elle remue), bout blanc
+    if (wag) { b.line(3, 7, 1, 4, BK); b.line(4, 7, 2, 4, BK); b.set(1, 3, WH); b.set(2, 3, WH); }
+    else { b.line(3, 7, 2, 3, BK); b.line(4, 7, 3, 3, BK); b.set(2, 2, WH); b.set(3, 2, WH); }
+    // pattes : arrière noires à chaussette blanche, avant blanches
+    if (pose === 2) { // course, jambes étirées
+      b.line(5, 10, 1, 14, BK); b.line(6, 10, 2, 14, BK); b.set(1, 15, WH); b.set(2, 15, WH);
+      b.line(8, 11, 6, 15, BK); b.line(9, 11, 7, 15, BK); b.set(6, 15, WH); b.set(7, 15, WH);
+      b.line(14, 11, 18, 14, WH); b.line(15, 11, 19, 14, WH); b.set(19, 15, WH);
+      b.line(12, 11, 15, 15, WH2); b.line(13, 11, 16, 15, WH2); b.set(16, 15, WH);
+    } else if (pose === 3) { // course, jambes rassemblées sous le corps
+      b.line(6, 10, 7, 14, BK); b.line(7, 10, 8, 14, BK); b.set(7, 15, WH); b.set(8, 15, WH);
+      b.line(9, 11, 10, 15, BK); b.line(10, 11, 11, 15, BK); b.set(10, 15, WH); b.set(11, 15, WH);
+      b.line(12, 11, 12, 15, WH); b.line(13, 11, 13, 15, WH); b.set(12, 15, WH);
+      b.line(14, 11, 15, 14, WH2); b.line(15, 11, 16, 14, WH2); b.set(15, 15, WH);
+    } else { // debout
+      b.rect(5, 10, 2, 5, BK); b.rect(5, 14, 2, 2, WH);
+      b.rect(8, 11, 2, 4, BK); b.rect(8, 14, 2, 2, WH);
+      b.rect(12, 10, 2, 5, WH); b.rect(12, 14, 2, 2, WH);
+      b.rect(15, 10, 2, 5, WH2); b.rect(15, 14, 2, 2, WH);
+    }
+    // corps noir, poitrail blanc
+    b.ellipse(10, 8, 7.2, 3.9, BK);
+    b.ellipse(14.5, 9.5, 2.6, 3, WH);
+    b.set(8, 5, BK2); b.set(10, 5, BK2); b.set(6, 6, BK2); b.set(12, 5, BK2); b.set(9, 11, BK2); // poil ébouriffé
+    // tête : noire, tache blanche sur le front, museau blanc, nez, langue, œil, oreille
+    b.ellipse(17.5, 5.4, 3.9, 3.5, BK);
+    b.rect(17, 2, 2, 4, WH); b.set(18, 1, WH);
+    b.ellipse(20.2, 7, 2.6, 2.1, WH);
+    b.rect(21, 5, 2, 2, "#0b0b10");
+    b.rect(20, 8, 2, 3, PK); b.set(20, 10, "#e8587f");
+    b.set(18, 4, EYE); b.set(19, 4, EYE); b.set(18, 3, "#ffffff");
+    b.poly([[14.5, 2.5], [17, 2], [16.5, 7.5], [14.5, 8.5]], BK2); // oreille tombante
+    b.poly([[14.5, 3], [16.2, 2.6], [16, 6.8], [14.8, 7.6]], BK);
+    return b.outline(OUT);
+  }
+
   function shurikenBuf() {
     var b = new Buf(12, 12);
     b.poly([[6, 0.5], [7.4, 4.6], [11.5, 6], [7.4, 7.4], [6, 11.5], [4.6, 7.4], [0.5, 6], [4.6, 4.6]], "#d0d7de");
@@ -257,6 +301,7 @@
     k.loadSprite("candle", single(candleBuf()));
     k.loadSprite("bat", sheet([batBuf(true), batBuf(false)], 18, 14), { sliceX: 2, anims: { fly: { from: 0, to: 1, loop: true, speed: 8 } } });
     k.loadSprite("shuriken", single(shurikenBuf()));
+    k.loadSprite("laita", sheet([laitaBuf(0), laitaBuf(1), laitaBuf(2), laitaBuf(3)], 26, 18), { sliceX: 4, anims: { idle: { from: 0, to: 1, loop: true, speed: 3 }, run: { from: 2, to: 3, loop: true, speed: 14 } } });
     k.loadSprite("slash", single(slashBuf()));
     k.loadSprite("crate", single(crateBuf(false)));
     k.loadSprite("crate2", single(crateBuf(true)));

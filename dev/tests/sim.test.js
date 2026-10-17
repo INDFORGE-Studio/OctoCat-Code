@@ -281,3 +281,67 @@ test("mode détente : ni dégâts des ennemis, ni des bouteilles", () => {
   for (let t = 0; t < 12; t += DT) { sim.step({}, DT); if (sim.enemies[0]) sim.player.y = sim.enemies[0].y; }
   assert.equal(sim.player.hp, sim.player.hpMax);
 });
+
+// ---- Laita, la chienne : elle effraie sans tuer, ne subit rien, puis revient ----
+function platformWithEnemy(extra) {
+  return S.createPlatform(S.buildCourse([{ t: "flat", n: 4 }, { t: "flat", n: 10, en: [7], ...extra }, { t: "end", n: 6 }]));
+}
+
+test("Laita : à l'appel elle fonce sur le monstre le plus proche, l'effraie (il s'enfuit, ne blesse pas, ne meurt pas) puis revient", () => {
+  const sim = platformWithEnemy();
+  run(sim, idle, 0.5);
+  const e = sim.enemies[0], hp0 = e.hp, side = Math.sign(e.x - sim.player.x);
+  assert.equal(sim.dog.state, "follow");
+  sim.step({ dog: true }, DT);
+  assert.equal(sim.dog.state, "charge", "elle part sur le monstre");
+  let scared = false, sawBark = false;
+  for (let t = 0; t < 4 && !scared; t += DT) { sim.step(idle, DT); scared = e.scared > 0; sim.events.forEach((ev) => { if (ev.t === "bark") sawBark = true; }); sim.events.length = 0; }
+  assert.ok(scared, "le monstre a peur");
+  assert.ok(sawBark);
+  assert.equal(e.alive, true, "elle ne le tue pas");
+  assert.equal(e.hp, hp0);
+  const x0 = e.x, hp = sim.player.hp;
+  run(sim, idle, 1.5);
+  assert.ok(Math.sign(e.x - sim.player.x) === side && Math.abs(e.x - sim.player.x) >= Math.abs(x0 - sim.player.x) - 1, "il s'éloigne du joueur");
+  assert.equal(sim.player.hp, hp);
+  run(sim, idle, 3);
+  assert.equal(sim.dog.state, "follow", "Laita est revenue près de son maître");
+  assert.ok(Math.abs(sim.dog.x - sim.player.x) < 60);
+  run(sim, idle, CFG_SCARE() + 1);
+  assert.ok(!(e.scared > 0), "la peur passe : le monstre revient");
+});
+
+function CFG_SCARE() { return S.CFG.dogScare; }
+
+test("Laita : un monstre effrayé ne blesse pas ; attente entre deux appels ; sans monstre elle aboie seulement ; elle est immortelle", () => {
+  const sim = platformWithEnemy({ en: [3] });
+  run(sim, idle, 0.2);
+  sim.dog.call();
+  run(sim, idle, 2);
+  assert.ok(sim.dog.cd > 0, "il faut attendre avant de rappeler Laita");
+  assert.equal(sim.dog.call(), false);
+  const e = sim.enemies[0];
+  e.scared = 3; e.x = sim.player.x + 4; e.y = sim.player.y; // sur le joueur, mais effrayé
+  const hp = sim.player.hp;
+  sim.step(idle, DT);
+  assert.equal(sim.player.hp, hp, "un monstre effrayé ne fait aucun dégât");
+  const empty = S.createPlatform(S.buildCourse([{ t: "flat", n: 12 }, { t: "end", n: 6 }]));
+  run(empty, idle, 0.3);
+  assert.equal(empty.dog.call(), false, "personne à effrayer");
+  assert.equal(empty.dog.state, "follow");
+  assert.equal(empty.dog.immortal, true);
+});
+
+test("Laita dans l'arène : les ennemis effrayés ne frappent plus, ne lancent plus de bouteilles et ne sont pas tués", () => {
+  const sim = S.createBrawl({ length: 900, waves: [{ at: 200, enemies: [["grunt", "right"], ["slinger", "right"]] }] });
+  sim.player.x = 200;
+  run(sim, idle, 0.5);
+  assert.ok(sim.enemies.length >= 2);
+  sim.dog.call();
+  run(sim, idle, 2.5);
+  assert.ok(sim.enemies.some((e) => e.scared > 0), "au moins un monstre a peur");
+  assert.equal(sim.stats.kills, 0, "Laita ne tue jamais");
+  const hp = sim.player.hp;
+  run(sim, idle, 1);
+  assert.equal(sim.player.hp, hp);
+});

@@ -45,27 +45,27 @@
   // Les touches viennent des réglages (menu ⚙) ; les codes sont physiques : WASD = ZQSD, valables pour tous les claviers.
   var FALLBACK_KEYS = {
     ArrowLeft: "left", KeyA: "left", ArrowRight: "right", KeyD: "right", ArrowUp: "up", KeyW: "up",
-    ArrowDown: "down", KeyS: "down", Space: "jump", KeyX: "attack", KeyJ: "attack", KeyC: "throw", KeyK: "throw", Mouse0: "attack", Mouse2: "throw"
+    ArrowDown: "down", KeyS: "down", Space: "jump", KeyX: "attack", KeyJ: "attack", KeyC: "throw", KeyK: "throw", Mouse0: "attack", Mouse2: "dog", KeyV: "dog"
   };
   function settings() { return window.OctoSettings || null; }
   function actionOf(code) { var S = settings(); return S ? S.lookup(code) : FALLBACK_KEYS[code] || null; }
   function menuOpen() { var S = settings(); return !!(S && S.isOpen()); }
 
   function createInput(brawl) {
-    var kb = {}, pad = {};
+    var kb = {}, pad = {}, latch = {}; // latch : un appui plus court qu'une image (clic rapide, tape) compte quand même
     function typing(e) { return e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName); }
-    function reset() { kb = {}; pad = {}; }
+    function reset() { kb = {}; pad = {}; latch = {}; }
     function onKey(down) {
       return function (e) {
         if (menuOpen()) { if (!down) kb = {}; return; } // le menu ⚙ garde les touches pour lui
         var a = actionOf(e.code);
         if (!a || typing(e)) return;
-        kb[a] = down;
+        kb[a] = down; if (down) latch[a] = true;
         e.preventDefault();
       };
     }
     var kd = onKey(true), ku = onKey(false);
-    // Souris : les boutons se lient comme des touches (par défaut clic gauche = frapper, clic droit = shuriken).
+    // Souris : les boutons se lient comme des touches (par défaut clic gauche = frapper, clic droit = appeler Laita).
     // Seuls les clics sur le canvas comptent ; le tactile garde ses boutons à l'écran.
     function onMouse(down) {
       return function (e) {
@@ -74,7 +74,7 @@
         if (!a) return;
         if (!down) { kb[a] = false; return; }
         if (!e.target || e.target.tagName !== "CANVAS") return;
-        kb[a] = true; e.preventDefault();
+        kb[a] = true; latch[a] = true; e.preventDefault();
       };
     }
     var md = onMouse(true), mu = onMouse(false);
@@ -87,14 +87,15 @@
     window.addEventListener("blur", reset);
     return {
       pad: pad, kbReset: reset,
-      setPad: function (a, v) { pad[a] = v; },
+      setPad: function (a, v) { pad[a] = v; if (v) latch[a] = true; },
       get: function () {
-        var j = kb.jump || pad.jump || (!brawl && (kb.up || pad.up));
-        return {
-          left: !!(kb.left || pad.left), right: !!(kb.right || pad.right),
-          up: !!(brawl && (kb.up || pad.up)), down: !!(kb.down || pad.down),
-          jump: !!j, attack: !!(kb.attack || pad.attack), throw: !!(kb.throw || pad.throw)
+        var on = function (a) { return !!(kb[a] || pad[a] || latch[a]); };
+        var out = {
+          left: on("left"), right: on("right"), up: !!(brawl && on("up")), down: on("down"),
+          jump: on("jump") || (!brawl && on("up")), attack: on("attack"), throw: on("throw"), dog: on("dog")
         };
+        latch = {};
+        return out;
       },
       destroy: function () {
         window.removeEventListener("keydown", kd); window.removeEventListener("keyup", ku); window.removeEventListener("blur", reset);
@@ -121,6 +122,7 @@
     right.appendChild(btn("⤒", "jump", "octo-pad__btn--round", "Sauter"));
     right.appendChild(btn("⚔", "attack", "octo-pad__btn--round octo-pad__btn--hot", "Attaquer"));
     if (shuriken) right.appendChild(btn("★", "throw", "octo-pad__btn--round", "Lancer un shuriken"));
+    right.appendChild(btn("🐕", "dog", "octo-pad__btn--round", "Appeler Laita"));
     wrap.appendChild(left); wrap.appendChild(right);
     host.appendChild(wrap);
     var coarse = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches), touched = false;
@@ -206,14 +208,21 @@
     }
 
     shadow = k.add([k.sprite("glow"), k.pos(0, 0), k.anchor("center"), k.scale(0.7, 0.18), k.color(rgb("#1a1040")), k.opacity(0.55), k.z(5.9)]);
+    // Laita, la chienne de l'OctoCat : elle suit, et à l'appel (clic droit) elle fait fuir le monstre le plus proche
+    var dogShadow = k.add([k.sprite("glow"), k.pos(0, 0), k.anchor("center"), k.scale(0.5, 0.14), k.color(rgb("#1a1040")), k.opacity(0.5), k.z(5.9)]);
+    var laita = k.add([k.sprite("laita", { anim: "idle" }), k.pos(sim.dog.x, sim.dog.y), k.anchor("bot"), k.scale(1.8), k.opacity(1), k.z(8.9)]);
     player = k.add([k.sprite("octo", { anim: "idle" }), k.pos(sim.player.x, sim.player.y), k.anchor("bot"), k.scale(2), k.color(), k.opacity(1), k.z(9)]);
     var rainbow = k.add([k.sprite("octo", { anim: "idle" }), k.pos(0, 0), k.anchor("bot"), k.scale(2), k.color(rgb("#ffffff")), k.opacity(0), k.z(9.05)]);
     var aura = k.add([k.sprite("glow"), k.pos(0, 0), k.anchor("center"), k.scale(1.7), k.color(rgb("#ffffff")), k.opacity(0), k.z(8.9)]);
-    var stateY = brawl ? 32 : 48, starWas = false, trailT = 0;
+    var stateY = 48, starWas = false, trailT = 0;
     var starTxt = k.add([k.text("INVINCIBLE", { size: 9, font: "monospace" }), k.pos(10, stateY), k.color(rgb("#ffffff")), k.opacity(0), k.fixed(), k.z(31)]);
     var starBar = k.add([k.rect(60, 4), k.pos(10, stateY + 11), k.color(rgb("#ffffff")), k.opacity(0), k.fixed(), k.z(31)]);
     var powTxt = k.add([k.text("SUPER SHURIKEN", { size: 9, font: "monospace" }), k.pos(10, stateY + 18), k.color(rgb("#ffd54a")), k.opacity(0), k.fixed(), k.z(31)]);
     var powBar = k.add([k.rect(60, 4), k.pos(10, stateY + 29), k.color(rgb("#ffd54a")), k.opacity(0), k.fixed(), k.z(31)]);
+    // jauge de Laita (en bas à gauche) : se remplit, puis « PRETE »
+    var dogTxt = k.add([k.text("LAITA", { size: 9, font: "monospace" }), k.pos(10, VH - 38), k.color(rgb("#ffffff")), k.opacity(0.9), k.fixed(), k.z(31)]);
+    k.add([k.rect(60, 4), k.pos(10, VH - 27), k.color(rgb("#0d1117")), k.opacity(0.6), k.fixed(), k.z(31)]);
+    var dogBar = k.add([k.rect(60, 4), k.pos(10, VH - 27), k.color(rgb("#7ee787")), k.fixed(), k.z(31.1)]);
 
     if (theme.wash) k.add([k.rect(VW + 100, VH + 100), k.pos(-50, -50), k.color(rgb(theme.wash[0])), k.opacity(theme.wash[1]), k.fixed(), k.z(28.2)]);
     k.add([k.sprite("vignette"), k.pos(0, 0), k.scale(VW / 600, VH / 250), k.fixed(), k.z(30)]);
@@ -233,8 +242,8 @@
       var S = settings();
       if (!S) return "";
       var f = function (a, n) { return S.hintFor(a, n); };
-      if (brawl) return f("left", 1) + "/" + f("right", 1) + "/" + f("up", 1) + "/" + f("down", 1) + ": BOUGER   " + f("jump", 1) + ": SAUTER   " + f("attack", 2) + ": FRAPPER" + (hasPower ? "   " + f("throw", 2) + ": SHURIKEN (ETOILE)" : "");
-      return f("left", 1) + "/" + f("right", 1) + ": BOUGER   " + f("jump", 1) + "/" + f("up", 1) + ": SAUTER   " + f("attack", 2) + ": ATTAQUER" +
+      if (brawl) return f("left", 1) + "/" + f("right", 1) + "/" + f("up", 1) + "/" + f("down", 1) + ": BOUGER   " + f("jump", 1) + ": SAUTER   " + f("attack", 2) + ": FRAPPER   " + f("dog", 2) + ": LAITA" + (hasPower ? "   " + f("throw", 2) + ": SHURIKEN (ETOILE)" : "");
+      return f("left", 1) + "/" + f("right", 1) + ": BOUGER   " + f("jump", 1) + "/" + f("up", 1) + ": SAUTER   " + f("attack", 2) + ": ATTAQUER   " + f("dog", 2) + ": LAITA" +
         (ab.shuriken ? "   " + f("throw", 2) + ": SHURIKEN" : "") + (ab.doubleJump ? "   (DOUBLE SAUT)" : "");
     }
     var hint = k.add([k.text(" ", { size: 9, font: "monospace" }), k.pos(VW / 2, VH - 12), k.anchor("center"), k.color(rgb("#e6edf3")), k.opacity(0.9), k.fixed(), k.z(31)]);
@@ -247,6 +256,11 @@
     var goTxt = k.add([k.text("GO >", { size: 22, font: "monospace" }), k.pos(VW - 40, VH * 0.4), k.anchor("center"), k.color(rgb("#ffe08a")), k.opacity(0), k.fixed(), k.z(32)]);
     var toast = k.add([k.text("", { size: 14, font: "monospace" }), k.pos(VW / 2, VH * 0.46), k.anchor("center"), k.color(rgb("#ffffff")), k.opacity(0), k.fixed(), k.z(32)]);
     var toastT = 0;
+    /** Petit texte qui monte et s'efface (« OUAF ! », « ! » au-dessus d'un monstre effrayé). */
+    function pop(x, y, str, color, size) {
+      var t = k.add([k.text(str, { size: size || 10, font: "monospace" }), k.pos(x, y), k.anchor("center"), k.color(rgb(color || "#ffffff")), k.opacity(1), k.z(16)]), age = 0;
+      t.onUpdate(function () { age += k.dt(); t.pos.y -= 28 * k.dt(); t.opacity = Math.max(0, 1 - age / 0.9); if (age >= 0.9) t.destroy(); });
+    }
     function say(str, color) { toast.text = str; toast.color = rgb(color || "#ffffff"); toastT = 1.1; }
 
     function burst(x, y, colors, n, power) {
@@ -339,7 +353,7 @@
       });
     }
 
-    var SFX = { jump: "jump", djump: "djump", land: "land", swing: "swing", hit: "hit", kill: "kill", stomp: "stomp", hurt: "hurt", bit: "bit", heart: "heart", throw: "throw", checkpoint: "checkpoint", finish: "finish", candle: "hit", die: "hurt", fall: "hurt", wave: "hurt", star: "star", power: "power", crate: "crate", "crate-hit": "crate-hit", shot: "shot", dash: "dash" };
+    var SFX = { jump: "jump", djump: "djump", land: "land", swing: "swing", hit: "hit", kill: "kill", stomp: "stomp", hurt: "hurt", bit: "bit", heart: "heart", throw: "throw", checkpoint: "checkpoint", finish: "finish", candle: "hit", die: "hurt", fall: "hurt", wave: "hurt", star: "star", power: "power", crate: "crate", "crate-hit": "crate-hit", shot: "shot", dash: "dash", bark: "bark", scare: "scare" };
 
     function handle(ev) {
       var m = music();
@@ -364,6 +378,8 @@
         case "crate": burst(ev.x, ev.y - 10, ["#a1713b", "#d4a05a", "#5a3a1a", "#c9d1d9"], 18, 0.9); k.shake(3); break;
         case "crate-hit": burst(ev.x, ev.y - 12, ["#d4a05a", "#a1713b"], 5, 0.6); break;
         case "dash": burst(ev.x, ev.y + 10, ["#ffffff", "#a98bff"], 5, 0.5); break;
+        case "bark": pop(ev.x + sim.dog.face * 10, ev.y - 14, "OUAF !", "#ffffff", 9); break;
+        case "scare": burst(ev.x, ev.y, ["#ffe08a", "#ffffff", "#7ee0ff"], 9, 0.7); pop(ev.x, ev.y - 22, "!", "#ffd54a", 14); break;
         case "clear": say("VAGUE VAINCUE", "#7ee787"); break;
         default: break;
       }
@@ -405,6 +421,11 @@
           objs.set(e, o);
         }
         o.pos.x = e.x; o.pos.y = e.y;
+        if (e.scared > 0) {
+          if (!o.__mark) o.__mark = k.add([k.text("!", { size: 14, font: "monospace" }), k.pos(e.x, e.y), k.anchor("center"), k.color(rgb("#ffd54a")), k.z(16)]);
+          o.__mark.pos.x = e.x; o.__mark.pos.y = e.y - (e.type === "flyer" ? 16 : (brawl ? 62 : 48)) + Math.sin(time * 14) * 2;
+          o.opacity = 0.62 + 0.2 * Math.sin(time * 16);
+        } else if (o.__mark) { o.__mark.destroy(); o.__mark = null; o.opacity = 1; }
         if (e.type !== "flyer") {
           var face = brawl ? e.facing : e.dir;
           o.flipX = face > 0;
@@ -420,7 +441,7 @@
           }
         }
       });
-      objs.forEach(function (o, e) { if (!seen.has(e)) { o.destroy(); objs.delete(e); } });
+      objs.forEach(function (o, e) { if (!seen.has(e)) { if (o.__mark) o.__mark.destroy(); o.destroy(); objs.delete(e); } });
     }
 
     function syncPlatformWorld(t) {
@@ -562,6 +583,17 @@
       powTxt.opacity = p.power > 0 ? 1 : 0; powBar.opacity = p.power > 0 ? 1 : 0;
       if (p.power > 0) powBar.width = Math.max(1, 60 * p.power / Sim.CFG.powerTime);
       if (light) { light.pos.x = p.x; light.pos.y = p.y - 24; light.opacity = 0.2 + 0.04 * Math.sin(time * 9); }
+
+      var dg = sim.dog, dRun = Math.abs(dg.vx) > 30, dAnim = dRun ? "run" : "idle";
+      laita.pos.x = dg.x; laita.pos.y = dg.y - (dRun ? Math.abs(Math.sin(time * 16)) * 2 : 0);
+      laita.flipX = dg.face < 0;
+      if (brawl) laita.z = 6.03 + dg.y / 400;
+      if (laita.__anim !== dAnim) { laita.__anim = dAnim; laita.play(dAnim); }
+      dogShadow.pos.x = dg.x; dogShadow.pos.y = dg.y + 1;
+      var dReady = dg.cd <= 0 && dg.state === "follow";
+      dogBar.width = Math.max(1, 60 * (dg.state === "follow" ? 1 - Math.min(1, dg.cd / Sim.CFG.dogCooldown) : 0));
+      dogBar.color = rgb(dReady ? "#7ee787" : "#8b949e");
+      dogTxt.text = dReady ? "LAITA PRETE" : "LAITA"; dogTxt.color = rgb(dReady ? "#7ee787" : "#c9d1d9");
 
       syncEnemies();
       if (brawl) syncBrawlWorld(); else syncPlatformWorld(time);

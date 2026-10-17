@@ -21,10 +21,88 @@
     coyote: 0.1, buffer: 0.12, hpMax: 5, invTime: 1.3,
     meleeReach: 38, whipReach: 52, swingTime: 0.28, swingCooldown: 0.34,
     shurikenSpeed: 330, shurikenLife: 0.9, shurikenCooldown: 0.3, shurikenMax: 2,
-    starTime: 6, powerTime: 14, powerCooldown: 0.24, powerMax: 9 // cœur à pleine vie = invincibilité ; étoile des caisses = shuriken puissant
+    starTime: 6, powerTime: 14, powerCooldown: 0.24, powerMax: 9, // cœur à pleine vie = invincibilité ; étoile des caisses = shuriken puissant
+    dogSpeed: 290, dogCooldown: 4.5, dogScare: 4, dogRange: 360 // Laita : course, attente entre deux appels, durée de la peur, portée de l'appel
   };
 
   function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
+
+  /**
+   * Laita, la chienne de l'OctoCat. Elle suit son maître ; à l'appel (clic droit) elle fonce sur le monstre le plus proche
+   * et lui fait peur (`scared` : il s'enfuit CFG.dogScare secondes, sans pouvoir blesser, puis il revient), puis elle rentre.
+   * Elle ne tue jamais et ne subit jamais de dégât (rien dans la simulation ne la touche). Positions = pieds (x, y).
+   * state : "follow" | "charge" | "return" ; cd = attente avant le prochain appel.
+   */
+  function createDog(sim, p, emit) {
+    var d = { x: p.x - 24, y: p.y, face: 1, state: "follow", cd: 0, t: 0, chase: 0, target: null, vx: 0, immortal: true };
+    function feetY(e) { return e.type === "flyer" ? e.y + 18 : e.y; } // une chauve-souris : Laita bondit vers elle
+    function pick() {
+      var best = null, bd = CFG.dogRange;
+      sim.enemies.forEach(function (e) {
+        if (e.alive === false || e.scared > 0) return;
+        var dd = Math.abs(e.x - p.x) + Math.abs(feetY(e) - p.y) * 0.5;
+        if (dd < bd) { bd = dd; best = e; }
+      });
+      return best;
+    }
+    function scareAround() {
+      var hit = 0;
+      sim.enemies.forEach(function (e) {
+        if (e.alive === false || Math.abs(e.x - d.x) > 46 || Math.abs(feetY(e) - d.y) > 34) return;
+        e.scared = CFG.dogScare; e.hurt = 0; e.wind = 0; e.lunge = 0;
+        if (e.type === "dasher") { e.mode = "walk"; e.cd = 1.2; }
+        if (e.type === "flyer") e.mode = null;
+        emit("scare", e.x, e.y - 22); hit++;
+      });
+      return hit;
+    }
+    /** L'appel : renvoie true si Laita part. Sans monstre à portée elle aboie seulement. */
+    d.call = function () {
+      if (d.state !== "follow" || d.cd > 0) return false;
+      var e = pick();
+      emit("bark", d.x, d.y - 12);
+      if (!e) { d.cd = 0.8; return false; }
+      d.state = "charge"; d.target = e; d.chase = 2.2;
+      return true;
+    };
+    d.update = function (dt) {
+      var px = d.x;
+      d.t += dt;
+      if (d.cd > 0) d.cd -= dt;
+      if (d.state === "charge") {
+        var e = d.target;
+        if (!e || e.alive === false) { d.state = "return"; d.chase = 3; }
+        else {
+          var tx = e.x, ty = feetY(e), dx = tx - d.x, step = CFG.dogSpeed * dt;
+          d.chase -= dt;
+          if (Math.abs(dx) > step) d.x += Math.sign(dx) * step;
+          if (dx) d.face = dx > 0 ? 1 : -1;
+          d.y += (ty - d.y) * (1 - Math.exp(-12 * dt));
+          if ((Math.abs(tx - d.x) < 14 && Math.abs(ty - d.y) < 22) || d.chase <= 0) {
+            if (scareAround()) { d.cd = CFG.dogCooldown; emit("bark", d.x, d.y - 12); }
+            else d.cd = 1.5;
+            d.state = "return"; d.chase = 3;
+          }
+        }
+      } else if (d.state === "return") {
+        var ox = p.x - d.x, oy = p.y - d.y, step2 = CFG.dogSpeed * dt, dist = Math.abs(ox);
+        d.chase -= dt;
+        if (dist > step2) d.x += Math.sign(ox) * step2;
+        if (dist > 6) d.face = ox > 0 ? 1 : -1;
+        d.y += oy * (1 - Math.exp(-10 * dt));
+        if (dist < 34 && Math.abs(oy) < 24) d.state = "follow";
+        else if (d.chase <= 0 || dist > 900) { d.x = p.x - p.facing * 26; d.y = p.y; d.state = "follow"; }
+      } else {
+        var fx = p.x - p.facing * 26;
+        if (Math.abs(fx - d.x) > 520) { d.x = fx; d.y = p.y; }
+        d.x += (fx - d.x) * (1 - Math.exp(-8 * dt));
+        d.y += (p.y - d.y) * (1 - Math.exp(-7 * dt));
+        d.face = Math.abs(fx - d.x) > 4 ? (fx > d.x ? 1 : -1) : p.facing;
+      }
+      d.vx = dt > 0 ? (d.x - px) / dt : 0;
+    };
+    return d;
+  }
   function overlap(a, b) { return a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t; }
 
   /* ======================================================================
@@ -92,7 +170,7 @@
       mode: "platform", w: cols * TILE, h: R * TILE, abilities: ab, time: 0, finished: false,
       events: [], stats: { bits: 0, bitsTotal: 0, deaths: 0, kills: 0 },
       enemies: [], bits: [], candles: [], items: [], spikes: [], checkpoints: [], shurikens: [], terminal: null,
-      player: null, cp: null, solid: []
+      player: null, cp: null, solid: [], dog: null
     };
     var spawn = { x: TILE * 2.5, y: TILE * 7 };
 
@@ -118,7 +196,8 @@
       x: spawn.x, y: spawn.y, w: 18, h: 34, vx: 0, vy: 0, facing: 1, onGround: false, hp: CFG.hpMax, inv: 0,
       coyote: 0, buffer: 0, jumps: 0, cut: false, swing: 0, swingCd: 0, swingHit: null, throwCd: 0, stomp: 0, star: 0, power: 0
     };
-    var prev = { jump: false, attack: false, throw: false };
+    var prev = { jump: false, attack: false, throw: false, dog: false };
+    sim.dog = createDog(sim, p, function (t, x, y) { sim.events.push({ t: t, x: x, y: y }); });
 
     function isSolid(tx2, ty2) {
       if (tx2 < 0 || tx2 >= cols) return true; // murs invisibles aux deux bouts
@@ -196,8 +275,8 @@
 
     function stepOnce(inp, dt) {
       var dir = (inp.right ? 1 : 0) - (inp.left ? 1 : 0), i, e;
-      var jumpPressed = !!inp.jump && !prev.jump, attackPressed = !!inp.attack && !prev.attack, throwPressed = !!inp.throw && !prev.throw;
-      prev.jump = !!inp.jump; prev.attack = !!inp.attack; prev.throw = !!inp.throw;
+      var jumpPressed = !!inp.jump && !prev.jump, attackPressed = !!inp.attack && !prev.attack, throwPressed = !!inp.throw && !prev.throw, dogPressed = !!inp.dog && !prev.dog;
+      prev.jump = !!inp.jump; prev.attack = !!inp.attack; prev.throw = !!inp.throw; prev.dog = !!inp.dog;
       sim.time += dt;
       if (p.inv > 0) p.inv -= dt;
       if (p.swingCd > 0) p.swingCd -= dt;
@@ -275,13 +354,30 @@
         if (dead) sim.shurikens.splice(i, 1);
       }
 
+      // --- Laita : l'appel puis sa course (elle effraie, elle ne tue pas) ---
+      if (dogPressed) sim.dog.call();
+      sim.dog.update(dt);
+
       // --- ennemis ---
       var pr = rectOf(p);
       for (i = 0; i < sim.enemies.length; i++) {
         e = sim.enemies[i];
         if (!e.alive) continue;
         if (e.hurt > 0) e.hurt -= dt;
-        if (e.type === "flyer") {
+        if (e.scared > 0) { // effrayé par Laita : il s'éloigne du joueur (sans le blesser), puis il reviendra
+          e.scared -= dt;
+          var away = e.x >= p.x ? 1 : -1;
+          if (e.type === "flyer") {
+            e.x += away * 95 * dt; e.t += dt * 2.2; e.y = e.y0 + Math.sin(e.t) * 22; e.dir = away; e.x0 = e.x;
+            if (e.scared <= 0) { e.mode = null; e.cd = 2.5; }
+          } else {
+            e.vy = Math.min(CFG.maxFall, e.vy + CFG.gravity * dt);
+            var fstep = groundAt(e.x + away * (e.w / 2 + 4), e.y) ? away * 78 * dt : 0; // au bord d'un trou, il s'arrête
+            move(e, fstep, e.vy * dt);
+            e.dir = away; e.vx = 0;
+            if (e.y > sim.h + 200) e.alive = false;
+          }
+        } else if (e.type === "flyer") {
           e.t += dt * 2.2;
           if (e.cd > 0) e.cd -= dt;
           if (e.mode === "dive") { // pique sur le joueur, puis remonte
@@ -343,7 +439,7 @@
           if (p.star > 0) { hurtEnemy(e, 9, p.facing); emit("stomp", e.x, e.y - e.h); }
           else if (p.vy > 60 && p.y - p.vy * dt <= e.y - e.h + 14) { // écrasement (Mario)
             hurtEnemy(e, 1, p.facing); p.vy = -CFG.bounceV; p.jumps = 1; emit("stomp", e.x, e.y - e.h);
-          } else hurtPlayer(e.x, 1);
+          } else if (!(e.scared > 0)) hurtPlayer(e.x, 1); // un monstre qui a peur ne blesse pas
         }
       }
 
@@ -412,8 +508,9 @@
     });
     sim.stats.crates = 0;
     var p = sim.player = { x: 60, y: (yMin + yMax) / 2, jz: 0, vz: 0, facing: 1, hp: hpMax, hpMax: hpMax, inv: 0, atk: 0, atkCd: 0, combo: 0, comboT: 0, hitDone: false, air: false, star: 0, power: 0, throwCd: 0 };
-    var prev = { jump: false, attack: false, throw: false };
+    var prev = { jump: false, attack: false, throw: false, dog: false };
     function emit(t, x, y) { sim.events.push({ t: t, x: x, y: y }); }
+    sim.dog = createDog(sim, p, emit);
 
     function spawnWave(w) {
       var lock = sim.lock;
@@ -499,8 +596,8 @@
 
     function stepOnce(inp, dt) {
       var i, e;
-      var jumpPressed = !!inp.jump && !prev.jump, attackPressed = !!inp.attack && !prev.attack, throwPressed = !!inp.throw && !prev.throw;
-      prev.jump = !!inp.jump; prev.attack = !!inp.attack; prev.throw = !!inp.throw;
+      var jumpPressed = !!inp.jump && !prev.jump, attackPressed = !!inp.attack && !prev.attack, throwPressed = !!inp.throw && !prev.throw, dogPressed = !!inp.dog && !prev.dog;
+      prev.jump = !!inp.jump; prev.attack = !!inp.attack; prev.throw = !!inp.throw; prev.dog = !!inp.dog;
       sim.time += dt;
       if (p.inv > 0) p.inv -= dt;
       if (p.atkCd > 0) p.atkCd -= dt;
@@ -577,6 +674,10 @@
         if (gone) sim.stars.splice(i, 1);
       }
 
+      // Laita : l'appel puis sa course (elle effraie, elle ne tue pas)
+      if (dogPressed) sim.dog.call();
+      sim.dog.update(dt);
+
       // ennemis
       var alive = 0;
       for (i = 0; i < sim.enemies.length; i++) {
@@ -586,6 +687,15 @@
         var K = KINDS[e.kind] || KINDS.grunt;
         if (e.cd > 0) e.cd -= dt;
         if (e.hurt > 0) { e.hurt -= dt; e.x += e.kb * dt; e.kb *= 0.88; e.wind = 0; e.lunge = 0; pushOut(e, 10, 4, 0); continue; }
+        if (e.scared > 0) { // effrayé par Laita : il s'éloigne du joueur sans l'attaquer, puis il reviendra
+          e.scared -= dt; e.wind = 0; e.lunge = 0;
+          var away = e.x >= p.x ? 1 : -1;
+          e.facing = -away;
+          e.x += away * 80 * dt;
+          e.x = clamp(e.x, sim.lock ? sim.lock.l + 12 : 12, sim.lock ? sim.lock.r - 12 : L - 12);
+          pushOut(e, 10, 4, 0);
+          continue;
+        }
         e.facing = p.x >= e.x ? 1 : -1;
         var ddx = p.x - e.x, ddy = p.y - e.y, dist = Math.abs(ddx);
         if (K.lunge && e.lunge > 0) { // bond : ne s'arrête plus avant la fin
