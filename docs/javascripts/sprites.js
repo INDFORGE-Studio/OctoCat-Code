@@ -131,7 +131,7 @@
     pink: "#ff8fb1", W: "#f0f6fc", E: "#0d1117"
   };
   var O = Object.assign({}, O_BASE);
-  /* Apparences : 0 = d'origine ; après chaque tour de 10 niveaux : 1 Ninja (bleu, bandeau rouge), 2 Roi (or, couronne, cape rouge),
+  /* Apparences : 0 = d'origine ; après chaque tour de 10 niveaux : 1 Ninja (bleu, bandeau rouge), 2 Princesse (ex-Roi : or, couronne, cape rouge),
    * 3 Cosmos (indigo étoilé, auréole, cape magenta). Seules les couleurs et les accessoires changent ; les animations sont les mêmes. */
   var O_SKINS = [
     {},

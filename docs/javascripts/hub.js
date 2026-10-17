@@ -175,7 +175,7 @@
       ctx.host.appendChild(picker);
 
       /** Un tour de 10 niveaux vient d'être fini : on présente la nouvelle apparence et on fait choisir le langage du tour suivant. */
-      var SKIN_NAMES = ["OctoCat", "OctoNinja", "OctoRoi", "OctoCosmos"], DOG_NAMES = ["Laita", "Laita Bandana", "Laita Reine", "Laita Etoilee"];
+      var SKIN_NAMES = ["OctoCat", "OctoNinja", "OctoPrincesse", "OctoCosmos"], DOG_NAMES = ["Laita", "Laita Bandana", "Laita Royale", "Laita Etoilee"];
       function openLapUp() {
         var tour = P.laps(), L = window.OctoLangs, dlg = document.createElement("div"), card = document.createElement("div");
         dlg.className = "octo-dialog is-open octo-lapup"; card.className = "octo-dialog__card";
