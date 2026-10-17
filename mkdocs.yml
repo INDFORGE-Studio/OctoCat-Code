@@ -1,5 +1,5 @@
 site_name: OCTOCAT-CODE
-site_description: Un jeu d'aventure rétro pour apprendre à programmer — le site est le jeu.
+site_description: "Jeu d'aventure rétro gratuit pour apprendre à coder en s'amusant : 10 mondes, Python, JavaScript et pseudo-code, dès 8 ans, dans ton navigateur."
 site_author: INDFORGE Studio
 site_url: https://indforge-studio.github.io/OctoCat-Code/
 repo_url: https://github.com/INDFORGE-Studio/OctoCat-Code
@@ -27,6 +27,9 @@ theme:
 
 nav:
   - Jeu: index.md
+
+# Pas de recherche : le site est un jeu plein écran d'une seule page (pas de moteur de recherche, ni d'index, ni de scripts de recherche à télécharger).
+plugins: []
 
 markdown_extensions:
   - admonition

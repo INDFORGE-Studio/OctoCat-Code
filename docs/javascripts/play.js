@@ -213,14 +213,22 @@
       terminalObj = k.add([k.sprite("terminal"), k.pos(sim.terminal.x, sim.terminal.y), k.anchor("bot"), k.scale(2), k.z(6 + sim.terminal.y / 400)]);
     } else {
       var solid = sim.solid, rowsN = solid.length, colsN = solid[0].length, tx, ty;
-      for (ty = 0; ty < rowsN; ty++) {
-        for (tx = 0; tx < colsN; tx++) {
-          if (!solid[ty][tx]) continue;
-          var open = ty === 0 || !solid[ty - 1][tx];
-          var o = k.add([k.sprite((open ? "grass" : "dirt") + ((tx + ty) % 3)), k.pos(tx * T, ty * T), k.scale(2), k.color(rgb(theme.tile)), k.z(5)]);
-          if (typeof k.offscreen === "function") o.use(k.offscreen({ hide: true, distance: 40 }));
-        }
+      // Le sol : une seule couche qui dessine les colonnes visibles (des centaines de tuiles = des centaines d'objets à parcourir à chaque image sinon)
+      var tileCols = [], tilePos = k.vec2(0, 0), tileOpt = { sprite: "", pos: tilePos, scale: k.vec2(2, 2), color: rgb(theme.tile) }; // (une seule table d'options réutilisée : aucune allocation par image)
+      for (tx = 0; tx < colsN; tx++) {
+        var col = [];
+        for (ty = 0; ty < rowsN; ty++) if (solid[ty][tx]) col.push({ y: ty * T, name: ((ty === 0 || !solid[ty - 1][tx]) ? "grass" : "dirt") + ((tx + ty) % 3) });
+        tileCols.push(col);
       }
+      k.add([k.pos(0, 0), k.z(5), {
+        draw: function () {
+          var cx = k.camPos().x, half = k.width() / 2 + 48, c0 = Math.max(0, Math.floor((cx - half) / T)), c1 = Math.min(colsN - 1, Math.ceil((cx + half) / T));
+          for (var c = c0; c <= c1; c++) {
+            var col2 = tileCols[c];
+            for (var i = 0; i < col2.length; i++) { tileOpt.sprite = col2[i].name; tilePos.x = c * T; tilePos.y = col2[i].y; k.drawSprite(tileOpt); }
+          }
+        }
+      }]);
       props(function (i) { // un élément de décor tous les ~5 colonnes, sur la première tuile de sol
         var cx = 3 + i * 5 + ((i * 7) % 3);
         if (cx >= colsN) return null;

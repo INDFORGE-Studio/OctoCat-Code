@@ -10,7 +10,6 @@
 
   window.gameEngine.registerLevel({
     id: 10,
-    zone: 1,
     combat: true, // musique épique et intense
     mood: 0,
     title: "L'Arène du Glitch Gardien",

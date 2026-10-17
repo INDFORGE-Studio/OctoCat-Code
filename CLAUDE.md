@@ -111,7 +111,7 @@ La limite vient de **GitHub Pages** (l'hébergeur), pas de Material for MkDocs. 
 
 Règles du projet (appliquées par `tools/postbuild.py`, qui fait échouer le build) :
 - site total **≤ 200 Mo** (avertissement dès 100 Mo) ; un seul fichier **≤ 20 Mo**.
-- Mesure actuelle : **~2,9 Mo** (KAPLAY 185 Ko, police pixel 12 Ko, sprites 0 octet car procéduraux).
+- Mesure actuelle : **~0,9 Mo** (KAPLAY 185 Ko, police pixel 12 Ko, image de partage 170 Ko, sprites 0 octet car procéduraux) ; le thème inutilisé est retiré au build (§34).
 - Viser < 2 Mo de poids de page par niveau : à 100 Go/mois, 5 Mo/visite ≈ 20 000 visites/mois seulement.
 - Tout gros média (musique, vidéo, spritesheets lourdes) → GitHub Releases ou stockage externe, jamais dans le dépôt.
 - Pas de CDN en production : tout est auto-hébergé (le gate refuse toute ressource externe).
@@ -139,7 +139,9 @@ PATH à ajouter dans un shell neuf : le dossier `node-v24…` du paquet winget `
 | `npm run lint` | ESLint ; `eval`, `new Function`, `setTimeout(chaîne)` interdits (le code du joueur n'est jamais exécuté) |
 | `npm test` | tests `node:test` : interpréteur, validateurs, validation du niveau 1 (`dev/tests/`) |
 | `npm run build` | `mkdocs build --strict` + `tools/postbuild.py` |
-| `npm run shot` | serve `site/` et enregistre des PNG dans `dev/shots/` (accueil, briefing, éditeur, échec, victoire ; vues bureau, ultra-large, mobile) ; échoue si la page lève une erreur |
+| `npm run shot` | serve `site/` et enregistre des PNG dans `dev/shots/` (accueil, réglages, trajets 1 et 6, briefing, éditeur, page 404 ; vues bureau, ultra-large, mobile) ; échoue si la page lève une erreur |
+| `node dev/perf-check.mjs [niveau]` | démarrage (CPU ralenti x4) et profil CPU de 6 s de jeu : les fonctions les plus coûteuses |
+| `node dev/icons.mjs` / `node dev/social.mjs` | régénèrent les icônes (PNG, .ico, Apple) et l'image de partage 1200×630 (après `npm run build`) |
 | `npm run check` | lint + tests + build (la CI fait la même chose avant publication) |
 
 Vérification visuelle : `npm run build && npm run shot`, puis lire les PNG. Ne pas utiliser le navigateur intégré de Claude (consigne du PO).
@@ -310,3 +312,12 @@ Dans **toutes les énigmes** (pas sur l'accueil : `magic: false`), cliquer sur l
 - Décor : fond de nuit, « ERROR » / « 404 » / « GAME NOT FOUND » dessinés en pixels (police 5×7 maison, `FONT`) avec le **décalage cyan / magenta** et des **lignes qui glissent** (petits tremblements tout le temps, grosses rafales toutes les ~1-3 s, bande qui traverse l'écran), nuages en contour, croix / losanges / ronds flottants, sol qui défile (clin d'œil au dinosaure de la page d'erreur d'un grand navigateur ; composition et dessin originaux).
 - Jeu : **Laita court**, poursuivie par un **Glitch** ; on **maintient la touche « droite » de ses réglages** (`OctoSettings.lookup(code) === "right"`, ou le doigt / la souris sur l'écran). Lâcher : Laita ralentit, le Glitch la rattrape (collé à elle, il grogne, jamais de défaite). ~4-5 s de course cumulées : OctoCat apparaît à droite, Laita lui **saute dans les bras**, **magie** (flash, anneaux arc-en-ciel, pluie d'étoiles, cœurs, `magic` / `heart`), le Glitch se disperse, fondu blanc puis retour au jeu. Apparences de tour respectées (`k.sprite("octo"/"laita")`).
 - Vérifié par `node dev/notfound-check.mjs` (serveur qui renvoie 404.html sur une adresse inconnue, comme GitHub Pages ; bureau et mobile paysage : scène seule, pas de défilement, course, retrouvailles, retour demandé, console propre).
+
+## 34. Référencement, partage, performance (passe finale)
+
+- **Gabarits sans thème** : `overrides/octo-base.html` (socle) → `game.html` (accueil) et `404.html`. Plus aucune feuille de style, script, recherche ni carte source de Material n'est chargé : `octocat.css` contient son propre socle (html/body/boutons) et `plugins: []` (pas de recherche). `tools/postbuild.py` **supprime du site publié** les fichiers du thème qu'aucune page ne charge (`prune_unused_theme_assets`) : le site passe de 3,3 Mo à ~0,9 Mo et le service worker précache 42 fichiers au lieu de 78. Attention : un `description:` de front matter contenant « : » doit être **entre guillemets**, sinon le YAML est ignoré en silence et mkdocs retombe sur `main.html`.
+- **SEO** (`game.html`) : `description`, `canonical`, **Open Graph** (`og:*`, image 1200×630) et **Twitter Card** (`summary_large_image`), `theme-color`, balises Apple, **JSON-LD `VideoGame`** (gratuit, dès 8 ans, français, éditeur INDFORGE Studio). Le `<title>` reste « OCTOCAT-CODE » (consigne du PO) ; le titre long est dans `og:title`. Le **texte de présentation** (`docs/index.md` : pitch, notions, les 10 mondes, touches) est rendu dans un bloc `.octo-sr` (invisible mais lu par les moteurs de recherche et les lecteurs d'écran) : le jeu étant un canvas, c'est ce qui donne du contenu à indexer. La 404 est `noindex`. `sitemap.xml` est produit par mkdocs ; à l'éditeur du site de le soumettre à la Search Console (et d'ajouter la balise de vérification si besoin : non faisable depuis le dépôt).
+- **Image de partage** : `docs/assets/social-card.png` (170 Ko), photo de l'accueil réel (`?card=1` cache l'invite et les compteurs, `hudchrome` dans `hub.js`) + 3 pastilles ; régénérée par `node dev/social.mjs`. Exclue du précache (réseaux sociaux, pas hors-ligne). Aussi `screenshots` du manifeste.
+- **Icônes** : `favicon.svg` (vectoriel), `favicon-16/32.png`, `favicon.ico` (16/32/48), `apple-touch-icon.png` (180), `icon-192/512` et `icon-maskable-512` ; manifeste enrichi (`id`, `categories`, `description`, `screenshots`).
+- **Performance** (mesurée par `dev/perf-check.mjs`, CPU x4) : les sprites sont passés à KAPLAY **en canevas** (plus d'encodage PNG puis décodage) et dessinés par `ImageData` (`Buf.draw`) : dessin des sprites 1,5 s → 0,16 s, page prête 5,0 s → 1,3 s ; le **sol des trajets** est une seule couche qui ne dessine que les colonnes visibles (au lieu de centaines d'objets parcourus à chaque image) ; mémoire JS ~15 Mo.
+- **Nettoyage** : code hérité des pages multiples supprimé (verrou `data-octo-guard`, tableau de bord `#octo-hud`, onglets de langue Material, champs `zone` / `path`, CSS associé) ; `npm run shot` réécrit pour le parcours actuel.

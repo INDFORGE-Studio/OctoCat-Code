@@ -10,7 +10,6 @@
 
   window.gameEngine.registerLevel({
     id: 1,
-    zone: 1,
     mood: 0.35, // musique : joyeuse, avec une légère alerte (un Glitch rôde) ; `combat: true` = musique épique
     title: "La Forêt des Syntaxes",
     run: {

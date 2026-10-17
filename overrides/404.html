@@ -1,15 +1,10 @@
 {#- Page 404 : « GAME NOT FOUND ». Plein écran, rien d'autre que la scène jouable (docs/javascripts/notfound.js). -#}
-{% extends "base.html" %}
+{% extends "octo-base.html" %}
 
 {% block htmltitle %}<title>OCTOCAT-CODE · 404</title>{% endblock %}
-{% block extrahead %}
-  <meta name="theme-color" content="#0a0820">
+{% block octo_seo %}
   <meta name="robots" content="noindex">
-  <meta name="mobile-web-app-capable" content="yes">
 {% endblock %}
-{% block header %}{% endblock %}
-{% block tabs %}{% endblock %}
-{% block footer %}{% endblock %}
 
 {% block container %}
   <div class="octo-fs octo-fs--404">
@@ -17,11 +12,4 @@
     <div class="octo-scene" data-fullscreen data-start="notfound" data-home="{{ config.site_url | default('/', true) }}"></div>
     <noscript><p class="octo-sr"><a href="{{ config.site_url | default('/', true) }}">Retour au jeu</a></p></noscript>
   </div>
-{% endblock %}
-
-{#- Seuls nos scripts sont chargés (le JS du thème n'a rien à faire ici). -#}
-{% block scripts %}
-  {% for script in config.extra_javascript %}
-    {{ script | script_tag }}
-  {% endfor %}
 {% endblock %}

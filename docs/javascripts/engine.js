@@ -8,7 +8,7 @@
  *   validators.*              regex / qcm / keywords / assignment
  *
  * Contrat d'un niveau :
- *   { id, title, zone, starter, hints[], briefing{ title, lore, lesson, examples, tips[], goal },
+ *   { id, title, starter, hints[], briefing{ title, lore, lesson, examples, tips[], goal },
  *     validate(code, engine) -> {ok, messages[], data},
  *     scene(k, h, ctx) -> { success(result): Promise, fail(result): Promise, reset() } }
  * ctx = { go(sceneName), reserve (part basse de l'écran laissée à l'éditeur) }.

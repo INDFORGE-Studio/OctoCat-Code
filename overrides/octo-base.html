@@ -1,0 +1,41 @@
+{#- Socle commun des pages du jeu (accueil et 404) : aucun élément du thème Material (en-tête, navigation, pied de page, recherche, ses feuilles de style et ses scripts).
+    Seuls le CSS et les scripts du jeu sont chargés : la page pèse le strict nécessaire. -#}
+{% extends "base.html" %}
+
+{% block site_meta %}
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="color-scheme" content="dark">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="OCTOCAT-CODE">
+  <meta name="application-name" content="OCTOCAT-CODE">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="author" content="{{ config.site_author }}">
+  <link rel="icon" href="{{ 'assets/favicon.svg' | url }}" type="image/svg+xml">
+  <link rel="icon" href="{{ 'assets/favicon-32.png' | url }}" type="image/png" sizes="32x32">
+  <link rel="icon" href="{{ 'assets/favicon-16.png' | url }}" type="image/png" sizes="16x16">
+  <link rel="shortcut icon" href="{{ 'assets/favicon.ico' | url }}" sizes="48x48">
+  <link rel="apple-touch-icon" href="{{ 'assets/apple-touch-icon.png' | url }}" sizes="180x180">
+  <link rel="manifest" href="{{ 'manifest.webmanifest' | url }}">
+  {% block octo_seo %}{% endblock %}
+{% endblock %}
+{% block styles %}
+  <link rel="stylesheet" href="{{ 'stylesheets/octocat.css' | url }}">
+{% endblock %}
+{% block libs %}{% endblock %}
+{% block fonts %}{% endblock %}
+{% block analytics %}{% endblock %}
+{% block header %}{% endblock %}
+{% block tabs %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block config %}{% endblock %}
+
+{#- Seuls nos scripts sont chargés (le JS du thème n'a rien à faire ici). -#}
+{% block scripts %}
+  {% for script in config.extra_javascript %}
+    {{ script | script_tag }}
+  {% endfor %}
+{% endblock %}

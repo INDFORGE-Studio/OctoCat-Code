@@ -1,28 +1,62 @@
-{#- Page de jeu plein écran : aucun élément du thème Material (en-tête, navigation, pied de page). -#}
-{% extends "base.html" %}
+{#- Page de jeu plein écran : aucun élément du thème Material. Le texte de présentation (docs/index.md) n'est lu que par les moteurs de recherche et les lecteurs d'écran. -#}
+{% extends "octo-base.html" %}
+
+{% set site = config.site_url | default('', true) %}
+{% set card = site ~ 'assets/social-card.png' %}
+{% set about = page.meta.description or config.site_description %}
 
 {% block htmltitle %}<title>OCTOCAT-CODE</title>{% endblock %}
-{% block extrahead %}
-  <meta name="theme-color" content="#0d1117">
-  <meta name="mobile-web-app-capable" content="yes">
-  <link rel="manifest" href="{{ 'manifest.webmanifest' | url }}">
-  <link rel="apple-touch-icon" href="{{ 'assets/icon-192.png' | url }}">
+{% block octo_seo %}
+  <meta name="description" content="{{ about }}">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  {% if page.canonical_url %}<link rel="canonical" href="{{ page.canonical_url }}">{% endif %}
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="OCTOCAT-CODE">
+  <meta property="og:locale" content="fr_FR">
+  <meta property="og:title" content="OCTOCAT-CODE · Apprends à coder en t'amusant">
+  <meta property="og:description" content="{{ about }}">
+  <meta property="og:url" content="{{ page.canonical_url or site }}">
+  <meta property="og:image" content="{{ card }}">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="OCTOCAT-CODE : OctoCat, le chat-pieuvre violet, et Laita, sa chienne, devant le portail du jeu">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="OCTOCAT-CODE · Apprends à coder en t'amusant">
+  <meta name="twitter:description" content="{{ about }}">
+  <meta name="twitter:image" content="{{ card }}">
+  <meta name="twitter:image:alt" content="OCTOCAT-CODE : OctoCat et Laita devant le portail du jeu">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "VideoGame",
+    "name": "OCTOCAT-CODE",
+    "alternateName": "OctoCat-Code",
+    "description": {{ about | tojson }},
+    "url": {{ (page.canonical_url or site) | tojson }},
+    "image": {{ card | tojson }},
+    "inLanguage": "fr",
+    "genre": ["Jeu éducatif", "Aventure", "Pixel art", "Apprendre à programmer"],
+    "gamePlatform": "Navigateur web",
+    "applicationCategory": "GameApplication",
+    "operatingSystem": "Tous les systèmes (navigateur web, ordinateur, tablette, téléphone)",
+    "isAccessibleForFree": true,
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+    "audience": { "@type": "PeopleAudience", "suggestedMinAge": 8 },
+    "educationalUse": "Apprentissage de la programmation",
+    "keywords": "apprendre à coder, jeu éducatif, programmation, Python, JavaScript, pseudo-code, enfants, pixel art, jeu gratuit, jeu navigateur",
+    "publisher": { "@type": "Organization", "name": "INDFORGE Studio", "url": "https://github.com/INDFORGE-Studio" },
+    "author": { "@type": "Organization", "name": "INDFORGE Studio" },
+    "codeRepository": "https://github.com/INDFORGE-Studio/OctoCat-Code"
+  }
+  </script>
 {% endblock %}
-{% block header %}{% endblock %}
-{% block tabs %}{% endblock %}
-{% block footer %}{% endblock %}
 
 {% block container %}
   <div class="octo-fs">
     <h1 class="octo-sr">{{ config.site_name }}</h1>
     <div class="octo-scene" data-fullscreen></div>
     <noscript><p class="octo-sr">Ce jeu nécessite JavaScript.</p></noscript>
+    <div class="octo-sr">{{ page.content }}</div>
   </div>
-{% endblock %}
-
-{#- Seuls nos scripts sont chargés (le JS du thème n'a rien à faire ici). -#}
-{% block scripts %}
-  {% for script in config.extra_javascript %}
-    {{ script | script_tag }}
-  {% endfor %}
 {% endblock %}

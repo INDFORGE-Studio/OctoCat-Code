@@ -7,18 +7,18 @@
 
   var KEY = "octocat-code:v1";
 
-  // Registre des niveaux. `path` est relatif à la racine du site.
+  // Registre des niveaux (titres affichés dans le sélecteur de l'accueil et dans le générique).
   var LEVELS = [
-    { id: 1, zone: 1, title: "La Forêt des Syntaxes", path: "niveau-1/" },
-    { id: 2, zone: 1, title: "Le Village des Chaînes", path: "niveau-2/" },
-    { id: 3, zone: 1, title: "La Mine des Opérations", path: "niveau-3/" },
-    { id: 4, zone: 1, title: "Le Dojo des Torches", path: "niveau-4/" },
-    { id: 5, zone: 1, title: "Le Pont des Booléens", path: "niveau-5/" },
-    { id: 6, zone: 1, title: "Le Marché des Cristaux", path: "niveau-6/" },
-    { id: 7, zone: 1, title: "La Forge des Répétitions", path: "niveau-7/" },
-    { id: 8, zone: 1, title: "Le Temple des Cumuls", path: "niveau-8/" },
-    { id: 9, zone: 1, title: "Le Tri des Glitches", path: "niveau-9/" },
-    { id: 10, zone: 1, title: "L'Arène du Glitch Gardien", path: "niveau-10/" }
+    { id: 1, title: "La Forêt des Syntaxes" },
+    { id: 2, title: "Le Village des Chaînes" },
+    { id: 3, title: "La Mine des Opérations" },
+    { id: 4, title: "Le Dojo des Torches" },
+    { id: 5, title: "Le Pont des Booléens" },
+    { id: 6, title: "Le Marché des Cristaux" },
+    { id: 7, title: "La Forge des Répétitions" },
+    { id: 8, title: "Le Temple des Cumuls" },
+    { id: 9, title: "Le Tri des Glitches" },
+    { id: 10, title: "L'Arène du Glitch Gardien" }
   ];
 
   // `?skin=N` dans l'adresse force l'apparence (démonstration) ; lu une seule fois au chargement, car le jeu nettoie ensuite l'adresse
@@ -217,94 +217,4 @@
   };
 
   window.OctoProgress = Progress;
-
-  /* ---------- helpers de page ---------- */
-
-  function onPage(fn) {
-    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn);
-    else fn();
-  }
-
-  function esc(s) {
-    return String(s).replace(/[&<>"]/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
-    });
-  }
-
-  /** Verrou : remplace le contenu d'une page de niveau si le prérequis manque. */
-  function guard() {
-    var el = document.querySelector("[data-octo-guard]");
-    if (!el) return;
-    var id = parseInt(el.getAttribute("data-octo-guard"), 10);
-    if (Progress.isUnlocked(id)) return;
-    var hub = el.getAttribute("data-hub") || "../";
-    var article = document.querySelector("article.md-content__inner") || el.parentNode;
-    article.innerHTML =
-      '<div class="octo-lock">' +
-      '<div class="octo-lock__icon">🔒</div>' +
-      "<h1>Portail verrouillé</h1>" +
-      "<p>Le Niveau " + id + " n'est pas encore accessible. Termine d'abord le niveau précédent pour réparer le chemin.</p>" +
-      '<p><a class="md-button md-button--primary" href="' + esc(hub) + '">Retour au hub</a></p>' +
-      "</div>";
-  }
-
-  /** Tableau de bord de progression (page d'accueil). */
-  function renderHud() {
-    var el = document.getElementById("octo-hud");
-    if (!el) return;
-    var root = el.getAttribute("data-root") || "./";
-    var s = Progress.get();
-    var html = '<div class="octo-hud__levels">';
-    var nextId = null;
-    LEVELS.forEach(function (lv) {
-      var done = !!s.completed[lv.id];
-      var open = lv.id <= s.unlocked;
-      if (open && !done && nextId === null) nextId = lv.id;
-      var state = done ? "done" : open ? "open" : "locked";
-      var badge = done ? "✔ Terminé" : open ? "▶ Disponible" : "🔒 Verrouillé";
-      var inner = '<span class="octo-card__zone">Zone ' + lv.zone + "</span>" +
-        '<strong class="octo-card__title">Niveau ' + lv.id + " · " + esc(lv.title) + "</strong>" +
-        '<span class="octo-card__badge">' + badge + "</span>";
-      html += open
-        ? '<a class="octo-card octo-card--' + state + '" href="' + esc(root + lv.path) + '">' + inner + "</a>"
-        : '<div class="octo-card octo-card--' + state + '">' + inner + "</div>";
-    });
-    html += "</div>";
-
-    html += '<div class="octo-hud__ach">';
-    Object.keys(ACHIEVEMENTS).forEach(function (key) {
-      var a = ACHIEVEMENTS[key];
-      var got = !!s.achievements[key];
-      html += '<span class="octo-ach' + (got ? " octo-ach--got" : "") + '" title="' + esc(a.desc) + '">' +
-        (got ? a.icon : "❔") + " " + esc(got ? a.title : "???") + "</span>";
-    });
-    html += "</div>";
-
-    html += '<p class="octo-hud__meta">Langage préféré : <code>' + esc(s.language || "non choisi") + "</code> · " +
-      '<button type="button" class="octo-link" id="octo-reset">Réinitialiser la progression</button></p>';
-
-    el.innerHTML = html;
-    var btn = document.getElementById("octo-reset");
-    if (btn) btn.addEventListener("click", function () {
-      if (window.confirm("Effacer toute ta progression ?")) Progress.reset();
-    });
-  }
-
-  /** Mémorise le langage choisi via les onglets pymdownx.tabbed (Python / JavaScript). */
-  function bindLanguageTabs() {
-    document.addEventListener("change", function (e) {
-      var t = e.target;
-      if (!t || !t.matches || !t.matches(".tabbed-set > input")) return;
-      var label = document.querySelector('label[for="' + t.id + '"]');
-      var name = label && label.textContent.trim();
-      if (name === "Python" || name === "JavaScript") Progress.setLanguage(name);
-    });
-  }
-
-  onPage(function () {
-    guard();
-    renderHud();
-    bindLanguageTabs();
-  });
-  document.addEventListener("octo:progress", renderHud);
 })();

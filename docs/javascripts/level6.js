@@ -9,7 +9,6 @@
 
   window.gameEngine.registerLevel({
     id: 6,
-    zone: 1,
     mood: 0.2,
     title: "Le Marché des Cristaux",
     alt: "Un étal de cristaux : le marchand classe l'OctoCat selon son or.",

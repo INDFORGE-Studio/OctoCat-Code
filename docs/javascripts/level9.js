@@ -9,7 +9,6 @@
 
   window.gameEngine.registerLevel({
     id: 9,
-    zone: 1,
     mood: 0.35,
     title: "Le Tri des Glitches",
     alt: "Un tapis roulant de caisses numérotées : les pairs doivent être comptés.",
