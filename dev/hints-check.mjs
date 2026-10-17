@@ -1,4 +1,4 @@
-// Indices payants : `node dev/hints-check.mjs` (pièces, prix 1/2/3, mission cachée, indices qui restent, repaiement après réussite).
+// Indices payants : `node dev/hints-check.mjs` (pièces, prix 5 pièces, mission cachée, indices qui restent, repaiement après réussite).
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
@@ -44,21 +44,38 @@ await page.evaluate(() => localStorage.clear());
 await openPuzzle();
 ok("sans pièce : mission cachée", /🔒/.test(await goalTxt()), await goalTxt());
 ok("aucun indice affiché", (await page.locator(".octo-hint").count()) === 0);
-ok("prix du 1er indice : 1 pièce", /1 🪙/.test(await hintBtn().innerText()), await hintBtn().innerText());
+ok("prix d'un indice : 5 pièces", /5 🪙/.test(await hintBtn().innerText()), await hintBtn().innerText());
 await hintBtn().click();
-ok("pas assez : rien n'est payé", (await page.locator(".octo-hint").count()) === 0 && /Pas assez/.test(await page.locator(".octo-console").innerText()));
+ok("0 pièce : indice doux refusé gentiment, rien n'est payé", (await page.locator(".octo-hint").count()) === 0 && /poche est trop légère/.test(await page.locator(".octo-confirm").innerText()), await page.locator(".octo-confirm").innerText());
 await page.screenshot({ path: path.join(OUT, "hints-poor.png") });
 
-await page.evaluate(() => window.OctoProgress.bank(1, 6)); // 1 + 2 + 3 pièces = les trois indices
-ok("pièces visibles", /6/.test(await page.locator(".octo-wallet").innerText()), await page.locator(".octo-wallet").innerText());
+await page.evaluate(() => window.OctoProgress.bank(1, 24)); // 5 + 5 (indices doux) + 14 : presque assez pour la réponse (15)
+ok("pièces visibles", /24/.test(await page.locator(".octo-wallet").innerText()), await page.locator(".octo-wallet").innerText());
 await hintBtn().click();
-ok("indice 1 payé : visible, mission visible, 5 pièces", (await page.locator(".octo-hint").count()) === 1 && !/🔒/.test(await goalTxt()) && /5/.test(await page.locator(".octo-wallet").innerText()));
-ok("prix suivant : 2 pièces", /2 🪙/.test(await hintBtn().innerText()), await hintBtn().innerText());
+ok("indice 1 payé : visible, mission visible, 10 pièces", (await page.locator(".octo-hint").count()) === 1 && !/🔒/.test(await goalTxt()) && /19/.test(await page.locator(".octo-wallet").innerText()));
+ok("prix suivant : 5 pièces", /5 🪙/.test(await hintBtn().innerText()), await hintBtn().innerText());
 await page.locator(".octo-btn--primary", { hasText: "Compiler" }).click();
 await page.waitForTimeout(1500);
 ok("l'indice payé reste après un Compiler", (await page.locator(".octo-hint").count()) === 1);
-await hintBtn().click(); await hintBtn().click();
-ok("3 indices payés, 0 pièce", (await page.locator(".octo-hint").count()) === 3 && /0/.test(await page.locator(".octo-wallet").innerText()));
+await hintBtn().click();
+ok("2 indices doux payés (5 chacun), il reste 14 pièces", (await page.locator(".octo-hint").count()) === 2 && /14/.test(await page.locator(".octo-wallet").innerText()));
+ok("le 3e indice (la réponse) coûte 15 pièces", /15 🪙/.test(await hintBtn().innerText()) && /réponse/i.test(await hintBtn().innerText()), await hintBtn().innerText());
+await hintBtn().click();
+ok("14 pièces : la réponse est refusée avec un message fun (il manque 1), rien payé", /Ouaf, refusé/.test(await page.locator(".octo-confirm").innerText()) && /manque 1/.test(await page.locator(".octo-confirm").innerText()) && !/Oui, je paie/.test(await page.locator(".octo-confirm").innerText()) && (await page.locator(".octo-hint").count()) === 2, await page.locator(".octo-confirm").innerText());
+await page.screenshot({ path: path.join(OUT, "hints-refused.png") });
+await page.locator(".octo-confirm button", { hasText: "OK" }).click();
+ok("« OK » ferme le message", (await page.locator(".octo-confirm button").count()) === 0);
+// on lui donne une pièce de plus (15 = juste assez pour la réponse) puis on rouvre l'énigme
+await page.evaluate(() => { const s = JSON.parse(localStorage.getItem("octocat-code:v1")); s.coins = 15; localStorage.setItem("octocat-code:v1", JSON.stringify(s)); });
+await openPuzzle();
+await hintBtn().click();
+ok("avec 15 pièces : une demande de confirmation s'affiche", (await page.locator(".octo-confirm button").count()) === 2 && /réponse toute faite/.test(await page.locator(".octo-confirm").innerText()), await page.locator(".octo-confirm").innerText());
+await page.screenshot({ path: path.join(OUT, "hints-confirm.png") });
+await page.locator(".octo-confirm button", { hasText: "Non" }).click();
+ok("« Non » : rien n'est payé, la question disparaît", (await page.locator(".octo-confirm button").count()) === 0 && (await page.locator(".octo-hint").count()) === 2 && /15/.test(await page.locator(".octo-wallet").innerText()));
+await hintBtn().click();
+await page.locator(".octo-confirm button", { hasText: "Oui" }).click();
+ok("« Oui » : 3 indices payés, 0 pièce", (await page.locator(".octo-hint").count()) === 3 && (await page.locator(".octo-wallet").innerText()).trim() === "🪙 0");
 ok("plus d'indice à acheter", await hintBtn().isDisabled(), await hintBtn().innerText());
 await page.screenshot({ path: path.join(OUT, "hints-paid.png") });
 

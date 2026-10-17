@@ -22,7 +22,7 @@
     meleeReach: 38, whipReach: 52, swingTime: 0.28, swingCooldown: 0.34,
     shurikenSpeed: 330, shurikenLife: 0.9, shurikenCooldown: 0.3, shurikenMax: 2,
     starTime: 6, powerTime: 14, powerCooldown: 0.24, powerMax: 9, // cœur à pleine vie = invincibilité ; étoile des caisses = shuriken puissant
-    dogSpeed: 290, dogCooldown: 4.5, dogScare: 4, dogRange: 360 // Laita : course, attente entre deux appels, durée de la peur, portée de l'appel
+    dogSpeed: 290, dogCooldown: 9, dogScare: 4, dogRange: 360 // Laita : course, attente entre deux appels, durée de la peur, portée de l'appel
   };
 
   function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
@@ -34,7 +34,7 @@
    * state : "follow" | "charge" | "return" ; cd = attente avant le prochain appel.
    */
   function createDog(sim, p, emit) {
-    var d = { x: p.x - 24, y: p.y, face: 1, state: "follow", cd: 0, t: 0, chase: 0, target: null, vx: 0, immortal: true };
+    var d = { x: p.x - 46, y: p.y, face: 1, state: "follow", cd: 0, t: 0, chase: 0, target: null, vx: 0, immortal: true };
     function feetY(e) { return e.type === "flyer" ? e.y + 18 : e.y; } // une chauve-souris : Laita bondit vers elle
     function pick() {
       var best = null, bd = CFG.dogRange;
@@ -61,7 +61,7 @@
       if (d.state !== "follow" || d.cd > 0) return false;
       var e = pick();
       emit("bark", d.x, d.y - 12);
-      if (!e) { d.cd = 0.8; return false; }
+      if (!e) { d.cd = 1.5; return false; }
       d.state = "charge"; d.target = e; d.chase = 2.2;
       return true;
     };
@@ -80,7 +80,7 @@
           d.y += (ty - d.y) * (1 - Math.exp(-12 * dt));
           if ((Math.abs(tx - d.x) < 14 && Math.abs(ty - d.y) < 22) || d.chase <= 0) {
             if (scareAround()) { d.cd = CFG.dogCooldown; emit("bark", d.x, d.y - 12); }
-            else d.cd = 1.5;
+            else d.cd = 3;
             d.state = "return"; d.chase = 3;
           }
         }
@@ -91,9 +91,9 @@
         if (dist > 6) d.face = ox > 0 ? 1 : -1;
         d.y += oy * (1 - Math.exp(-10 * dt));
         if (dist < 34 && Math.abs(oy) < 24) d.state = "follow";
-        else if (d.chase <= 0 || dist > 900) { d.x = p.x - p.facing * 26; d.y = p.y; d.state = "follow"; }
+        else if (d.chase <= 0 || dist > 900) { d.x = p.x - p.facing * 46; d.y = p.y; d.state = "follow"; }
       } else {
-        var fx = p.x - p.facing * 26;
+        var fx = p.x - p.facing * 46;
         if (Math.abs(fx - d.x) > 520) { d.x = fx; d.y = p.y; }
         d.x += (fx - d.x) * (1 - Math.exp(-8 * dt));
         d.y += (p.y - d.y) * (1 - Math.exp(-7 * dt));
@@ -163,22 +163,68 @@
    * 2. Simulation « platform »
    * ==================================================================== */
 
+  /**
+   * Salle secrète : un des trous du parcours (jamais le dernier, sauf s'il n'y en a qu'un) mène, au lieu de coûter un cœur,
+   * à une petite salle pleine de pièces, collée à droite de la grille derrière un mur (la caméra ne la montre pas depuis le niveau).
+   * On en ressort par un tuyau, juste devant le dernier trou du niveau. Renvoie { rows, info } ou null si le parcours n'a aucun trou.
+   */
+  function addSecretRoom(rows) {
+    var R = rows.length, cols = rows[0].length, gaps = [], cur = null, c, r, i;
+    for (c = 0; c < cols; c++) {
+      var ground = false;
+      for (r = 0; r < R; r++) if (rows[r].charAt(c) === "#") { ground = true; break; }
+      if (ground) cur = null;
+      else if (cur) cur.c1 = c;
+      else { cur = { c0: c, c1: c }; gaps.push(cur); }
+    }
+    if (!gaps.length) return null;
+    var last = gaps[gaps.length - 1];
+    var pick = gaps.length > 1 ? gaps[Math.min(gaps.length - 2, Math.floor((gaps.length - 1) / 2))] : last;
+    // sortie : le sol juste avant le dernier trou (sans pic)
+    var out = null;
+    for (c = last.c0 - 1; c >= 0 && !out; c--) {
+      for (r = 0; r < R; r++) if (rows[r].charAt(c) === "#") break;
+      if (r < R && r > 0 && rows[r - 1].charAt(c) !== "^") out = { x: (c + 0.5) * TILE, y: r * TILE };
+    }
+    var SEP = 3, W = 26, hs = [], room = [], put2 = function (ci, ri, ch) { if (ri >= 0 && ri < R) room[ri][ci] = ch; };
+    for (i = 0; i < W; i++) hs.push(i < 11 ? 2 : i < 15 ? 3 : i < 19 ? 4 : i < 23 ? 3 : 2); // sol, puis une petite colline à franchir
+    for (r = 0; r < R; r++) { room.push([]); for (i = 0; i < W; i++) room[r].push(R - r <= hs[i] ? "#" : " "); }
+    [3, 5, 7, 9].forEach(function (ci) { put2(ci, R - hs[ci] - 1, "o"); });
+    for (i = 11; i < 23; i++) { put2(i, R - hs[i] - 1, "o"); put2(i, R - hs[i] - 2, "o"); } // une rangée sur la colline, une en l'air (en sautant)
+    var r0 = cols + SEP;
+    var info = {
+      gapL: pick.c0 * TILE, gapR: (pick.c1 + 1) * TILE, levelW: cols * TILE, curtainR: (cols + SEP - 1) * TILE, roomL: r0 * TILE,
+      spawn: { x: (r0 + 2.5) * TILE, y: (R - 2) * TILE }, out: out || { x: TILE * 2.5, y: TILE * 7 }, inRoom: false, visits: 0
+    };
+    var ex = (r0 + 24.5) * TILE;
+    info.exit = { x: ex, y: (R - 2) * TILE, l: ex - 18, r: ex + 18, t: (R - 2) * TILE - 46, b: (R - 2) * TILE };
+    var wall = ""; for (i = 0; i < SEP; i++) wall += "#";
+    return { rows: rows.map(function (row, ri) { return row + wall + room[ri].join(""); }), info: info };
+  }
+
   function createPlatform(rows, abilities) {
     var ab = abilities || {};
+    var secretRoom = addSecretRoom(rows);
+    if (secretRoom) rows = secretRoom.rows;
     var cols = rows[0].length, R = rows.length;
     var sim = {
       mode: "platform", w: cols * TILE, h: R * TILE, abilities: ab, time: 0, finished: false,
       events: [], stats: { bits: 0, bitsTotal: 0, deaths: 0, kills: 0 },
       enemies: [], bits: [], candles: [], items: [], spikes: [], checkpoints: [], shurikens: [], terminal: null,
-      player: null, cp: null, solid: [], dog: null
+      player: null, cp: null, solid: [], dog: null, secret: secretRoom ? secretRoom.info : null
     };
     var spawn = { x: TILE * 2.5, y: TILE * 7 };
 
+    /** Pose (ou repose) tout ce qui vit dans le niveau : ennemis, pièces, bougies, pics, drapeaux, terminal. Les tableaux gardent leur identité. */
+    function scan(first) {
+      var gots = sim.bits.map(function (b) { return b.got; }); // une pièce prise ne revient jamais (sinon on mourrait exprès pour en récolter)
+      ["enemies", "bits", "candles", "items", "spikes", "checkpoints", "shurikens"].forEach(function (key) { sim[key].length = 0; });
+      sim.terminal = null; sim.stats.bitsTotal = 0; sim.stats.kills = 0;
     for (var ty = 0; ty < R; ty++) {
-      sim.solid.push([]);
+      if (first) sim.solid.push([]);
       for (var tx = 0; tx < cols; tx++) {
         var ch = rows[ty].charAt(tx), cx = tx * TILE + TILE / 2, by = (ty + 1) * TILE;
-        sim.solid[ty].push(ch === "#" || ch === "=");
+        if (first) sim.solid[ty].push(ch === "#" || ch === "=");
         if (ch === "S") spawn = { x: cx, y: by };
         else if (ch === "e" || ch === "E") sim.enemies.push({ type: ch === "E" ? "tough" : "walker", x: cx, y: by, w: 22, h: 28, vx: 0, vy: 0, dir: -1, hp: ch === "E" ? 2 : 1, hurt: 0, alive: true, tx: tx });
         else if (ch === "h") sim.enemies.push({ type: "hopper", x: cx, y: by, w: 22, h: 24, vx: 0, vy: 0, dir: -1, hp: 1, hurt: 0, alive: true, hopT: 0.5 + (tx % 3) * 0.3, onG: false });
@@ -191,6 +237,9 @@
         else if (ch === "T") sim.terminal = { l: tx * TILE - 8, r: tx * TILE + TILE + 8, t: ty * TILE - TILE, b: by, x: cx, y: by };
       }
     }
+      gots.forEach(function (g, i) { if (g && sim.bits[i]) sim.bits[i].got = true; });
+    }
+    scan(true);
     sim.cp = { x: spawn.x, y: spawn.y };
     var p = sim.player = {
       x: spawn.x, y: spawn.y, w: 18, h: 34, vx: 0, vy: 0, facing: 1, onGround: false, hp: CFG.hpMax, inv: 0,
@@ -238,11 +287,27 @@
 
     function groundAt(x, y) { return isSolid(Math.floor(x / TILE), Math.floor((y + 2) / TILE)); }
 
+    /** Plus un seul cœur : tout le niveau recommence au début (ennemis, bougies, drapeaux, cœurs remis à zéro) ; les pièces déjà prises restent prises. */
+    function restartLevel() {
+      scan(false);
+      sim.cp = { x: spawn.x, y: spawn.y };
+      if (sim.secret) sim.secret.inRoom = false;
+      p.hp = CFG.hpMax; p.x = spawn.x; p.y = spawn.y; p.vx = 0; p.vy = 0; p.inv = 1.5; p.swing = 0; p.star = 0; p.power = 0; p.facing = 1;
+      sim.dog.x = p.x - 46; sim.dog.y = p.y; sim.dog.state = "follow"; sim.dog.cd = 0; sim.dog.vx = 0;
+      emit("restart", spawn.x, spawn.y);
+    }
+    function teleport(to) {
+      p.x = to.x; p.y = to.y; p.vx = 0; p.vy = 0; p.inv = 1.5; p.swing = 0; p.onGround = false;
+      sim.dog.x = p.x - 46; sim.dog.y = p.y; sim.dog.state = "follow"; sim.dog.vx = 0;
+    }
     function respawn(fell) {
       sim.stats.deaths++;
       emit(fell ? "fall" : "die", p.x, p.y);
-      // une chute coûte une vie (un cœur) ; à 0 cœur on repart avec tous les cœurs
-      if (fell) { if (!sim.relax) { p.hp -= 1; if (p.hp <= 0) p.hp = CFG.hpMax; } } else p.hp = CFG.hpMax;
+      // une chute coûte un cœur et ramène au dernier drapeau ; à 0 cœur (chute ou coups), tout recommence au début du niveau
+      if (fell && !sim.relax) p.hp -= 1;
+      if (!fell || p.hp <= 0) {
+        if (!fell || p.hp <= 0) { restartLevel(); return; }
+      }
       p.x = sim.cp.x; p.y = sim.cp.y; p.vx = 0; p.vy = 0; p.inv = 1.5; p.swing = 0;
     }
     function hurtPlayer(fromX, amount) {
@@ -455,9 +520,16 @@
       }
       for (i = 0; i < sim.checkpoints.length; i++) {
         var ck = sim.checkpoints[i];
-        if (!ck.on && p.x > ck.x) { ck.on = true; sim.cp = { x: ck.x, y: ck.y }; emit("checkpoint", ck.x, ck.y); }
+        if (!ck.on && p.x > ck.x && !(sim.secret && sim.secret.inRoom)) { ck.on = true; sim.cp = { x: ck.x, y: ck.y }; emit("checkpoint", ck.x, ck.y); }
       }
-      if (p.y > sim.h + 120) respawn(true);
+      var sec = sim.secret;
+      if (sec && sec.inRoom && overlap(pr, sec.exit)) { // le tuyau : retour dans le niveau, devant le dernier trou
+        sec.inRoom = false; teleport(sec.out); emit("secret-out", p.x, p.y);
+      }
+      if (p.y > sim.h + 120) {
+        if (sec && !sec.inRoom && p.x > sec.gapL - 10 && p.x < sec.gapR + 10) { sec.inRoom = true; sec.visits++; teleport(sec.spawn); emit("secret", p.x, p.y); }
+        else respawn(true);
+      }
       if (sim.terminal && !sim.finished && overlap(pr, sim.terminal)) { sim.finished = true; emit("finish", p.x, p.y); }
     }
 
@@ -466,9 +538,10 @@
       var n = Math.max(1, Math.ceil(dt / (1 / 120))), h = dt / n;
       for (var i = 0; i < n; i++) stepOnce(input || {}, h);
     };
-    sim.progress = function () { return clamp(p.x / sim.w, 0, 1); };
+    sim.progress = function () { var sc = sim.secret; return clamp((sc && sc.inRoom ? sc.gapL : p.x) / (sc ? sc.levelW : sim.w), 0, 1); };
     sim.nearestThreat = function () {
       var best = Infinity;
+      if (sim.secret && sim.secret.inRoom) return best;
       sim.enemies.forEach(function (e) { if (e.alive) best = Math.min(best, Math.abs(e.x - p.x) + Math.abs(e.y - p.y) * 0.5); });
       return best;
     };
@@ -501,11 +574,15 @@
       enemies: [], items: [], lock: null, goT: 0, stats: { deaths: 0, kills: 0, bits: 0, bitsTotal: 0 },
       terminal: { x: L - 40, y: (yMin + yMax) / 2 }, waves: waves, abilities: {}, shots: [], stars: []
     };
+    sim.coinsGot = {}; // « vague:rang » des ennemis dont la pièce est déjà prise
     sim.stats.bitsTotal = waves.reduce(function (n, w) { return n + w.spec.length; }, 0); // une pièce par ennemi vaincu
-    sim.crates = (def.crates || []).map(function (c, i) {
-      var block = c.kind === "block";
-      return { x: c.x, y: c.y, kind: block ? "block" : "crate", hp: block ? 999 : 2, w: block ? 44 : 32, d: 12, h: block ? 30 : 26, alive: true, drop: c.drop || null, hit: 0, idx: i };
-    });
+    function makeCrates() {
+      return (def.crates || []).map(function (c, i) {
+        var block = c.kind === "block";
+        return { x: c.x, y: c.y, kind: block ? "block" : "crate", hp: block ? 999 : 2, w: block ? 44 : 32, d: 12, h: block ? 30 : 26, alive: true, drop: c.drop || null, hit: 0, idx: i };
+      });
+    }
+    sim.crates = makeCrates();
     sim.stats.crates = 0;
     var p = sim.player = { x: 60, y: (yMin + yMax) / 2, jz: 0, vz: 0, facing: 1, hp: hpMax, hpMax: hpMax, inv: 0, atk: 0, atkCd: 0, combo: 0, comboT: 0, hitDone: false, air: false, star: 0, power: 0, throwCd: 0 };
     var prev = { jump: false, attack: false, throw: false, dog: false };
@@ -517,7 +594,7 @@
       w.spec.forEach(function (sp, i) {
         var kind = KINDS[sp[0]] || KINDS.grunt, left = sp[1] === "left";
         var e = {
-          kind: sp[0], x: left ? lock.l - 24 - i * 16 : lock.r + 24 + i * 16, y: yMin + 10 + ((i * 29 + w.idx * 13) % (yMax - yMin - 20)),
+          sid: w.idx + ":" + i, kind: sp[0], x: left ? lock.l - 24 - i * 16 : lock.r + 24 + i * 16, y: yMin + 10 + ((i * 29 + w.idx * 13) % (yMax - yMin - 20)),
           hp: kind.hp, maxHp: kind.hp, facing: left ? 1 : -1, cd: 0.8 + i * 0.25, wind: 0, hurt: 0, kb: 0, alive: true, w: 26, wave: w.idx, lunge: 0, lungeHit: false
         };
         sim.enemies.push(e);
@@ -537,15 +614,19 @@
       p.x += (p.x < e.x ? -1 : 1) * 14;
       if (p.hp <= 0) {
         sim.stats.deaths++; emit("die", p.x, p.y);
-        var w = waves.filter(function (q) { return q.started && !q.done; })[0];
-        p.hp = hpMax; p.inv = 1.5;
-        if (w) { // la vague recommence
-          sim.enemies = sim.enemies.filter(function (q) { return q.wave !== w.idx; });
-          sim.shots.length = 0;
-          p.x = sim.lock.l + 70; p.y = (yMin + yMax) / 2;
-          spawnWave(w);
-        }
+        restartLevel();
       }
+    }
+    /** Plus un seul cœur : toute l'arène recommence au début (vagues, caisses, pièces remises à zéro). */
+    function restartLevel() {
+      waves.forEach(function (w) { w.started = false; w.done = false; });
+      sim.enemies = []; sim.items = []; sim.shots = []; sim.stars = []; sim.lock = null; sim.goT = 0;
+      sim.crates = makeCrates();
+      sim.stats.kills = 0; sim.stats.crates = 0; // les pièces déjà gagnées (sim.coinsGot) restent gagnées
+      p.x = 60; p.y = (yMin + yMax) / 2; p.jz = 0; p.vz = 0; p.air = false; p.facing = 1; p.hp = hpMax; p.inv = 1.5;
+      p.atk = 0; p.atkCd = 0; p.combo = 0; p.comboT = 0; p.star = 0; p.power = 0; p.throwCd = 0;
+      sim.dog.x = p.x - 46; sim.dog.y = p.y; sim.dog.state = "follow"; sim.dog.cd = 0; sim.dog.vx = 0;
+      emit("restart", p.x, p.y);
     }
 
     /* ----- caisses : obstacles, cassables, butin ----- */
@@ -584,7 +665,7 @@
     }
     function damageEnemy(e, dmg, knock, stun) {
       e.hp -= dmg; e.hurt = stun; e.kb = knock; e.lunge = 0; e.wind = 0;
-      if (e.hp <= 0) { e.alive = false; sim.stats.kills++; sim.stats.bits++; emit("kill", e.x, e.y - 20); emit("bit", e.x, e.y - 30); if ((e.wave + sim.stats.kills) % 3 === 0) sim.items.push({ x: e.x, y: e.y, kind: "heart", got: false }); }
+      if (e.hp <= 0) { e.alive = false; sim.stats.kills++; emit("kill", e.x, e.y - 20); if (!sim.coinsGot[e.sid]) { sim.coinsGot[e.sid] = true; sim.stats.bits++; emit("bit", e.x, e.y - 30); } if ((e.wave + sim.stats.kills) % 3 === 0) sim.items.push({ x: e.x, y: e.y, kind: "heart", got: false }); }
       else emit("hit", e.x, e.y - 22);
     }
     function pickup(it) {

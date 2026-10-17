@@ -165,6 +165,26 @@
         return k.add([k.sprite("glow"), k.pos(x, BASE_Y), k.anchor("center"), k.scale(width, 0.17),
           k.color(rgb("#1a1040")), k.opacity(0.55), k.z(7)]);
       },
+      /**
+       * Laita attend assise devant l'OctoCat (face à lui) pendant qu'il cherche la solution. Quand il court vers le portail elle le suit ;
+       * quand il revient elle retourne s'asseoir à sa place. `octo` = le sprite de l'OctoCat, `ox` = sa place de départ.
+       */
+      laita: function (octo, ox) {
+        var homeX = ox + 84, dog = k.add([k.sprite("laita", { anim: "sit" }), k.pos(homeX, BASE_Y), k.anchor("bot"), k.scale(3), k.opacity(1), k.z(8.5)]);
+        var shade = this.shadow(homeX, 0.6), mode = "sit";
+        dog.flipX = true;
+        frameHooks.push(function () {
+          var dt = k.dt(), want = octo.pos.x > ox + 6 ? octo.pos.x - 56 : homeX, dx = want - dog.pos.x, step = 320 * dt;
+          if (Math.abs(dx) > step) { dog.pos.x += Math.sign(dx) * step; dog.flipX = dx < 0; if (mode !== "run") { mode = "run"; dog.play("run"); } }
+          else {
+            dog.pos.x = want;
+            if (mode !== "sit") { mode = "sit"; dog.play("sit"); }
+            dog.flipX = want === homeX ? true : octo.pos.x < dog.pos.x ? true : false;
+          }
+          dog.opacity = octo.opacity; shade.pos.x = dog.pos.x; shade.opacity = 0.5 * octo.opacity;
+        });
+        return dog;
+      },
       burst: function (x, y, colors, count) {
         for (var j = 0; j < count; j++) {
           (function (jj) {

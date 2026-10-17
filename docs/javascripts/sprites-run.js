@@ -77,6 +77,23 @@
   function laitaBuf(pose) {
     var b = new Buf(24, 16), BK = "#1d1d27", BK2 = "#34344a", WH = "#f6f6fb", WH2 = "#c9cde0", PK = "#ff7f9f", EYE = "#7a4220";
     var wag = pose === 1;
+    if (pose >= 4) { // assise de profil (regarde à droite) : pattes arrière repliées, pattes avant droites, tête haute
+      var up = pose === 5;
+      if (up) { b.line(3, 14, 1, 11, BK); b.line(4, 14, 2, 11, BK); b.set(1, 10, WH); b.set(2, 10, WH); }
+      else { b.line(2, 15, 6, 14, BK); b.line(2, 14, 6, 13, BK); b.set(1, 14, WH); b.set(1, 15, WH); }
+      b.ellipse(8, 11, 4.4, 4.2, BK); b.rect(9, 14, 4, 2, WH2);
+      b.ellipse(12.5, 9, 3.7, 5.4, BK); b.ellipse(14.2, 10.4, 2, 3.4, WH);
+      b.set(9, 8, BK2); b.set(10, 6, BK2); b.set(8, 9, BK2); b.set(11, 12, BK2); // poil ébouriffé
+      b.rect(13, 11, 2, 5, WH); b.rect(15, 12, 2, 4, WH2); b.set(13, 15, WH); b.set(14, 15, WH);
+      b.ellipse(15.5, 4, 3.7, 3.3, BK);
+      b.rect(15, 0, 2, 3, WH);
+      b.ellipse(18.6, 5.4, 2.5, 2, WH);
+      b.rect(19, 3, 2, 2, "#0b0b10");
+      b.rect(18, 6, 2, 3, PK); b.set(18, 8, "#e8587f");
+      b.set(16, 3, EYE); b.set(17, 3, EYE); b.set(16, 2, "#ffffff");
+      b.poly([[12.5, 1.2], [15, 0.8], [14.6, 6], [12.5, 7]], BK2); b.poly([[13, 1.8], [14.6, 1.5], [14.3, 5.6], [13, 6.2]], BK);
+      return b.outline(OUT);
+    }
     // queue (haute, ou un peu penchée quand elle remue), bout blanc
     if (wag) { b.line(3, 7, 1, 4, BK); b.line(4, 7, 2, 4, BK); b.set(1, 3, WH); b.set(2, 3, WH); }
     else { b.line(3, 7, 2, 3, BK); b.line(4, 7, 3, 3, BK); b.set(2, 2, WH); b.set(3, 2, WH); }
@@ -301,7 +318,7 @@
     k.loadSprite("candle", single(candleBuf()));
     k.loadSprite("bat", sheet([batBuf(true), batBuf(false)], 18, 14), { sliceX: 2, anims: { fly: { from: 0, to: 1, loop: true, speed: 8 } } });
     k.loadSprite("shuriken", single(shurikenBuf()));
-    k.loadSprite("laita", sheet([laitaBuf(0), laitaBuf(1), laitaBuf(2), laitaBuf(3)], 26, 18), { sliceX: 4, anims: { idle: { from: 0, to: 1, loop: true, speed: 3 }, run: { from: 2, to: 3, loop: true, speed: 14 } } });
+    k.loadSprite("laita", sheet([laitaBuf(0), laitaBuf(1), laitaBuf(2), laitaBuf(3), laitaBuf(4), laitaBuf(5)], 24, 16), { sliceX: 6, anims: { idle: { from: 0, to: 1, loop: true, speed: 3 }, run: { from: 2, to: 3, loop: true, speed: 14 }, sit: { from: 4, to: 5, loop: true, speed: 1.6 } } });
     k.loadSprite("slash", single(slashBuf()));
     k.loadSprite("crate", single(crateBuf(false)));
     k.loadSprite("crate2", single(crateBuf(true)));
@@ -312,4 +329,5 @@
   }
 
   window.OctoSprites.registerRun = registerRun;
+  window.OctoSprites.laitaBuf = laitaBuf; // (pour les contrôles visuels : dev/)
 })();
