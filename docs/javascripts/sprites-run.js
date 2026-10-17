@@ -301,7 +301,7 @@
     k.loadSprite("candle", single(candleBuf()));
     k.loadSprite("bat", sheet([batBuf(true), batBuf(false)], 18, 14), { sliceX: 2, anims: { fly: { from: 0, to: 1, loop: true, speed: 8 } } });
     k.loadSprite("shuriken", single(shurikenBuf()));
-    k.loadSprite("laita", sheet([laitaBuf(0), laitaBuf(1), laitaBuf(2), laitaBuf(3)], 26, 18), { sliceX: 4, anims: { idle: { from: 0, to: 1, loop: true, speed: 3 }, run: { from: 2, to: 3, loop: true, speed: 14 } } });
+    k.loadSprite("laita", sheet([laitaBuf(0), laitaBuf(1), laitaBuf(2), laitaBuf(3)], 24, 16), { sliceX: 4, anims: { idle: { from: 0, to: 1, loop: true, speed: 3 }, run: { from: 2, to: 3, loop: true, speed: 14 } } });
     k.loadSprite("slash", single(slashBuf()));
     k.loadSprite("crate", single(crateBuf(false)));
     k.loadSprite("crate2", single(crateBuf(true)));

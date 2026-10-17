@@ -22,7 +22,7 @@
     meleeReach: 38, whipReach: 52, swingTime: 0.28, swingCooldown: 0.34,
     shurikenSpeed: 330, shurikenLife: 0.9, shurikenCooldown: 0.3, shurikenMax: 2,
     starTime: 6, powerTime: 14, powerCooldown: 0.24, powerMax: 9, // cœur à pleine vie = invincibilité ; étoile des caisses = shuriken puissant
-    dogSpeed: 290, dogCooldown: 4.5, dogScare: 4, dogRange: 360 // Laita : course, attente entre deux appels, durée de la peur, portée de l'appel
+    dogSpeed: 290, dogCooldown: 9, dogScare: 4, dogRange: 360 // Laita : course, attente entre deux appels, durée de la peur, portée de l'appel
   };
 
   function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
@@ -34,7 +34,7 @@
    * state : "follow" | "charge" | "return" ; cd = attente avant le prochain appel.
    */
   function createDog(sim, p, emit) {
-    var d = { x: p.x - 24, y: p.y, face: 1, state: "follow", cd: 0, t: 0, chase: 0, target: null, vx: 0, immortal: true };
+    var d = { x: p.x - 46, y: p.y, face: 1, state: "follow", cd: 0, t: 0, chase: 0, target: null, vx: 0, immortal: true };
     function feetY(e) { return e.type === "flyer" ? e.y + 18 : e.y; } // une chauve-souris : Laita bondit vers elle
     function pick() {
       var best = null, bd = CFG.dogRange;
@@ -61,7 +61,7 @@
       if (d.state !== "follow" || d.cd > 0) return false;
       var e = pick();
       emit("bark", d.x, d.y - 12);
-      if (!e) { d.cd = 0.8; return false; }
+      if (!e) { d.cd = 1.5; return false; }
       d.state = "charge"; d.target = e; d.chase = 2.2;
       return true;
     };
@@ -80,7 +80,7 @@
           d.y += (ty - d.y) * (1 - Math.exp(-12 * dt));
           if ((Math.abs(tx - d.x) < 14 && Math.abs(ty - d.y) < 22) || d.chase <= 0) {
             if (scareAround()) { d.cd = CFG.dogCooldown; emit("bark", d.x, d.y - 12); }
-            else d.cd = 1.5;
+            else d.cd = 3;
             d.state = "return"; d.chase = 3;
           }
         }
@@ -91,9 +91,9 @@
         if (dist > 6) d.face = ox > 0 ? 1 : -1;
         d.y += oy * (1 - Math.exp(-10 * dt));
         if (dist < 34 && Math.abs(oy) < 24) d.state = "follow";
-        else if (d.chase <= 0 || dist > 900) { d.x = p.x - p.facing * 26; d.y = p.y; d.state = "follow"; }
+        else if (d.chase <= 0 || dist > 900) { d.x = p.x - p.facing * 46; d.y = p.y; d.state = "follow"; }
       } else {
-        var fx = p.x - p.facing * 26;
+        var fx = p.x - p.facing * 46;
         if (Math.abs(fx - d.x) > 520) { d.x = fx; d.y = p.y; }
         d.x += (fx - d.x) * (1 - Math.exp(-8 * dt));
         d.y += (p.y - d.y) * (1 - Math.exp(-7 * dt));
