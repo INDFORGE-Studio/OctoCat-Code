@@ -24,7 +24,7 @@
         { t: "down", n: 1 }, { t: "gap", n: 2 },
         { t: "flat", n: 5, spikes: [2], en: [4] },
         { t: "gap", n: 2 },
-        { t: "flat", n: 9, tough: [3], en: [7], candles: [5], cp: 0 },
+        { t: "flat", n: 9, tough: [3], dash: [7], candles: [5], cp: 0 },
         { t: "up", n: 2 }, { t: "flat", n: 6, spikes: [2, 3], bits: [4, 5] },
         { t: "down", n: 2 }, { t: "flat", n: 4, candles: [1] },
         { t: "end", n: 9 }

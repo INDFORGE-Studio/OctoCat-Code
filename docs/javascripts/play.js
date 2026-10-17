@@ -32,6 +32,12 @@
   function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
   /** La police canvas de KAPLAY n'a pas les accents : majuscules sans accents. */
   function plain(s) { return String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase(); }
+  /** Teinte 0..1 → couleur arc-en-ciel (saturation s, valeur 1), en hexadécimal. */
+  function rainbowHex(hue, s) {
+    var h6 = (((hue % 1) + 1) % 1) * 6, i = Math.floor(h6), f = h6 - i, q = 1 - s * f, t = 1 - s * (1 - f), p = 1 - s, rgb3;
+    rgb3 = [[1, t, p], [q, 1, p], [p, 1, t], [p, q, 1], [t, p, 1], [1, p, q]][i % 6];
+    return "#" + rgb3.map(function (v) { var n = Math.round(v * 255); return (n < 16 ? "0" : "") + n.toString(16); }).join("");
+  }
   function music() { return window.OctoMusic || { sfx: function () {}, setMood: function () {}, setBattle: function () {} }; }
 
   /* ---------- entrées : clavier + boutons tactiles ---------- */
@@ -136,7 +142,8 @@
     var ab = sim.abilities || {};
     var input = createInput(brawl);
     var host = document.querySelector(".octo-hero") || document.body;
-    var pad = createPad(host, input, brawl, !!ab.shuriken);
+    var hasPower = brawl && (run.crates || []).some(function (c) { return c.drop === "power"; });
+    var pad = createPad(host, input, brawl, !!ab.shuriken || hasPower);
     var skipBtn = null, ended = false, destroyed = false, endT = 0, time = 0, mt = 0, hurtFlash = 0;
 
     /* ----- décor ----- */
@@ -153,7 +160,7 @@
       };
     }
     var skyLayer = layer("sky", 0.04, function (cy) { return cy - VH / 2; }, 0, theme.skyTint || "#ffffff");
-    var landLayer = layer("land", 0.35, function (cy) { return cy + VH / 2 - 210; }, 1, theme.land);
+    var landLayer = layer(brawl && window.OctoSprites.cities[run.theme] ? "cityfar" : "land", 0.35, function (cy) { return cy + VH / 2 - 210; }, 1, theme.land);
     var clouds = [[40, 26, "cloud0", 5], [260, 54, "cloud1", 7], [430, 18, "cloud0", 4], [140, 80, "cloud1", 6]].map(function (c) {
       return { o: k.add([k.sprite(c[2]), k.pos(c[0], c[1]), k.scale(2), k.opacity(0.9), k.color(rgb(theme.skyTint || "#ffffff")), k.fixed(), k.z(0.5)]), x: c[0], sp: c[3] };
     });
@@ -164,14 +171,7 @@
 
     if (brawl) {
       var FLOOR_Y = 236;
-      k.add([k.rect(worldW + VW * 2, 200), k.pos(-VW, FLOOR_Y), k.color(rgb(theme.floor || "#4a3a58")), k.z(4)]);
-      for (var gx = -64, gi = 0; gx < worldW + 64; gx += 32, gi++) {
-        k.add([k.sprite("grass" + (gi % 3)), k.pos(gx, FLOOR_Y), k.scale(2), k.color(rgb(theme.tile)), k.z(4.1)]);
-      }
-      // joints de pavage
-      for (var px = 0; px < worldW + 64; px += 96) k.add([k.rect(2, 120), k.pos(px, FLOOR_Y + 36), k.color(rgb("#2a1f3a")), k.opacity(0.35), k.z(4.2)]);
-      k.add([k.rect(worldW + VW * 2, 2), k.pos(-VW, 300), k.color(rgb("#2a1f3a")), k.opacity(0.3), k.z(4.2)]);
-      props(function (i) { return { x: 90 + i * 150 + ((i * 53) % 40), y: FLOOR_Y + 6, z: 3.5 }; }, Math.floor(worldW / 150), 2.4);
+      buildCity(FLOOR_Y);
       terminalObj = k.add([k.sprite("terminal"), k.pos(sim.terminal.x, sim.terminal.y), k.anchor("bot"), k.scale(2), k.z(6 + sim.terminal.y / 400)]);
     } else {
       var solid = sim.solid, rowsN = solid.length, colsN = solid[0].length, tx, ty;
@@ -207,6 +207,13 @@
 
     shadow = k.add([k.sprite("glow"), k.pos(0, 0), k.anchor("center"), k.scale(0.7, 0.18), k.color(rgb("#1a1040")), k.opacity(0.55), k.z(5.9)]);
     player = k.add([k.sprite("octo", { anim: "idle" }), k.pos(sim.player.x, sim.player.y), k.anchor("bot"), k.scale(2), k.color(), k.opacity(1), k.z(9)]);
+    var rainbow = k.add([k.sprite("octo", { anim: "idle" }), k.pos(0, 0), k.anchor("bot"), k.scale(2), k.color(rgb("#ffffff")), k.opacity(0), k.z(9.05)]);
+    var aura = k.add([k.sprite("glow"), k.pos(0, 0), k.anchor("center"), k.scale(1.7), k.color(rgb("#ffffff")), k.opacity(0), k.z(8.9)]);
+    var stateY = brawl ? 32 : 48, starWas = false, trailT = 0;
+    var starTxt = k.add([k.text("INVINCIBLE", { size: 9, font: "monospace" }), k.pos(10, stateY), k.color(rgb("#ffffff")), k.opacity(0), k.fixed(), k.z(31)]);
+    var starBar = k.add([k.rect(60, 4), k.pos(10, stateY + 11), k.color(rgb("#ffffff")), k.opacity(0), k.fixed(), k.z(31)]);
+    var powTxt = k.add([k.text("SUPER SHURIKEN", { size: 9, font: "monospace" }), k.pos(10, stateY + 18), k.color(rgb("#ffd54a")), k.opacity(0), k.fixed(), k.z(31)]);
+    var powBar = k.add([k.rect(60, 4), k.pos(10, stateY + 29), k.color(rgb("#ffd54a")), k.opacity(0), k.fixed(), k.z(31)]);
 
     if (theme.wash) k.add([k.rect(VW + 100, VH + 100), k.pos(-50, -50), k.color(rgb(theme.wash[0])), k.opacity(theme.wash[1]), k.fixed(), k.z(28.2)]);
     k.add([k.sprite("vignette"), k.pos(0, 0), k.scale(VW / 600, VH / 250), k.fixed(), k.z(30)]);
@@ -226,7 +233,7 @@
       var S = settings();
       if (!S) return "";
       var f = function (a, n) { return S.hintFor(a, n); };
-      if (brawl) return f("left", 1) + "/" + f("right", 1) + "/" + f("up", 1) + "/" + f("down", 1) + ": BOUGER   " + f("jump", 1) + ": SAUTER   " + f("attack", 2) + ": FRAPPER";
+      if (brawl) return f("left", 1) + "/" + f("right", 1) + "/" + f("up", 1) + "/" + f("down", 1) + ": BOUGER   " + f("jump", 1) + ": SAUTER   " + f("attack", 2) + ": FRAPPER" + (hasPower ? "   " + f("throw", 2) + ": SHURIKEN (ETOILE)" : "");
       return f("left", 1) + "/" + f("right", 1) + ": BOUGER   " + f("jump", 1) + "/" + f("up", 1) + ": SAUTER   " + f("attack", 2) + ": ATTAQUER" +
         (ab.shuriken ? "   " + f("throw", 2) + ": SHURIKEN" : "") + (ab.doubleJump ? "   (DOUBLE SAUT)" : "");
     }
@@ -253,6 +260,45 @@
             if (age >= life) pcl.destroy();
           });
         })(j);
+      }
+    }
+
+    /** Rue de ville façon Double Dragon : façades (un sprite chacune), enseignes, trottoir, chaussée, lampadaires, voitures. */
+    function buildCity(FY) {
+      var Sp = window.OctoSprites, C = Sp.cities[run.theme] || Sp.cities.village, M = Sp.cityMeta, rnd = Sp.seeded(4001 + def.id * 17);
+      var span = worldW + VW * 2;
+      // trottoir (FY..FY+28), bordure, chaussée avec ligne axiale et joints du trottoir
+      k.add([k.rect(span, 28), k.pos(-VW, FY), k.color(rgb(C.walk)), k.z(4)]);
+      for (var jx = -VW; jx < worldW + VW; jx += 44) k.add([k.rect(1, 28), k.pos(jx, FY), k.color(rgb("#000000")), k.opacity(0.12), k.z(4.02)]);
+      k.add([k.rect(span, 3), k.pos(-VW, FY + 28), k.color(rgb("#d6d0e8")), k.z(4.05)]);
+      k.add([k.rect(span, 200), k.pos(-VW, FY + 31), k.color(rgb(C.road)), k.z(4)]);
+      for (var lx = -VW; lx < worldW + VW; lx += 64) k.add([k.rect(34, 2), k.pos(lx, 300), k.color(rgb("#e8d27a")), k.opacity(0.7), k.z(4.05)]);
+      // façades
+      var x = -110, bi = 0, lampX = [];
+      while (x < worldW + VW) {
+        var v = (bi + def.id) % 6, bw = M.widths[v] * 2, flip = bi % 3 === 2;
+        k.add([k.sprite("bld-" + run.theme + "-" + v), k.pos(x, FY), k.anchor("botleft"), k.scale(2), k.z(3.2)]);
+        if (bi % 2 === 0) { // enseigne néon au-dessus du rez-de-chaussée
+          var label = C.label[(bi / 2) % 3 | 0], sx = x + bw / 2, sy = FY - 74;
+          k.add([k.rect(label.length * 7 + 8, 12), k.pos(sx, sy), k.anchor("center"), k.color(rgb(C.dark)), k.opacity(0.85), k.z(3.5)]);
+          k.add([k.sprite("glow"), k.pos(sx, sy), k.anchor("center"), k.scale(label.length * 0.5, 0.5), k.color(rgb(C.win)), k.opacity(0.3), k.z(3.45)]);
+          k.add([k.text(label, { size: 8, font: "monospace" }), k.pos(sx, sy), k.anchor("center"), k.color(rgb(C.win)), k.z(3.6)]);
+        }
+        if (flip) lampX.push(x + bw + 3);
+        x += bw + 6 + Math.floor(rnd() * 8); bi++;
+      }
+      // mobilier urbain sur le trottoir : lampadaires (halo doux), poubelles, bouches d'incendie ; voitures le long de la bordure
+      for (var px = 110; px < worldW + 60; px += 215 + Math.floor(rnd() * 40)) {
+        k.add([k.sprite("lamp"), k.pos(px, FY + 20), k.anchor("bot"), k.scale(2), k.z(3.9)]);
+        k.add([k.sprite("glow"), k.pos(px + 6, FY - 36), k.anchor("center"), k.scale(2.6), k.color(rgb("#ffd27a")), k.opacity(0.22), k.z(3.85)]);
+      }
+      for (var bx = 60; bx < worldW; bx += 170 + Math.floor(rnd() * 90)) {
+        var pick = rnd() < 0.5;
+        k.add([k.sprite(pick ? "bin" : "hydrant"), k.pos(bx, FY + 22), k.anchor("bot"), k.scale(2), k.z(3.95)]);
+      }
+      var carCols = ["#ff8a8a", "#8ac8ff", "#ffe08a", "#b8f0b8", "#d8b8ff"];
+      for (var cx2 = 260, ci = 0; cx2 < worldW; cx2 += 520 + Math.floor(rnd() * 160), ci++) {
+        k.add([k.sprite("car"), k.pos(cx2, FY + 40), k.anchor("bot"), k.scale(2), k.color(rgb(carCols[ci % carCols.length])), k.z(3.97)]);
       }
     }
 
@@ -293,7 +339,7 @@
       });
     }
 
-    var SFX = { jump: "jump", djump: "djump", land: "land", swing: "swing", hit: "hit", kill: "kill", stomp: "stomp", hurt: "hurt", bit: "bit", heart: "heart", throw: "throw", checkpoint: "checkpoint", finish: "finish", candle: "hit", die: "hurt", fall: "hurt", wave: "hurt" };
+    var SFX = { jump: "jump", djump: "djump", land: "land", swing: "swing", hit: "hit", kill: "kill", stomp: "stomp", hurt: "hurt", bit: "bit", heart: "heart", throw: "throw", checkpoint: "checkpoint", finish: "finish", candle: "hit", die: "hurt", fall: "hurt", wave: "hurt", star: "star", power: "power", crate: "crate", "crate-hit": "crate-hit", shot: "shot", dash: "dash" };
 
     function handle(ev) {
       var m = music();
@@ -313,6 +359,11 @@
         case "heart": burst(ev.x, ev.y, ["#f85149", "#ffd6d6"], 8, 0.7); say("+ VIE", "#ff9aa0"); break;
         case "checkpoint": say("POINT DE CONTROLE", "#7ee787"); break;
         case "wave": say("ATTENTION !", "#f85149"); k.shake(5); break;
+        case "star": say("INVINCIBLE !", "#ffffff"); burst(ev.x, ev.y, ["#ff6a6a", "#ffd54a", "#7ee787", "#58a6ff", "#bc8cff"], 26, 1.1); k.shake(3); break;
+        case "power": say("SUPER SHURIKEN !", "#ffd54a"); burst(ev.x, ev.y, ["#ffd54a", "#fff4c2", "#ffffff"], 18, 0.9); break;
+        case "crate": burst(ev.x, ev.y - 10, ["#a1713b", "#d4a05a", "#5a3a1a", "#c9d1d9"], 18, 0.9); k.shake(3); break;
+        case "crate-hit": burst(ev.x, ev.y - 12, ["#d4a05a", "#a1713b"], 5, 0.6); break;
+        case "dash": burst(ev.x, ev.y + 10, ["#ffffff", "#a98bff"], 5, 0.5); break;
         case "clear": say("VAGUE VAINCUE", "#7ee787"); break;
         default: break;
       }
@@ -336,7 +387,7 @@
     k.camPos(cam.x, cam.y);
 
     /* ----- boucle ----- */
-    var ENEMY_TINT = { grunt: "#ffffff", fast: "#7ee0ff", heavy: "#ffb347", walker: "#ffffff", tough: "#ffb347" };
+    var ENEMY_TINT = { grunt: "#ffffff", fast: "#7ee0ff", heavy: "#ffb347", ninja: "#a98bff", slinger: "#8aee9a", walker: "#ffffff", tough: "#ffb347", hopper: "#8aee9a", dasher: "#ff7a9a" };
 
     function syncEnemies() {
       var seen = new Set();
@@ -347,7 +398,7 @@
         if (!o) {
           if (e.type === "flyer") o = k.add([k.sprite("bat", { anim: "fly" }), k.pos(e.x, e.y), k.anchor("center"), k.scale(2), k.z(8)]);
           else {
-            var sc = brawl ? (e.kind === "heavy" ? 2.8 : e.kind === "fast" ? 1.8 : 2.1) : (e.type === "tough" ? 1.9 : 1.5);
+            var sc = brawl ? (e.kind === "heavy" ? 2.8 : e.kind === "fast" ? 1.8 : e.kind === "ninja" ? 1.95 : 2.1) : (e.type === "tough" ? 1.9 : e.type === "dasher" ? 1.75 : e.type === "hopper" ? 1.4 : 1.5);
             o = k.add([k.sprite("glitch", { anim: "idle" }), k.pos(e.x, e.y), k.anchor("bot"), k.scale(sc), k.color(rgb(ENEMY_TINT[e.kind || e.type] || "#ffffff")), k.opacity(1), k.z(8)]);
             o.baseScale = sc;
           }
@@ -364,6 +415,8 @@
           } else {
             var wa = e.hurt > 0 ? "hurt" : "idle";
             if (o.__anim !== wa) { o.__anim = wa; o.play(wa); }
+            // le fonceur clignote avant de charger
+            if (e.type === "dasher") o.color = e.mode === "wind" && Math.floor(time * 18) % 2 ? rgb("#ffffff") : rgb(ENEMY_TINT.dasher);
           }
         }
       });
@@ -379,8 +432,12 @@
       cpObjs.forEach(function (c) { if (c.c.on) c.flag.color = rgb("#3fb950"); });
       // objets ramassables apparus en cours de partie (cœurs, bits des bougies)
       sim.items.forEach(function (it) {
-        if (!it.o) it.o = k.add([k.sprite("heart"), k.pos(it.x, it.y), k.anchor("center"), k.scale(1.6), k.z(6)]);
-        if (it.got && it.o.exists()) it.o.destroy();
+        if (!it.o) {
+          it.o = k.add([k.sprite(it.kind === "power" ? "power" : "heart"), k.pos(it.x, it.y), k.anchor("center"), k.scale(it.kind === "power" ? 1.5 : 1.6), k.z(6)]);
+          if (it.kind === "power") it.g = k.add([k.sprite("glow"), k.pos(it.x, it.y), k.anchor("center"), k.scale(1.3), k.color(rgb("#ffd54a")), k.opacity(0.35), k.z(5.9)]);
+        }
+        if (!it.got) { it.o.pos.y = it.y + Math.sin(t * 5 + it.x) * 2; if (it.g) { it.g.pos.y = it.o.pos.y; it.g.opacity = 0.28 + 0.1 * Math.sin(t * 8); } }
+        if (it.got) { if (it.o.exists()) it.o.destroy(); if (it.g && it.g.exists()) it.g.destroy(); }
       });
       sim.bits.forEach(function (b) {
         if (!b.o && !b.got && !bitObjs.some(function (q) { return q.b === b; })) {
@@ -393,17 +450,48 @@
       sim.shurikens.forEach(function (s) {
         live.add(s);
         var o = shurikenObjs.get(s);
-        if (!o) { o = k.add([k.sprite("shuriken"), k.pos(s.x, s.y), k.anchor("center"), k.scale(1.6), k.rotate(0), k.z(9.5)]); shurikenObjs.set(s, o); }
+        if (!o) { o = k.add([k.sprite("shuriken"), k.pos(s.x, s.y), k.anchor("center"), k.scale(s.power ? 2.3 : 1.6), k.color(rgb(s.power ? "#ffd54a" : "#ffffff")), k.rotate(0), k.z(9.5)]); shurikenObjs.set(s, o); }
         o.pos.x = s.x; o.pos.y = s.y; o.angle += 900 * k.dt();
       });
       shurikenObjs.forEach(function (o, s) { if (!live.has(s)) { o.destroy(); shurikenObjs.delete(s); } });
     }
 
+    var crateObjs = new Map(), starObjs = new Map(), shotObjs = new Map();
     function syncBrawlWorld() {
       sim.items.forEach(function (it) {
-        if (!it.o) it.o = k.add([k.sprite("heart"), k.pos(it.x, it.y - 6), k.anchor("center"), k.scale(1.8), k.z(6 + it.y / 400)]);
-        if (it.got && it.o.exists()) it.o.destroy();
+        if (!it.o) {
+          it.o = k.add([k.sprite(it.kind === "power" ? "power" : "heart"), k.pos(it.x, it.y - 6), k.anchor("center"), k.scale(it.kind === "power" ? 1.7 : 1.8), k.z(6 + it.y / 400)]);
+          if (it.kind === "power") it.g = k.add([k.sprite("glow"), k.pos(it.x, it.y - 8), k.anchor("center"), k.scale(1.5), k.color(rgb("#ffd54a")), k.opacity(0.35), k.z(5.9 + it.y / 400)]);
+        }
+        if (!it.got) { it.o.pos.y = it.y - 12 + Math.sin(time * 5 + it.x) * 2; if (it.g) { it.g.pos.y = it.o.pos.y; it.g.opacity = 0.28 + 0.1 * Math.sin(time * 8); } }
+        if (it.got) { if (it.o.exists()) it.o.destroy(); if (it.g && it.g.exists()) it.g.destroy(); }
       });
+      // caisses (cassables) et bennes (fixes) : obstacles du couloir
+      sim.crates.forEach(function (c) {
+        var o = crateObjs.get(c);
+        if (!c.alive) { if (o) { o.destroy(); crateObjs.delete(c); } return; }
+        if (!o) { o = k.add([k.sprite(c.kind === "block" ? "block" : "crate"), k.pos(c.x, c.y + c.d / 2), k.anchor("bot"), k.scale(2), k.z(6 + c.y / 400)]); o.__s = c.kind === "block" ? "block" : "crate"; crateObjs.set(c, o); }
+        var want = c.kind === "block" ? "block" : c.hp < 2 ? "crate2" : "crate";
+        if (o.__s !== want) { o.__s = want; o.use(k.sprite(want)); }
+        o.pos.x = c.x + (c.hit > 0 ? (Math.floor(time * 60) % 2 ? 2 : -2) : 0);
+      });
+      // étoiles-shurikens du joueur et bouteilles des lanceurs
+      var live = new Set();
+      sim.stars.forEach(function (st) {
+        live.add(st);
+        var o = starObjs.get(st);
+        if (!o) { o = k.add([k.sprite("shuriken"), k.pos(st.x, st.y - 18), k.anchor("center"), k.scale(2.2), k.color(rgb("#ffd54a")), k.rotate(0), k.z(9.6)]); starObjs.set(st, o); }
+        o.pos.x = st.x; o.pos.y = st.y - 18; o.angle += 900 * k.dt();
+      });
+      starObjs.forEach(function (o, st) { if (!live.has(st)) { o.destroy(); starObjs.delete(st); } });
+      var liveShots = new Set();
+      sim.shots.forEach(function (sh) {
+        liveShots.add(sh);
+        var o = shotObjs.get(sh);
+        if (!o) { o = k.add([k.sprite("bottle"), k.pos(sh.x, sh.y - 16), k.anchor("center"), k.scale(2), k.rotate(0), k.z(9.4)]); shotObjs.set(sh, o); }
+        o.pos.x = sh.x; o.pos.y = sh.y - 16; o.angle += 520 * k.dt() * (sh.vx > 0 ? 1 : -1);
+      });
+      shotObjs.forEach(function (o, sh) { if (!liveShots.has(sh)) { o.destroy(); shotObjs.delete(sh); } });
     }
 
     function finishRun() {
@@ -445,7 +533,25 @@
       else if (Math.abs(brawl ? 0 : p.vx) > 20 || (brawl && (input.get().left || input.get().right || input.get().up || input.get().down))) anim = "run";
       if (player.__anim !== anim) { player.__anim = anim; player.play(anim); }
       player.opacity = p.inv > 0 && Math.floor(time * 18) % 2 === 0 ? 0.35 : 1;
-      shadow.pos.x = p.x; shadow.pos.y = brawl ? p.y : p.y + 1; shadow.opacity = brawl ? 0.5 : (p.onGround ? 0.5 : 0.25);
+      shadow.pos.x = p.x; shadow.pos.y = brawl ? p.y - (p.air ? 0 : p.jz) : p.y + 1; shadow.opacity = brawl ? 0.5 : (p.onGround ? 0.5 : 0.25);
+      // invincibilité : l'OctoCat change de couleur en arc-en-ciel, laisse une traînée et clignote quand elle s'épuise
+      var starOn = p.star > 0;
+      if (starOn) {
+        var hue = (time * 1.7) % 1;
+        rainbow.color = rgb(rainbowHex(hue, 0.9)); rainbow.opacity = player.opacity * 0.62; rainbow.pos.x = player.pos.x; rainbow.pos.y = player.pos.y; rainbow.flipX = player.flipX;
+        if (rainbow.__anim !== player.__anim) { rainbow.__anim = player.__anim; rainbow.play(player.__anim || "idle"); }
+        aura.color = rgb(rainbowHex(hue + 0.45, 0.75)); aura.pos.x = p.x; aura.pos.y = py - 16; aura.opacity = 0.42 + 0.12 * Math.sin(time * 14);
+        trailT -= dt;
+        if (trailT <= 0) { trailT = 0.045; burst(p.x, py - 14, [rainbowHex(hue, 0.8), rainbowHex(hue + 0.33, 0.8), "#ffffff"], 2, 0.35); }
+        if (p.star < 1.6 && Math.floor(time * 10) % 2) { player.opacity = 0.5; rainbow.opacity = 0.3; }
+      } else if (starWas) { rainbow.opacity = 0; aura.opacity = 0; }
+      starWas = starOn;
+      var powerOn = p.power > 0 && !starOn;
+      if (powerOn) { aura.color = rgb("#ffd54a"); aura.pos.x = p.x; aura.pos.y = py - 16; aura.opacity = 0.22 + 0.08 * Math.sin(time * 9); } else if (!starOn) aura.opacity = 0;
+      starTxt.opacity = starOn ? 1 : 0; starBar.opacity = starOn ? 1 : 0;
+      if (starOn) { starBar.width = Math.max(1, 60 * p.star / Sim.CFG.starTime); starBar.color = rgb(rainbowHex(time * 1.7, 0.8)); starTxt.color = rgb(rainbowHex(time * 1.7 + 0.2, 0.6)); }
+      powTxt.opacity = p.power > 0 ? 1 : 0; powBar.opacity = p.power > 0 ? 1 : 0;
+      if (p.power > 0) powBar.width = Math.max(1, 60 * p.power / Sim.CFG.powerTime);
       if (light) { light.pos.x = p.x; light.pos.y = p.y - 24; light.opacity = 0.2 + 0.04 * Math.sin(time * 9); }
 
       syncEnemies();

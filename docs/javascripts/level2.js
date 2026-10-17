@@ -13,10 +13,21 @@
 
     run: {
       mode: "brawl", theme: "village", length: 1700,
+      crates: [
+        { x: 230, y: 292, kind: "crate" },
+        { x: 285, y: 322, kind: "crate", drop: "power" },
+        { x: 520, y: 285, kind: "block" },
+        { x: 700, y: 318, kind: "crate", drop: "heart" },
+        { x: 900, y: 300, kind: "crate", drop: "power" },
+        { x: 960, y: 275, kind: "crate" },
+        { x: 1000, y: 322, kind: "block" },
+        { x: 1380, y: 290, kind: "crate", drop: "heart" },
+        { x: 1450, y: 318, kind: "crate" }
+      ],
       waves: [
         { at: 420, enemies: [["grunt", "right"], ["grunt", "left"]] },
-        { at: 820, enemies: [["grunt", "right"], ["fast", "left"], ["grunt", "right"]] },
-        { at: 1260, enemies: [["fast", "right"], ["fast", "left"], ["grunt", "right"], ["grunt", "left"]] }
+        { at: 820, enemies: [["grunt", "right"], ["fast", "left"], ["ninja", "right"]] },
+        { at: 1260, enemies: [["fast", "right"], ["slinger", "left"], ["grunt", "right"], ["grunt", "left"]] }
       ]
     },
 

@@ -19,11 +19,11 @@
         { t: "flat", n: 9, candles: [5] },
         { t: "flat", n: 8, fly: [4], bits: [2, 3] },
         { t: "gap", n: 2 },
-        { t: "flat", n: 8, en: [3], candles: [6], cp: 1 },
+        { t: "flat", n: 8, en: [3], hop: [5], candles: [6], cp: 1 },
         { t: "flat", n: 7, spikes: [3], bits: [1, 2] },
         { t: "up", n: 1 }, { t: "flat", n: 7, tough: [3], candles: [1] },
         { t: "down", n: 1 }, { t: "gap", n: 2 },
-        { t: "flat", n: 9, fly: [3, 6], en: [8], cp: 0 },
+        { t: "flat", n: 9, fly: [3, 6], dash: [8], cp: 0 },
         { t: "up", n: 2 }, { t: "flat", n: 6, spikes: [2, 3], bits: [4] },
         { t: "down", n: 2 }, { t: "flat", n: 4, candles: [2] },
         { t: "end", n: 9 }

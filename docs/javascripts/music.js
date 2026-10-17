@@ -68,7 +68,8 @@
 
   /* ---------- moteur audio ---------- */
 
-  var ctx = null, master, analyser, padCalm, padFight, padAlert, drumBus, arpBus, noiseBuf;
+  // out = volume général (musique + effets) ; master = musique seule (♪ OFF la coupe) ; sfx = effets sonores (indépendants de la musique)
+  var ctx = null, out, sfx, master, analyser, padCalm, padFight, padAlert, drumBus, arpBus, noiseBuf;
   var running = false, muted = false, timer = null;
   var base = 0, spike = 0, tension = 0, fight = 0, battle = false;
   var step = 0, nextTime = 0;
@@ -90,10 +91,12 @@
     var AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return false;
     ctx = new AC();
-    master = ctx.createGain(); master.gain.value = 0;
+    out = ctx.createGain(); out.gain.value = 0;
+    master = ctx.createGain(); master.gain.value = 0; // la musique démarre en fondu (begin)
+    sfx = ctx.createGain(); sfx.gain.value = 1;
     var comp = ctx.createDynamicsCompressor();
     analyser = ctx.createAnalyser(); analyser.fftSize = 512;
-    master.connect(comp); comp.connect(analyser); analyser.connect(ctx.destination);
+    master.connect(out); sfx.connect(out); out.connect(comp); comp.connect(analyser); analyser.connect(ctx.destination);
 
     padCalm = ctx.createGain(); padFight = ctx.createGain(); padAlert = ctx.createGain();
     drumBus = ctx.createGain(); arpBus = ctx.createGain();
@@ -143,31 +146,46 @@
     o.type = type;
     o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
     g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.03);
+    o.connect(g); g.connect(sfx); o.start(t); o.stop(t + dur + 0.03);
+  }
+
+  /** Prépare l'audio pour les effets, même musique coupée (nécessite un geste préalable de l'utilisateur, déjà fait en jeu). */
+  function ensureCtx() {
+    if (!ctx && !init()) return false;
+    if (ctx.state === "suspended" && !document.hidden) ctx.resume();
+    if (out.gain.value < 0.001) out.gain.setValueAtTime(masterTarget(), ctx.currentTime); // premier effet : volume tout de suite
+    else out.gain.setTargetAtTime(masterTarget(), ctx.currentTime, 0.05);
+    return true;
   }
 
   var lastSfx = {};
   /** Effets sonores de jeu, synthétisés (aucun fichier) : jump, djump, land, bit, heart, hit, kill, stomp, hurt, swing, throw, checkpoint, finish. */
   function playSfx(name) {
-    if (!running || !ctx) return;
     if (window.OctoSettings && window.OctoSettings.get("sfx") === false) return;
+    if (!ensureCtx()) return;
     var t = ctx.currentTime;
     if (lastSfx[name] && t - lastSfx[name] < 0.04) return; // évite les rafales
     lastSfx[name] = t;
     switch (name) {
       case "jump": sweep("square", 240, 560, t, 0.14, 0.07); break;
       case "djump": sweep("square", 360, 820, t, 0.14, 0.07); break;
-      case "land": noise(t, 0.05, 0.05, "lowpass", 600, drumBus); break;
-      case "bit": tone("triangle", 988, t, 0.09, 0.09, master, 0.003); tone("triangle", 1319, t + 0.07, 0.16, 0.09, master, 0.003); break;
-      case "heart": [523, 659, 784].forEach(function (f, i) { tone("triangle", f, t + i * 0.07, 0.2, 0.09, master, 0.004); }); break;
-      case "swing": noise(t, 0.09, 0.07, "bandpass", 2600, drumBus); break;
-      case "hit": noise(t, 0.08, 0.12, "bandpass", 1400, drumBus); sweep("square", 220, 110, t, 0.09, 0.06); break;
-      case "kill": sweep("sawtooth", 400, 90, t, 0.22, 0.08); noise(t, 0.14, 0.09, "lowpass", 1800, drumBus); break;
+      case "land": noise(t, 0.05, 0.05, "lowpass", 600, sfx); break;
+      case "bit": tone("triangle", 988, t, 0.09, 0.09, sfx, 0.003); tone("triangle", 1319, t + 0.07, 0.16, 0.09, sfx, 0.003); break;
+      case "heart": [523, 659, 784].forEach(function (f, i) { tone("triangle", f, t + i * 0.07, 0.2, 0.09, sfx, 0.004); }); break;
+      case "swing": noise(t, 0.09, 0.07, "bandpass", 2600, sfx); break;
+      case "hit": noise(t, 0.08, 0.12, "bandpass", 1400, sfx); sweep("square", 220, 110, t, 0.09, 0.06); break;
+      case "kill": sweep("sawtooth", 400, 90, t, 0.22, 0.08); noise(t, 0.14, 0.09, "lowpass", 1800, sfx); break;
       case "stomp": sweep("square", 300, 120, t, 0.12, 0.09); break;
       case "hurt": sweep("sawtooth", 200, 70, t, 0.28, 0.12); break;
       case "throw": sweep("triangle", 1000, 500, t, 0.12, 0.07); break;
-      case "checkpoint": [392, 523, 659].forEach(function (f, i) { tone("triangle", f, t + i * 0.09, 0.3, 0.09, arpBus, 0.004); }); break;
-      case "finish": [523, 659, 784, 1047].forEach(function (f, i) { tone("triangle", f, t + i * 0.08, 0.5, 0.1, arpBus, 0.004); }); break;
+      case "checkpoint": [392, 523, 659].forEach(function (f, i) { tone("triangle", f, t + i * 0.09, 0.3, 0.09, sfx, 0.004); }); break;
+      case "star": [523, 659, 784, 1047, 1319, 1568].forEach(function (f, i) { tone("triangle", f, t + i * 0.06, 0.28, 0.1, sfx, 0.004); tone("square", f * 2, t + i * 0.06, 0.1, 0.03, sfx, 0.004); }); break;
+      case "power": [784, 988, 1175, 1568].forEach(function (f, i) { tone("sawtooth", f, t + i * 0.05, 0.14, 0.05, sfx, 0.004, 3000); }); break;
+      case "crate": noise(t, 0.12, 0.13, "bandpass", 900, sfx); sweep("square", 180, 80, t, 0.1, 0.07); break;
+      case "crate-hit": noise(t, 0.06, 0.09, "bandpass", 1200, sfx); break;
+      case "shot": sweep("triangle", 700, 350, t, 0.1, 0.05); break;
+      case "dash": noise(t, 0.16, 0.08, "bandpass", 2200, sfx); sweep("sawtooth", 200, 520, t, 0.16, 0.05); break;
+      case "finish": [523, 659, 784, 1047].forEach(function (f, i) { tone("triangle", f, t + i * 0.08, 0.5, 0.1, sfx, 0.004); }); break;
       default: break;
     }
   }
@@ -297,8 +315,9 @@
     ctx.resume();
     running = true;
     nextTime = ctx.currentTime + 0.1;
+    ensureCtx();
     master.gain.cancelScheduledValues(ctx.currentTime);
-    master.gain.setTargetAtTime(masterTarget(), ctx.currentTime, 0.8); // fondu d'entrée
+    master.gain.setTargetAtTime(1, ctx.currentTime, 0.8); // fondu d'entrée
     timer = window.setInterval(tick, EVERY);
   }
 
@@ -306,12 +325,12 @@
     if (!running) return;
     running = false;
     window.clearInterval(timer);
-    if (ctx) master.gain.setTargetAtTime(0, ctx.currentTime, 0.15);
+    if (ctx) master.gain.setTargetAtTime(0, ctx.currentTime, 0.15); // la musique seule : les effets restent audibles
   }
 
   document.addEventListener("visibilitychange", function () {
     if (!ctx) return;
-    if (document.hidden) ctx.suspend(); else if (running) ctx.resume();
+    if (document.hidden) ctx.suspend(); else ctx.resume();
   });
 
   var Music = {
@@ -363,7 +382,7 @@
     setVolume: function (v) {
       volume = clamp(+v || 0, 0, 1);
       try { window.localStorage.setItem(VOL_KEY, String(volume)); } catch { /* ignoré */ }
-      if (running && ctx) master.gain.setTargetAtTime(masterTarget(), ctx.currentTime, 0.05);
+      if (ctx) out.gain.setTargetAtTime(masterTarget(), ctx.currentTime, 0.05);
     },
     getVolume: function () { return volume; },
     state: function () {

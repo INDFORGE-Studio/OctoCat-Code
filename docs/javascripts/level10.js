@@ -16,11 +16,23 @@
     title: "L'Arène du Glitch Gardien",
     run: {
       mode: "brawl", theme: "arena", length: 1900, hpMax: 6,
+      crates: [
+        { x: 230, y: 290, kind: "crate" },
+        { x: 300, y: 320, kind: "crate", drop: "power" },
+        { x: 600, y: 285, kind: "block" },
+        { x: 660, y: 320, kind: "crate", drop: "heart" },
+        { x: 980, y: 300, kind: "crate", drop: "power" },
+        { x: 1040, y: 275, kind: "block" },
+        { x: 1130, y: 322, kind: "crate", drop: "heart" },
+        { x: 1400, y: 290, kind: "block" },
+        { x: 1460, y: 320, kind: "crate", drop: "power" },
+        { x: 1760, y: 300, kind: "crate", drop: "heart" }
+      ],
       waves: [
-        { at: 420, enemies: [["grunt", "right"], ["grunt", "left"], ["fast", "right"]] },
-        { at: 820, enemies: [["fast", "left"], ["fast", "right"], ["grunt", "right"], ["grunt", "left"]] },
-        { at: 1220, enemies: [["heavy", "right"], ["grunt", "left"], ["grunt", "right"]] },
-        { at: 1620, enemies: [["heavy", "left"], ["heavy", "right"], ["fast", "left"]] }
+        { at: 420, enemies: [["grunt", "right"], ["grunt", "left"], ["ninja", "right"]] },
+        { at: 820, enemies: [["fast", "left"], ["slinger", "right"], ["grunt", "right"], ["ninja", "left"]] },
+        { at: 1220, enemies: [["heavy", "right"], ["slinger", "left"], ["grunt", "left"], ["grunt", "right"]] },
+        { at: 1620, enemies: [["heavy", "left"], ["heavy", "right"], ["ninja", "left"], ["slinger", "right"]] }
       ]
     },
     alt: "Une arène : l'OctoCat à gauche fait face au Glitch Gardien, un gros monstre rouge, devant un portail verrouillé.",

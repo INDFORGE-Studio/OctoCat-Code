@@ -17,14 +17,14 @@
     run: {
       mode: "platform", theme: "temple", abilities: { doubleJump: true, shuriken: true },
       course: [
-        { t: "flat", n: 8, bits: [3, 4] },
-        { t: "up", n: 2 }, { t: "flat", n: 4, en: [2] },
-        { t: "up", n: 2 }, { t: "flat", n: 4, bits: [1, 2] },
+        { t: "flat", n: 8, bits: [3, 4], candles: [6] },
+        { t: "up", n: 2 }, { t: "flat", n: 4, hop: [2] },
+        { t: "up", n: 2 }, { t: "flat", n: 4, bits: [1, 2], candles: [3] },
         { t: "gap", n: 3 },
         { t: "flat", n: 5, fly: [2], cp: 0 },
         { t: "up", n: 3 }, { t: "flat", n: 5, en: [2], bits: [3, 4] },
         { t: "gap", n: 3 },
-        { t: "down", n: 2 }, { t: "flat", n: 7, en: [2, 5], fly: [4] },
+        { t: "down", n: 2 }, { t: "flat", n: 7, dash: [2], en: [5], fly: [4] },
         { t: "up", n: 2 }, { t: "flat", n: 4, bits: [1, 2] },
         { t: "up", n: 2 }, { t: "flat", n: 4, cp: 0 },
         { t: "gap", n: 3 }, { t: "down", n: 2 }, { t: "flat", n: 5 },
