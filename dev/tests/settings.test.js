@@ -28,7 +28,9 @@ test("réglages : touches par défaut (clavier AZERTY/QWERTY et souris)", () => 
   assert.equal(S.lookup("KeyW"), "up");
   assert.equal(S.lookup("KeyX"), "attack");
   assert.equal(S.lookup("Mouse0"), "attack");
-  assert.equal(S.lookup("Mouse2"), "throw");
+  assert.equal(S.lookup("Mouse2"), "dog");
+  assert.equal(S.lookup("KeyV"), "dog");
+  assert.equal(S.lookup("KeyC"), "throw");
   assert.equal(S.lookup("KeyP"), null);
 });
 
@@ -81,7 +83,8 @@ test("réglages : options typées (set refuse les mauvais types) et texte d'aide
   assert.equal(S.set("pad", "on"), true);
   assert.equal(S.hintFor("jump", 1), "ESPACE");
   assert.equal(S.hintFor("attack", 2), "CLIC GAUCHE/X");
-  assert.equal(S.hintFor("throw", 2), "CLIC DROIT/C");
+  assert.equal(S.hintFor("dog", 2), "CLIC DROIT/V");
+  assert.equal(S.hintFor("throw", 2), "C/K");
   assert.equal(S.hintFor("attack", 1), "CLIC GAUCHE");
   S.unbind("attack", "Mouse0");
   assert.equal(S.hintFor("attack", 2), "X/J");
@@ -184,4 +187,11 @@ test("pièces : elles passent dans le code de sauvegarde, valeurs hors limites r
   assert.equal(bad.importSave(JSON.stringify({ unlocked: 2, coins: -5, banked: { 99: 4 }, paid: { 1: "x" } })).ok, true);
   assert.equal(bad.coins(), 0);
   assert.equal(bad.paidHints(1), 0);
+});
+
+test("réglages : d'anciens réglages (clic droit = shuriken) passent à Laita sans perdre les autres touches", () => {
+  const { S } = load({ "octocat-code:settings:v1": JSON.stringify({ keys: { throw: ["KeyC", "Mouse2"], attack: ["KeyX"] }, sfx: false }) });
+  assert.equal(S.lookup("Mouse2"), "dog", "le clic droit appelle Laita");
+  assert.equal(S.lookup("KeyC"), "throw", "le shuriken garde sa touche du clavier");
+  assert.equal(S.get("sfx"), false, "les autres réglages sont gardés");
 });

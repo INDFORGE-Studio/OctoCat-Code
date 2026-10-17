@@ -185,6 +185,8 @@
       case "crate-hit": noise(t, 0.06, 0.09, "bandpass", 1200, sfx); break;
       case "shot": sweep("triangle", 700, 350, t, 0.1, 0.05); break;
       case "dash": noise(t, 0.16, 0.08, "bandpass", 2200, sfx); sweep("sawtooth", 200, 520, t, 0.16, 0.05); break;
+      case "bark": [0, 0.15].forEach(function (dt2) { sweep("sawtooth", 560, 300, t + dt2, 0.1, 0.075); noise(t + dt2, 0.05, 0.05, "bandpass", 1500, sfx); }); break;
+      case "scare": sweep("triangle", 500, 1100, t, 0.14, 0.06); sweep("triangle", 1100, 700, t + 0.14, 0.1, 0.05); break;
       case "finish": [523, 659, 784, 1047].forEach(function (f, i) { tone("triangle", f, t + i * 0.08, 0.5, 0.1, sfx, 0.004); }); break;
       default: break;
     }
