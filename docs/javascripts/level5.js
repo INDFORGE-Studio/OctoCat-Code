@@ -20,7 +20,7 @@
       mode: "platform", theme: "bridge", abilities: {},
       course: [
         { t: "flat", n: 9 },
-        { t: "flat", n: 5, en: [2], bits: [3, 4] },
+        { t: "flat", n: 5, hop: [2], bits: [3, 4] },
         { t: "gap", n: 2 }, { t: "flat", n: 4, bits: [1, 2] }, { t: "gap", n: 2 }, { t: "flat", n: 4, en: [1] }, { t: "gap", n: 2 },
         { t: "flat", n: 8, cp: 2, bits: [3, 4, 5] },
         { t: "up", n: 1 }, { t: "flat", n: 5, en: [2] }, { t: "down", n: 1 },

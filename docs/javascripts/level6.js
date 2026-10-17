@@ -16,11 +16,23 @@
 
     run: {
       mode: "brawl", theme: "market", length: 2000,
+      crates: [
+        { x: 240, y: 295, kind: "crate" },
+        { x: 330, y: 320, kind: "crate", drop: "heart" },
+        { x: 560, y: 280, kind: "block" },
+        { x: 640, y: 322, kind: "crate", drop: "power" },
+        { x: 1000, y: 300, kind: "block" },
+        { x: 1080, y: 272, kind: "crate" },
+        { x: 1150, y: 318, kind: "crate", drop: "heart" },
+        { x: 1450, y: 295, kind: "crate", drop: "power" },
+        { x: 1500, y: 322, kind: "crate" },
+        { x: 1850, y: 300, kind: "crate", drop: "heart" }
+      ],
       waves: [
-        { at: 450, enemies: [["grunt", "right"], ["grunt", "left"]] },
-        { at: 850, enemies: [["fast", "left"], ["fast", "right"], ["grunt", "right"]] },
-        { at: 1300, enemies: [["heavy", "right"], ["grunt", "left"]] },
-        { at: 1700, enemies: [["fast", "right"], ["fast", "left"], ["grunt", "right"], ["grunt", "left"]] }
+        { at: 450, enemies: [["grunt", "right"], ["ninja", "left"]] },
+        { at: 850, enemies: [["fast", "left"], ["slinger", "right"], ["grunt", "right"]] },
+        { at: 1300, enemies: [["heavy", "right"], ["ninja", "left"], ["grunt", "left"]] },
+        { at: 1700, enemies: [["slinger", "right"], ["fast", "right"], ["ninja", "left"], ["grunt", "left"]] }
       ]
     },
 

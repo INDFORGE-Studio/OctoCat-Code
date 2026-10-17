@@ -151,3 +151,133 @@ test("niveaux : le double saut est indispensable là où il est annoncé", () =>
     assert.equal(r.finished, false, `niveau ${id} : faisable sans double saut, la capacité ne sert à rien`);
   }
 });
+
+/* ---------- nouveautés : invincibilité (cœur à pleine vie), étoile-shuriken, caisses, ennemis variés ---------- */
+
+test("cœur : +1 vie, mais à pleine vie il donne l'invincibilité (les ennemis et les pics ne font plus rien)", () => {
+  const sim = S.createPlatform(S.buildCourse([{ t: "flat", n: 14, spikes: [8] }, { t: "end", n: 8 }]), {});
+  const p = sim.player;
+  sim.items.push({ x: p.x + 20, y: p.y - 10, kind: "heart", got: false });
+  run(sim, { right: true }, 0.5);
+  assert.ok(p.star > 0, "à pleine vie : invincible");
+  assert.equal(p.hp, S.CFG.hpMax);
+  assert.ok(sim.events.some((e) => e.t === "star"));
+  const x0 = p.x; run(sim, { right: true }, 2);
+  assert.ok(p.x > x0 + 100 && p.hp === S.CFG.hpMax, "traverse les pics sans dégât");
+  run(sim, idle, 8);
+  assert.equal(p.star <= 0, true, "l'invincibilité finit");
+  // à vie incomplète : un cœur soigne et n'invoque pas l'étoile
+  const sim2 = S.createPlatform(S.buildCourse([{ t: "flat", n: 14 }, { t: "end", n: 8 }]), {});
+  sim2.player.hp = 3; sim2.items.push({ x: sim2.player.x + 10, y: sim2.player.y - 10, kind: "heart", got: false });
+  run(sim2, { right: true }, 0.4);
+  assert.equal(sim2.player.hp, 4); assert.ok(sim2.player.star <= 0);
+});
+
+test("invincibilité : toucher un ennemi le terrasse", () => {
+  const sim = S.createPlatform(S.buildCourse([{ t: "flat", n: 12, en: [6] }, { t: "end", n: 8 }]), {});
+  sim.player.star = 5;
+  run(sim, { right: true }, 3);
+  assert.ok(sim.stats.kills >= 1);
+  assert.equal(sim.player.hp, S.CFG.hpMax);
+});
+
+test("étoile-shuriken : 3 en éventail, traversent les ennemis, 2 dégâts ; elle permet de lancer même sans la capacité", () => {
+  const sim = S.createPlatform(S.buildCourse([{ t: "flat", n: 16, tough: [8, 9] }, { t: "end", n: 8 }]), {});
+  const p = sim.player;
+  sim.step({ throw: true }, DT); sim.step({}, DT);
+  assert.equal(sim.shurikens.length, 0, "sans capacité ni étoile : rien");
+  p.power = 10;
+  sim.step({ throw: true }, DT);
+  assert.equal(sim.shurikens.length, 3);
+  assert.ok(sim.shurikens.every((s) => s.power));
+  assert.ok(new Set(sim.shurikens.map((s) => s.vy)).size === 3, "éventail");
+  run(sim, { throw: false }, 1.2);
+  const hurt = sim.enemies.filter((e) => !e.alive || e.hp < 2);
+  assert.ok(hurt.length >= 1, "touche des ennemis");
+});
+
+test("bougies : dans les niveaux avec shuriken, une bougie sur trois laisse tomber l'étoile-shuriken", () => {
+  const sim = S.createPlatform(S.buildCourse([{ t: "flat", n: 14, candles: [4, 8, 11] }, { t: "end", n: 8 }]), { shuriken: true });
+  sim.candles.forEach((c) => { c.alive = true; });
+  sim.player.x = 4 * 32 + 16 - 20; // 2e bougie = indice 1 : on la casse directement
+  const second = sim.candles[1];
+  sim.player.x = second.x - 20; sim.player.y = second.y; sim.player.facing = 1;
+  sim.step({ attack: true }, DT); run(sim, { attack: true }, 0.4);
+  assert.equal(second.alive, false);
+  assert.ok(sim.items.some((i) => i.kind === "power"), "étoile-shuriken");
+});
+
+test("brawl : les caisses bloquent, se cassent en deux coups et laissent leur butin ; la benne résiste", () => {
+  const def = { length: 1200, waves: [], crates: [{ x: 200, y: 297, kind: "crate", drop: "power" }, { x: 400, y: 297, kind: "block" }] };
+  const sim = S.createBrawl(def, 600);
+  sim.player.x = 150; sim.player.y = 297;
+  run(sim, { right: true }, 1.5);
+  assert.ok(sim.player.x < 200, `bloqué par la caisse : x=${sim.player.x}`);
+  run(sim, { attack: true }, 0.01);
+  for (let i = 0; i < 4; i++) { run(sim, { attack: true }, 0.2); run(sim, idle, 0.2); }
+  assert.equal(sim.crates[0].alive, false, "caisse cassée");
+  assert.ok(sim.items.some((i) => i.kind === "power"), "butin");
+  sim.player.x = 330; sim.player.y = 297;
+  run(sim, { right: true }, 1);
+  assert.ok(sim.player.x < 400, "la benne bloque");
+  for (let i = 0; i < 5; i++) { run(sim, { attack: true }, 0.2); run(sim, idle, 0.2); }
+  assert.equal(sim.crates[1].alive, true, "la benne ne se casse pas");
+});
+
+test("brawl : on saute sur une caisse et on peut en redescendre ; les ennemis contournent", () => {
+  const def = { length: 1200, waves: [], crates: [{ x: 200, y: 297, kind: "crate" }] };
+  const sim = S.createBrawl(def, 600);
+  sim.player.x = 170; sim.player.y = 297;
+  sim.step({ jump: true, right: true }, DT);
+  run(sim, { right: true }, 0.5);
+  assert.ok(sim.player.jz >= 20 || sim.player.x > 215, "sur la caisse ou passé par-dessus");
+  run(sim, { right: true }, 1.5);
+  assert.equal(sim.player.jz, 0, "redescendu");
+});
+
+test("brawl : cœur à pleine vie = invincibilité ; l'étoile-shuriken lance des étoiles qui traversent", () => {
+  const def = { length: 1200, waves: [{ at: 300, enemies: [["grunt", "right"], ["grunt", "right"]] }] };
+  const sim = S.createBrawl(def, 600);
+  sim.items.push({ x: sim.player.x + 10, y: sim.player.y, kind: "heart", got: false });
+  run(sim, idle, 0.2);
+  assert.ok(sim.player.star > 0);
+  sim.items.push({ x: sim.player.x, y: sim.player.y, kind: "power", got: false });
+  run(sim, idle, 0.2);
+  assert.ok(sim.player.power > 0);
+  sim.step({ throw: true }, DT);
+  assert.equal(sim.stars.length, 3);
+});
+
+test("ennemis : le lanceur tire des bouteilles, le ninja bondit, le sauteur saute, le fonceur charge, la chauve-souris pique", () => {
+  // lanceur
+  let sim = S.createBrawl({ length: 1500, waves: [{ at: 100, enemies: [["slinger", "right"]] }] }, 600);
+  sim.player.x = 120; sim.player.hp = 6;
+  let shots = 0, hurt = false;
+  for (let t = 0; t < 8; t += DT) { sim.step({}, DT); shots = Math.max(shots, sim.shots.length); if (sim.player.hp < 6) hurt = true; sim.player.y = sim.enemies[0] ? sim.enemies[0].y : sim.player.y; }
+  assert.ok(shots >= 1, "des bouteilles volent");
+  // ninja
+  sim = S.createBrawl({ length: 1500, waves: [{ at: 100, enemies: [["ninja", "right"]] }] }, 600);
+  sim.player.x = 110; let dashed = false;
+  for (let t = 0; t < 6; t += DT) { sim.step({}, DT); if (sim.events.some((e) => e.t === "dash")) dashed = true; sim.events.length = 0; if (sim.enemies[0]) sim.player.y = sim.enemies[0].y; }
+  assert.ok(dashed || hurt, "le ninja bondit");
+  // sauteur, fonceur
+  sim = S.createPlatform(S.buildCourse([{ t: "flat", n: 14, hop: [9] }, { t: "end", n: 8 }]), {});
+  let hopped = false;
+  sim.player.x = 8 * 32; for (let t = 0; t < 3; t += DT) { sim.step({}, DT); if (sim.enemies[0].vy < -100) hopped = true; }
+  assert.ok(hopped, "le sauteur bondit vers le joueur");
+  sim = S.createPlatform(S.buildCourse([{ t: "flat", n: 16, dash: [11] }, { t: "end", n: 8 }]), {});
+  sim.player.x = 6 * 32; let charged = false;
+  for (let t = 0; t < 4; t += DT) { sim.step({}, DT); if (sim.enemies[0].mode === "dash") charged = true; }
+  assert.ok(charged, "le fonceur charge");
+  sim = S.createPlatform(S.buildCourse([{ t: "flat", n: 14, fly: [9] }, { t: "end", n: 8 }]), {});
+  sim.player.x = 8 * 32; let dove = false;
+  for (let t = 0; t < 5; t += DT) { sim.step({}, DT); if (sim.enemies[0].mode === "dive") dove = true; }
+  assert.ok(dove, "la chauve-souris pique");
+});
+
+test("mode détente : ni dégâts des ennemis, ni des bouteilles", () => {
+  const sim = S.createBrawl({ length: 1500, waves: [{ at: 100, enemies: [["grunt", "right"], ["slinger", "left"]] }] }, 600);
+  sim.relax = true; sim.player.x = 120;
+  for (let t = 0; t < 12; t += DT) { sim.step({}, DT); if (sim.enemies[0]) sim.player.y = sim.enemies[0].y; }
+  assert.equal(sim.player.hp, sim.player.hpMax);
+});
