@@ -275,6 +275,25 @@ html.octo-fs-on .octo-fs .octo-canvas {
 }
 .octo-mute:hover { border-color: var(--octo-green); }
 
+/* Choix du costume (accueil, à gauche du bouton du son, une fois plus de 499 pièces gagnées). */
+.octo-skin { position: relative; }
+.octo-skin__toggle { color: #ffe08a; border-color: #8a6d1f; font-size: 1.05em; }
+.octo-skin__label { font-size: 0.7em; vertical-align: 0.1em; }
+.octo-skin__toggle:hover, .octo-skin.is-open .octo-skin__toggle { border-color: #ffe08a; }
+.octo-skin__panel {
+  display: none; position: absolute; top: calc(100% + 6px); right: 0; z-index: 6; flex-direction: column; gap: 4px; min-width: 15em;
+  padding: 10px; border: 2px solid #ffe08a; border-radius: 6px; background: rgba(13, 17, 23, 0.96);
+}
+.octo-skin.is-open .octo-skin__panel { display: flex; }
+.octo-skin__head { color: #ffe08a; font: 0.62em/1.4 var(--octo-pixel, monospace); padding: 2px 4px 6px; white-space: nowrap; }
+.octo-skin__row {
+  text-align: left; padding: 0.6em 0.8em; border: 1px solid transparent; border-radius: 4px; background: transparent; color: #e6edf3;
+  font: 0.7em/1.3 var(--octo-pixel, monospace); cursor: pointer; min-height: 40px; white-space: nowrap;
+}
+.octo-skin__row:hover, .octo-skin__row:focus-visible { border-color: #ffe08a; background: rgba(227, 179, 65, 0.14); outline: none; }
+.octo-skin__row.is-on { color: #ffe08a; }
+@media (max-width: 1000px), (max-height: 520px) { .octo-skin__label { display: none; } }
+
 /* Tactile et mobiles : pas de défilement élastique, pas de zoom au double toucher, pas de surbrillance au toucher. */
 html:has(.octo-fs), body:has(.octo-fs) { overscroll-behavior: none; }
 .octo-fs { touch-action: manipulation; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
