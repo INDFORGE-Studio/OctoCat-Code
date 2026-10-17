@@ -8,7 +8,6 @@
 
   window.gameEngine.registerLevel({
     id: 3,
-    zone: 1,
     mood: 0.2,
     title: "La Mine des Opérations",
     alt: "Une mine : un ascenseur chargé de caisses mène vers le portail.",

@@ -8,7 +8,6 @@
 
   window.gameEngine.registerLevel({
     id: 4,
-    zone: 1,
     mood: 0.3,
     title: "Le Dojo des Torches",
     alt: "Un dojo : une porte à runes, deux lampes et un portail.",

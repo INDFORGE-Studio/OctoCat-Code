@@ -13,7 +13,6 @@
 
   window.gameEngine.registerLevel({
     id: 5,
-    zone: 1,
     mood: 0.25, // musique : joyeuse, avec une légère alerte (le pont s'effondre)
     title: "Le Pont des Booléens",
     run: {

@@ -44,17 +44,50 @@ def site_base_path(config: Path) -> str:
     return path if path.endswith("/") else path + "/"
 
 
+def prune_unused_theme_assets(site: Path, pages: list[Path], base: str) -> int:
+    """Delete the theme files (Material scripts, search workers, stylesheets, source maps) that no built page loads.
+
+    The game pages only load our own CSS and scripts; the theme still copies its whole `assets/` folder, which
+    would otherwise be published (and precached by the service worker) for nothing. Anything a page still
+    references is kept, and the self-contained check that runs afterwards would fail on a missing file."""
+    used: set[Path] = set()
+    for page in pages:
+        for url in loaded_resources(page.read_text(encoding="utf-8")):
+            path = unquote(urlparse(url).path)
+            if path.startswith("/"):
+                path = path[len(base):] if path.startswith(base) else path.lstrip("/")
+                used.add((site / path.lstrip("/")).resolve())
+            else:
+                used.add((page.parent / path).resolve())
+    removed = 0
+    for folder in ("assets/javascripts", "assets/stylesheets", "assets/images", "search"):
+        root = site / folder
+        if not root.exists():
+            continue
+        for f in sorted(root.rglob("*")):
+            if f.is_file() and f.resolve() not in used:
+                f.unlink()
+                removed += 1
+        for d in sorted((p for p in root.rglob("*") if p.is_dir()), reverse=True):
+            if not any(d.iterdir()):
+                d.rmdir()
+        if not any(root.iterdir()):
+            root.rmdir()
+    return removed
+
+
 def stamp_service_worker(site: Path) -> list[str]:
     """Write the precache list and a content-hash version into sw.js; return problems (empty = OK).
 
-    Every built file except the worker itself, the 404 page, sitemaps and source maps is precached, so
+    Every built file except the worker itself, the 404 page, sitemaps, source maps and the social share image is precached, so
     the whole game is stored in the player's browser at first visit (instant loads, offline play)."""
     sw = site / "sw.js"
     if not sw.exists():
         return ["sw.js missing from the build"]
     skip = {"sw.js", "404.html"}
     files = sorted(p for p in site.rglob("*") if p.is_file() and p.name not in skip
-                   and not p.name.startswith("sitemap") and p.suffix != ".map")
+                   and not p.name.startswith("sitemap") and p.suffix != ".map"
+                   and not p.name.startswith("social-card"))  # l'image de partage sert aux réseaux sociaux, pas au jeu hors ligne
     urls = ["./"] + [p.relative_to(site).as_posix() for p in files if p.name != "index.html" or p.parent != site]
     digest = hashlib.sha256()
     for p in files:
@@ -77,6 +110,10 @@ def main(root: str) -> int:
     if not pages:
         print(f"postbuild: no HTML found in {site}")
         return 1
+
+    removed = prune_unused_theme_assets(site, pages, base)
+    if removed:
+        print(f"postbuild: removed {removed} unused theme files (scripts, styles, search, source maps)")
 
     errors: set[str] = set()
     for page in pages:

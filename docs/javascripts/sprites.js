@@ -72,15 +72,29 @@
     this.d = out;
     return this;
   };
+  var COLOR_CACHE = {};
+  /** « #rrggbb » / « #rgb » / « #rrggbbaa » -> [r, g, b, a] (mémorisé) ; null si le format est inconnu. */
+  function rgba(c) {
+    var v = COLOR_CACHE[c];
+    if (v !== undefined) return v;
+    var m = /^#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.exec(c), h;
+    if (!m) return (COLOR_CACHE[c] = null);
+    h = m[1];
+    if (h.length <= 4) h = h.replace(/./g, "$&$&");
+    return (COLOR_CACHE[c] = [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16), h.length === 8 ? parseInt(h.slice(6, 8), 16) : 255]);
+  }
+  /** Écrit les pixels d'un seul coup dans un ImageData (bien plus rapide qu'un fillRect par pixel). */
   Buf.prototype.draw = function (ctx, ox, oy) {
-    for (var y = 0; y < this.h; y++) {
-      for (var x = 0; x < this.w; x++) {
-        var c = this.d[y * this.w + x];
-        if (!c) continue;
-        ctx.fillStyle = c;
-        ctx.fillRect(ox + x, oy + y, 1, 1);
-      }
+    var img = ctx.createImageData(this.w, this.h), px = img.data, odd = null, n = this.w * this.h, i, c, v;
+    for (i = 0; i < n; i++) {
+      c = this.d[i];
+      if (!c) continue;
+      v = rgba(c);
+      if (v) { px[i * 4] = v[0]; px[i * 4 + 1] = v[1]; px[i * 4 + 2] = v[2]; px[i * 4 + 3] = v[3]; }
+      else (odd = odd || []).push(i); // format de couleur inhabituel : repli sur fillRect
     }
+    ctx.putImageData(img, ox, oy);
+    if (odd) odd.forEach(function (j) { ctx.fillStyle = this.d[j]; ctx.fillRect(ox + (j % this.w), oy + Math.floor(j / this.w), 1, 1); }, this);
   };
 
   function makeCanvas(w, h) {
@@ -99,13 +113,13 @@
   function sheet(frames, w, h) {
     var cv = makeCanvas(w * frames.length, h);
     frames.forEach(function (b, i) { b.draw(cv.ctx, i * w, 0); });
-    return cv.c.toDataURL();
+    return cv.c; // KAPLAY accepte directement un canevas : pas d'encodage PNG puis de décodage au démarrage
   }
 
   function single(buf) {
     var cv = makeCanvas(buf.w, buf.h);
     buf.draw(cv.ctx, 0, 0);
-    return cv.c.toDataURL();
+    return cv.c;
   }
 
   /* ====================================================================
@@ -677,8 +691,8 @@
       d.ctx.fillStyle = "#6a4757";
       for (i = 0; i < 4; i++) d.ctx.fillRect(Math.floor(rnd() * 13), Math.floor(rnd() * 14), 3, 1);
       d.ctx.fillStyle = "#4a2f3f"; d.ctx.fillRect(Math.floor(rnd() * 12), Math.floor(rnd() * 12), 2, 2);
-      out["grass" + v] = g.c.toDataURL();
-      out["dirt" + v] = d.c.toDataURL();
+      out["grass" + v] = g.c;
+      out["dirt" + v] = d.c;
     }
     return out;
   }
@@ -689,7 +703,7 @@
     var g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
     g.addColorStop(0, inner); g.addColorStop(stop == null ? 1 : stop, outer);
     ctx.fillStyle = g; ctx.fillRect(0, 0, size, size);
-    return cv.c.toDataURL();
+    return cv.c;
   }
 
   function vignetteSprite() {
@@ -698,7 +712,7 @@
     var g = ctx.createRadialGradient(300, 125, 120, 300, 125, 380);
     g.addColorStop(0, "rgba(26,16,64,0)"); g.addColorStop(1, "rgba(26,16,64,0.42)");
     ctx.fillStyle = g; ctx.fillRect(0, 0, 600, 250);
-    return cv.c.toDataURL();
+    return cv.c;
   }
 
   /* ====================================================================

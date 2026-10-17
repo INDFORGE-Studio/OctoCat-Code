@@ -6,7 +6,6 @@
 
   window.gameEngine.registerLevel({
     id: 2,
-    zone: 1,
     mood: 0.1,
     title: "Le Village des Chaînes",
     alt: "Un village : le portier Glitch garde une palissade devant le portail.",

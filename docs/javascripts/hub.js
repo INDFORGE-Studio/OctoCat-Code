@@ -7,6 +7,7 @@
   "use strict";
 
   var S = 3;
+  var CARD = window.location.search.indexOf("card=1") >= 0; // lu au chargement : le moteur nettoie l'adresse dès l'arrivée sur l'accueil
 
   function nextTarget(root) {
     var P = window.OctoProgress, levels = P.levels, state = P.get(), target = null, i;
@@ -47,15 +48,17 @@
       try { tw = k.formatText({ text: promptTxt, size: fsz(12), font: "monospace" }).width; } catch { tw = 0; }
       if (!tw || !isFinite(tw)) tw = promptTxt.length * fsz(12) * 0.62;
       var pw = Math.min(VW - 12, tw + 34 * fit), ph = 20 * Math.max(0.85, fit), py = tagY + 28 * fit;
-      k.add([k.rect(pw, ph), k.pos(cx, py), k.anchor("center"), k.color(rgb("#150c33")), k.opacity(0.88), k.fixed(), k.z(30.6)]);
-      k.add([k.rect(pw, 1), k.pos(cx, py - ph / 2), k.anchor("center"), k.color(rgb("#ffe08a")), k.opacity(0.9), k.fixed(), k.z(30.7)]);
-      k.add([k.rect(pw, 1), k.pos(cx, py + ph / 2), k.anchor("center"), k.color(rgb("#ffe08a")), k.opacity(0.9), k.fixed(), k.z(30.7)]);
-      var promptShadow = k.add([k.text(promptTxt, { size: fsz(12), font: "monospace" }), k.pos(cx + 1, py + 2), k.anchor("center"), k.color(rgb("#000000")), k.opacity(0.8), k.fixed(), k.z(31.9)]);
-      var prompt = k.add([k.text(promptTxt, { size: fsz(12), font: "monospace" }), k.pos(cx, py + 1), k.anchor("center"), k.color(rgb("#ffe08a")), k.fixed(), k.z(32)]);
+      k.add([k.rect(pw, ph), k.pos(cx, py), k.anchor("center"), k.color(rgb("#150c33")), k.opacity(0.88), k.fixed(), k.z(30.6), "hudchrome"]);
+      k.add([k.rect(pw, 1), k.pos(cx, py - ph / 2), k.anchor("center"), k.color(rgb("#ffe08a")), k.opacity(0.9), k.fixed(), k.z(30.7), "hudchrome"]);
+      k.add([k.rect(pw, 1), k.pos(cx, py + ph / 2), k.anchor("center"), k.color(rgb("#ffe08a")), k.opacity(0.9), k.fixed(), k.z(30.7), "hudchrome"]);
+      var promptShadow = k.add([k.text(promptTxt, { size: fsz(12), font: "monospace" }), k.pos(cx + 1, py + 2), k.anchor("center"), k.color(rgb("#000000")), k.opacity(0.8), k.fixed(), k.z(31.9), "hudchrome"]);
+      var prompt = k.add([k.text(promptTxt, { size: fsz(12), font: "monospace" }), k.pos(cx, py + 1), k.anchor("center"), k.color(rgb("#ffe08a")), k.fixed(), k.z(32), "hudchrome"]);
       k.add([k.text("NIVEAUX TERMINES : " + done + "/" + P.levels.length, { size: 10, font: "monospace" }), k.pos(10, 8),
-        k.color(rgb("#f0f6fc")), k.fixed(), k.z(32)]);
+        k.color(rgb("#f0f6fc")), k.fixed(), k.z(32), "hudchrome"]);
       var fin = P.get().finished, tourTxt = fin ? "JEU TERMINE - " + P.LAPS + "/" + P.LAPS + " TOURS" : "TOUR " + Math.min(P.LAPS, P.laps() + 1) + "/" + P.LAPS + " - " + P.lang().toUpperCase();
-      k.add([k.text(tourTxt, { size: 9, font: "monospace" }), k.pos(10, 22), k.color(rgb(fin ? "#ffe08a" : "#a5d6ff")), k.fixed(), k.z(32)]);
+      k.add([k.text(tourTxt, { size: 9, font: "monospace" }), k.pos(10, 22), k.color(rgb(fin ? "#ffe08a" : "#a5d6ff")), k.fixed(), k.z(32), "hudchrome"]);
+
+      if (CARD) k.get("hudchrome").forEach(function (o) { o.destroy(); }); // image de partage (dev/social.mjs) : l'accueil sans invite ni compteurs
 
       // ----- l'OctoCat patrouille -----
       var shadow = sc.shadow(80, 0.85);
@@ -74,7 +77,7 @@
 
       sc.onFrame(function (t) {
         if (logo) logo.update(t);
-        prompt.opacity = 0.8 + 0.2 * Math.abs(Math.sin(t * 2.6));
+        if (prompt.exists()) prompt.opacity = 0.8 + 0.2 * Math.abs(Math.sin(t * 2.6));
         shadow.pos.x = octo.pos.x;
         shadow.opacity = 0.6 * octo.opacity;
         laitaShadow.pos.x = laita.pos.x; laitaShadow.opacity = 0.5 * octo.opacity; laita.opacity = octo.opacity;

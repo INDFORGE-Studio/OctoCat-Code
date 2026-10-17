@@ -9,7 +9,6 @@
 
   window.gameEngine.registerLevel({
     id: 8,
-    zone: 1,
     mood: 0.3,
     title: "Le Temple des Cumuls",
     alt: "Un temple : un escalier dont chaque marche porte plus de pièces que la précédente.",

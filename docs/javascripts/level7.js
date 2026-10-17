@@ -8,7 +8,6 @@
 
   window.gameEngine.registerLevel({
     id: 7,
-    zone: 1,
     mood: 0.25,
     title: "La Forge des Répétitions",
     alt: "Une forge : une enclume, un râtelier d'épées et un portail.",
