@@ -454,3 +454,17 @@ test("niveau 8 : fin en grotte (terminal dans un tunnel ouvert sur la paroi du d
   assert.equal(r.finished, true);
   assert.equal(r.deaths, 0, "le bot entre dans la grotte sans tomber");
 });
+
+test("écrasement : retomber sur un ennemi le tue d'un coup (même un costaud ou un fonceur) et fait rebondir", () => {
+  for (const spec of [{ en: [6] }, { tough: [6] }, { dash: [6] }, { hop: [6] }]) {
+    const sim = S.createPlatform(S.buildCourse([Object.assign({ t: "flat", n: 14 }, spec), { t: "end", n: 8 }]), {});
+    const p = sim.player, e = sim.enemies[0];
+    e.dir = 1; e.x = p.x + 4; e.y = p.y; // immobile sous nos pieds
+    p.y = e.y - e.h + 1; p.vy = 200; p.x = e.x; p.onGround = false;
+    sim.step({}, DT);
+    assert.equal(e.alive, false, `${Object.keys(spec)[0]} : écrasé d'un coup`);
+    assert.ok(p.vy < 0, "on rebondit");
+    assert.equal(p.hp, S.CFG.hpMax, "aucun dégât pour le joueur");
+    assert.ok(sim.events.some((ev) => ev.t === "stomp" && ev.extra === e));
+  }
+});
