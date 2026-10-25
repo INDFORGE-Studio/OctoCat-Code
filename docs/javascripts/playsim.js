@@ -520,8 +520,8 @@
         var er2 = rectOf(e);
         if (overlap(pr, er2)) {
           if (p.star > 0) { hurtEnemy(e, 9, p.facing); emit("stomp", e.x, e.y - e.h); }
-          else if (p.vy > 60 && p.y - p.vy * dt <= e.y - e.h + 14) { // écrasement (Mario)
-            hurtEnemy(e, 1, p.facing); p.vy = -CFG.bounceV; p.jumps = 1; emit("stomp", e.x, e.y - e.h);
+          else if (p.vy > 0 && (p.y - p.vy * dt <= e.y - e.h + 14 || p.y <= e.y - e.h * 0.45)) { // écrasement (Mario) : on retombe sur lui, il est aplati et meurt d'un coup, quelle que soit sa solidité
+            hurtEnemy(e, 99, p.facing); p.vy = -CFG.bounceV; p.jumps = 1; emit("stomp", e.x, e.y - e.h, e);
           } else if (!(e.scared > 0)) hurtPlayer(e.x, 1); // un monstre qui a peur ne blesse pas
         }
       }

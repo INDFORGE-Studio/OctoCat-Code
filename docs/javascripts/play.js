@@ -328,6 +328,16 @@
       }
     }
 
+    /** Ennemi écrasé d'un saut : il reste un instant aplati au sol, puis s'efface (l'objet vivant disparaît tout de suite). */
+    function squash(e) {
+      var o = e && objs.get(e);
+      if (!o || !o.exists() || e.type === "flyer") return;
+      var sc = o.baseScale || 1.5;
+      var g = k.add([k.sprite("glitch", { anim: "hurt" }), k.pos(e.x, e.y), k.anchor("bot"), k.scale(sc * 1.25, sc * 0.28), k.color(o.color), k.opacity(1), k.z(7.5)]), age = 0;
+      g.flipX = o.flipX;
+      g.onUpdate(function () { age += k.dt(); g.opacity = age < 0.3 ? 1 : Math.max(0, 1 - (age - 0.3) / 0.25); if (age >= 0.55) g.destroy(); });
+    }
+
     /** Rue de ville façon Double Dragon : façades (un sprite chacune), enseignes, trottoir, chaussée, lampadaires, voitures. */
     function buildCity(FY) {
       var Sp = window.OctoSprites, C = Sp.cities[run.theme] || Sp.cities.village, M = Sp.cityMeta, rnd = Sp.seeded(4001 + def.id * 17);
@@ -419,7 +429,7 @@
         case "swing": slash(sim.player); break;
         case "hit": burst(ev.x, ev.y, ["#ffffff", "#e3b341"], 8, 0.8); k.shake(2); break;
         case "kill": burst(ev.x, ev.y, ["#f85149", "#e3b341", "#ffffff", "#39c5cf"], 22); k.shake(4); break;
-        case "stomp": burst(ev.x, ev.y, ["#ffffff", "#39c5cf"], 10); k.shake(3); break;
+        case "stomp": burst(ev.x, ev.y, ["#ffffff", "#39c5cf"], 10); k.shake(3); squash(ev.extra); break;
         case "candle": burst(ev.x, ev.y, ["#f0883e", "#ffe08a"], 10); break;
         case "hurt": hurtFlash = 0.35; k.shake(8); burst(ev.x, py - 10, ["#f85149", "#ffffff"], 10); break;
         case "die": case "fall": hurtFlash = 0.6; k.shake(10); say(ev.t === "fall" ? "CHUTE !" : "K.O. !", "#f85149"); break;
