@@ -20,7 +20,7 @@
     alt: "L'OctoCat se promène dans une forêt nocturne devant un portail ouvert : cliquer pour entrer dans l'aventure.",
 
     scene: function (k, h, ctx) {
-      var sc = OctoScenery.build(k, h, { portalOpen: true });
+      var sc = OctoScenery.build(k, h, { portalOpen: true, hudBar: false });
       var rgb = sc.rgb, BASE_Y = sc.BASE_Y, PORTAL_X = sc.PORTAL_X;
       var root = ctx.host.getAttribute("data-root") || "./";
       var info = nextTarget(root);
@@ -28,14 +28,15 @@
       var done = Object.keys(P.get().completed).length;
 
       // ----- titre (police KAPLAY sans accents) -----
-      k.add([k.text("OCTOCAT-CODE", { size: 38, font: "monospace" }), k.pos(302, 48), k.anchor("center"), k.color(rgb("#196c2e")), k.z(31)]);
+      k.add([k.rect(400, 92), k.pos(100, 22), k.color(rgb("#1a1040")), k.opacity(0.38), k.z(30.6)]);
+      k.add([k.text("OCTOCAT-CODE", { size: 38, font: "monospace" }), k.pos(302, 48), k.anchor("center"), k.color(rgb("#1a1040")), k.z(31)]);
       k.add([k.text("OCTOCAT-CODE", { size: 38, font: "monospace" }), k.pos(300, 46), k.anchor("center"), k.color(rgb("#f0f6fc")), k.z(32)]);
       k.add([k.text("APPRENDS A CODER - LE SITE EST LE JEU", { size: 11, font: "monospace" }), k.pos(300, 78), k.anchor("center"),
-        k.color(rgb("#8b949e")), k.z(32)]);
+        k.color(rgb("#f0f6fc")), k.z(32)]);
       var prompt = k.add([k.text(info.started ? "[ CLIQUE : CONTINUER L'AVENTURE ]" : "[ CLIQUE : ENTRER DANS LE PORTAIL ]", { size: 12, font: "monospace" }),
-        k.pos(300, 102), k.anchor("center"), k.color(rgb("#e3b341")), k.z(32)]);
+        k.pos(300, 102), k.anchor("center"), k.color(rgb("#ffe08a")), k.z(32)]);
       k.add([k.text("NIVEAUX TERMINES : " + done + "/" + P.levels.length, { size: 10, font: "monospace" }), k.pos(10, 236),
-        k.color(rgb("#8b949e")), k.z(32)]);
+        k.color(rgb("#f0f6fc")), k.z(32)]);
 
       // ----- l'OctoCat patrouille -----
       var shadow = sc.shadow(80, 0.85);
