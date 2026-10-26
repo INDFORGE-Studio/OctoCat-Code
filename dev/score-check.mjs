@@ -80,14 +80,32 @@ await page.close();
 // 5. générique : logo animé en tête, couleurs qui changent
 const END = { unlocked: 10, laps: 3, finished: true, creditsPending: true, earned: 612, coins: 40 };
 page = await open(DESKTOP, END);
-await page.waitForTimeout(11500); // le titre monte lentement : il arrive vers le milieu de l'écran
+await page.waitForTimeout(17500); // le titre monte lentement : il arrive vers le milieu de l'écran
 await page.screenshot({ path: path.join(OUT, "credits-a.desktop.png") });
 await page.waitForTimeout(450);
 await page.screenshot({ path: path.join(OUT, "credits-b.desktop.png") });
 await page.close();
 page = await open(PHONE, END);
-await page.waitForTimeout(9000);
+await page.waitForTimeout(13500);
 await page.screenshot({ path: path.join(OUT, "credits-a.mobile.png") });
+await page.close();
+
+// 6. revoir le générique après la fin (bouton à l'accueil, générique déjà vu) ; absent tant que le jeu n'est pas fini
+page = await open(DESKTOP, { unlocked: 10, laps: 2, earned: 300, coins: 10 });
+await page.waitForTimeout(2500);
+check((await page.locator(".octo-credits-btn").count()) === 0, "jeu pas fini : pas de bouton CREDITS");
+await page.close();
+page = await open(DESKTOP, { unlocked: 10, laps: 3, finished: true, creditsPending: false, earned: 612, coins: 40 });
+await page.waitForTimeout(2500);
+check((await page.locator(".octo-credits-btn").count()) === 1, "jeu fini : bouton CREDITS à l'accueil");
+await page.locator(".octo-credits-btn").click();
+await page.waitForTimeout(3500);
+check((await page.locator(".octo-credits-btn").count()) === 0, "on est dans le générique (plus d'accueil)");
+await page.screenshot({ path: path.join(OUT, "credits-replay.desktop.png") });
+await page.keyboard.press("Enter"); // passe à « FIN », puis retour à l'accueil
+await page.waitForTimeout(9500);
+check((await page.locator(".octo-credits-btn").count()) === 1, "retour à l'accueil après le générique, bouton toujours là");
+check(!(await page.evaluate(() => JSON.parse(localStorage.getItem("octocat-code:v1") || "{}").creditsPending)), "le générique revu ne se relance pas tout seul");
 await page.close();
 
 await browser.close(); server.close();

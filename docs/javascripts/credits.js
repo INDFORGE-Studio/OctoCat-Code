@@ -56,7 +56,7 @@
     scene: function (k, h, ctx) {
       var P = window.OctoProgress, M = window.OctoMusic, VW = k.width(), VH = k.height();
       function rgb(hex) { return k.Color.fromHex(hex); }
-      var GY = Math.round(VH - Math.max(48, VH * 0.2)), BASE = GY + 3, SPEED = 26, CAM_V = 46;
+      var GY = Math.round(VH - Math.max(48, VH * 0.2)), BASE = GY + 3, SPEED = 17, CAM_V = 40; // (plus lent : le PO trouvait le défilement trop rapide)
 
       // ----- décor : ciel de nuit, étoiles, montagnes qui défilent, sol -----
       k.add([k.rect(VW + 200, VH + 200), k.pos(-100, -100), k.color(rgb("#0a0820")), k.fixed(), k.z(-6)]);
