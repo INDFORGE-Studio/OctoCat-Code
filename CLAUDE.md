@@ -159,11 +159,11 @@ Règle du PO : **toujours joyeuse, entraînante et douce** ; **épique et intens
 
 | État | Déclencheur | Rendu |
 |---|---|---|
-| Calme | défaut (`def.mood` absent ou 0) | Ré majeur, 100 BPM, thème au glockenspiel (I–vi–IV–V7), basse sautillante, nappe douce, percussions feutrées |
+| Calme | défaut (`def.mood` absent ou 0) | Un air doux par monde, 8 mesures, **sans grosse caisse ni charleston continus** (le précédent fatiguait : motif de 4 mesures en boucle, charleston et arpège carré à chaque double-croche). Ré majeur, 100 BPM : ukulélé du matin (accords grattés, basse douce, sifflement). Voir §37 pour les autres mondes. Les airs ont été choisis à l'écoute par le PO parmi 3 propositions par monde (atelier de sons) |
 | Alerte | `def.mood` 0..1 (niveau 1 = 0,35), pic de `hit()` | tempo jusqu'à 112, pouls de cœur, bourdon grave, « ping » aigu, Sol mineur emprunté à la 3e mesure |
 | Combat | `def.combat: true` ou `OctoMusic.setBattle(true)` | Ré mineur, 148 BPM, grosse caisse/caisse claire, basse en croches, cuivres, mélodie héroïque, choc d'entrée |
 
-Entrée dans le portail (accueil, énigmes, fin de la magie) : effets `portal-open` (le portail s'ouvre : bourdon qui monte + accord doux) puis `portal` (souffle qui monte + scintillement) ; avant, cette animation était muette. `hit()` = petit accord grave + pic de tension (jamais de combat) ; `victory()` = arpège majeur, retour au calme.
+**Effets doux** (choix du PO) : saut, double saut, pièce, dégât, ennemi écrasé / vaincu, laser, aboiement et ressort sont des sinus arrondis, filtrés, avec un peu d'écho (la réverbération partagée `verbIn` n'existe pas sur appareil modeste) à la place des carrés et dents de scie ; le tempo de combat reste celui d'avant (`fightAdd` : 148 / 156 / 164 BPM). Les autres effets (coup, éclair, étoile, explosion…) n'ont pas été retouchés. Entrée dans le portail (accueil, énigmes, fin de la magie) : effets `portal-open` (le portail s'ouvre : bourdon qui monte + accord doux) puis `portal` (souffle qui monte + scintillement) ; avant, cette animation était muette. `hit()` = petit accord grave + pic de tension (jamais de combat) ; `victory()` = arpège majeur, retour au calme.
 Démarre au premier geste (autoplay) ; bouton ♪ ON/OFF + curseur de volume discret (`.octo-audio`), tous deux mémorisés dans `localStorage` (clés `octocat-code:music:v2`, `octocat-code:volume`). Le premier clic sur ♪ lance la musique (il ne la coupe pas). Vérifié par `npm test` (théorie, thèmes) et `npm run shot` (signal audio, calme → alerte → combat, titre d'onglet).
 
 ## 14. Optimisation multi-plateformes (PC, portable, tablette, Android, iOS)
@@ -347,9 +347,9 @@ Plateformes : retomber sur un ennemi (vitesse verticale vers le bas, pieds dans 
 
 | Monde | Langage | Décor | Trajets « plateformes » (7 niveaux) | À la place du Double Dragon (niveaux 2, 6, 10) | Musique |
 |---|---|---|---|---|---|
-| 0 GitHubia | pseudo-code | canyon, forêt corail, cité | parcours horizontaux (§17) | beat'em up (§17) | ré majeur, glockenspiel |
-| 1 La Tour du Serpent | Python | crépuscule de jade, îles flottantes, temple, lune | **tours** à grimper (§38) | **le serpent d'Octo** (§40) | sol majeur, marimba + shaker, 108 BPM |
-| 2 La Galaxie JavaScript | JavaScript | espace, planète à anneaux, station, cristaux | **gravité lunaire**, ressorts, passerelles (§39) | **l'invasion** façon Space Invaders (§41) | mi majeur, arpège de synthé + charleston, 116 BPM |
+| 0 GitHubia | pseudo-code | canyon, forêt corail, cité | parcours horizontaux (§17) | beat'em up (§17) | ré majeur, ukulélé du matin, 100 BPM |
+| 1 La Tour du Serpent | Python | crépuscule de jade, îles flottantes, temple, lune | **tours** à grimper (§38) | **le serpent d'Octo** (§40) | sol majeur, kalimba de bambou sur un bourdon + tambour sourd, 80 BPM |
+| 2 La Galaxie JavaScript | JavaScript | espace, planète à anneaux, station, cristaux | **gravité lunaire**, ressorts, passerelles (§39) | **l'invasion** façon Space Invaders (§41) | mi majeur, vibraphone cosmique + basse qui marche + balais, 86 BPM |
 
 - **Registre** `worlds.js` (`OctoWorlds.info`, `register`, `apply(def, monde)`, `title`, `header`) ; données : `world-python.js`, `world-js.js` (10 titres, un `run` par niveau, thèmes de décor). Le moteur applique le monde au lancement du trajet (`enterRun`), au briefing / éditeur (`titled`) et en-tête des énigmes (`OctoWorlds.header`). Les **énigmes de code ne changent pas** (langs.js). Mêmes capacités par niveau (fouet, shuriken, double saut) et **mêmes pièces** (15 / 5 / 12 / 10 / 6 / 8 / 4 + 28 par salle secrète ; arènes 9 / 12 / 15 ; une bougie qui lâche une pièce ajoute 1).
 - **Décors** (`sprites-worlds.js`) : chaque sprite du monde 0 a une variante `nom-w1` / `nom-w2` (ciel, terre lointaine, nuages, tuiles, arbres, avant-plan, portail, terminal, Glitch, chauve-souris, pics, bougie, ressort, plateforme qui s'effrite) ; le moteur enveloppe `k.sprite` (`worldNames`) : l'accueil, les énigmes et les trajets changent d'univers sans réécrire de scène. Attention : `drawSprite` ne passe pas par `k.sprite` (les tuiles du sol ajoutent le suffixe à la main dans `play.js`). Les petits décors sont les dessins d'origine, teinte changée (`shift`).

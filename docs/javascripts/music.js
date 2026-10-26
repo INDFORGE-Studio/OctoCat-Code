@@ -2,14 +2,14 @@
  * Aucun fichier audio, aucun échantillon, aucun droit : tout est généré par ce code.
  *
  * Trois états, du plus doux au plus intense :
- *   1. CALME (par défaut) : joyeux, entraînant et doux. Ré majeur, ~100 BPM, thème accrocheur au « glockenspiel »,
- *      basse sautillante, nappe douce, percussions feutrées.
+ *   1. CALME (par défaut) : joyeux et doux, un air par monde (voir plus bas), sans grosse caisse ni charleston continus.
  *   2. ALERTE (curseur « tension » 0..1) : petit changement pour éveiller l'attention, sans casser l'ambiance :
  *      tempo un peu plus vif, pouls de cœur, bourdon grave, « ping » aigu, couleur modale (sol mineur) sur la 3e mesure.
  *   3. COMBAT (setBattle) : épique et intense. Ré mineur, ~148 BPM, grosse caisse et caisse claire, basse
  *      en croches, cuivres, mélodie héroïque. Réservé aux affrontements.
- * Trois MONDES, trois couleurs (setWorld) : GitHubia en ré majeur (glockenspiel), la Tour du Serpent de Python en sol majeur (marimba de la jungle, shaker),
- * la Galaxie JavaScript en mi majeur (arpège de synthé, charleston, un peu plus vif). Le combat reste épique dans les trois, transposé dans la tonalité du monde.
+ * Trois MONDES, trois airs calmes (setWorld, choisis à l'écoute par le PO) : GitHubia en ré majeur (ukulélé du matin : accords grattés, basse douce, sifflement),
+ * la Tour du Serpent de Python en sol majeur (kalimba de bambou sur un bourdon, tambour sourd, pluie légère), la Galaxie JavaScript en mi majeur
+ * (vibraphone cosmique, basse qui marche, balais). Le combat reste épique dans les trois, transposé dans la tonalité du monde.
  * API : unlock() (geste utilisateur), setWorld(0..2), setMood(0..1) = tension, setBattle(bool), hit(), victory(), toggle(), state(), level().
  */
 (function () {
@@ -44,29 +44,20 @@
   ];
 
   /* ---------- les mondes : tonalité, tempo, timbre, mélodie ---------- */
-  var BASE_BPM = 100, WORLD = 0, TIMBRE = "bell";
+  // Le calme de chaque monde a son propre style (choisi par le PO à l'écoute, atelier de sons) : un air doux sans grosse caisse ni charleston.
+  // `fightAdd` garde le tempo de combat d'avant (108 + 48 = 156 BPM dans le monde 1, 116 + 48 = 164 dans le 2) : le combat reste épique.
+  var BASE_BPM = 100, FIGHT_ADD = 48, WORLD = 0, TIMBRE = "bell", STYLE = "uke";
   var PROFILES = [
-    null, // monde 0 : les valeurs ci-dessus (ré majeur, glockenspiel)
-    { root: 55, bpm: 108, timbre: "marimba", melody: [ // monde 1 : sol majeur, marimba de la jungle
-      [[0, 7, 2], [3, 9, 1], [4, 12, 2], [7, 9, 1], [8, 7, 2], [11, 4, 1], [12, 7, 4]],
-      [[0, 9, 2], [3, 12, 1], [4, 14, 2], [7, 12, 1], [8, 9, 2], [10, 7, 2], [12, 4, 4]],
-      [[0, 4, 2], [3, 7, 1], [4, 12, 2], [7, 9, 1], [8, 7, 2], [10, 4, 1], [11, 2, 1], [12, 0, 4]],
-      [[0, 7, 2], [2, 9, 2], [4, 12, 3], [8, 14, 2], [10, 12, 2], [12, 9, 4]]
-    ] },
-    { root: 52, bpm: 116, timbre: "chip", melody: [ // monde 2 : mi majeur, arpèges de synthé
-      [[0, 12, 2], [2, 16, 2], [4, 19, 2], [6, 16, 2], [8, 12, 2], [10, 16, 2], [12, 19, 4]],
-      [[0, 12, 2], [2, 16, 2], [4, 21, 2], [6, 16, 2], [8, 12, 2], [10, 16, 2], [12, 21, 4]],
-      [[0, 9, 2], [2, 12, 2], [4, 17, 2], [6, 12, 2], [8, 9, 2], [10, 12, 2], [12, 17, 4]],
-      [[0, 11, 2], [2, 14, 2], [4, 19, 2], [6, 14, 2], [8, 11, 2], [10, 14, 2], [12, 19, 4]]
-    ] }
+    null, // monde 0 : les valeurs ci-dessus (ré majeur, ukulélé du matin, glockenspiel pour la victoire)
+    { root: 55, bpm: 80, fightAdd: 76, timbre: "marimba", style: "kalimba" }, // monde 1 : sol majeur, kalimba de bambou
+    { root: 52, bpm: 86, fightAdd: 78, timbre: "chip", style: "vibe" }        // monde 2 : mi majeur, vibraphone cosmique
   ];
-  var BASE_MELODY = MELODY_CALM;
 
   function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
   function midiToHz(m) { return 440 * Math.pow(2, (m - 69) / 12); }
-  /** Tempo : 100 BPM au calme (108 / 116 dans les autres mondes), jusqu'à +12 en alerte, +48 en combat. */
+  /** Tempo : 100 BPM au calme dans le monde 0 (80 / 86 dans les autres), jusqu'à +12 en alerte ; le combat remonte au tempo épique du monde (148 / 156 / 164). */
   function bpmFor(tension, fight) {
-    return BASE_BPM + 12 * clamp(tension, 0, 1) + 48 * clamp(fight || 0, 0, 1);
+    return BASE_BPM + 12 * clamp(tension, 0, 1) + FIGHT_ADD * clamp(fight || 0, 0, 1);
   }
   /** Note d'ornement : pentatonique claire ; la couleur d'alerte n'apparaît que lorsque la tension monte. */
   function pickNote(tension, rnd) {
@@ -90,7 +81,8 @@
   /* ---------- moteur audio ---------- */
 
   // out = volume général (musique + effets) ; master = musique seule (♪ OFF la coupe) ; sfx = effets sonores (indépendants de la musique)
-  var ctx = null, out, sfx, master, analyser, padCalm, padFight, padAlert, drumBus, arpBus, noiseBuf;
+  var ctx = null, out, sfx, master, analyser, padCalm, padFight, padAlert, drumBus, arpBus, noiseBuf, calmIn, verbIn;
+  var CALM_GAIN = 2.2; // les instruments doux sont écrits bas : ce gain les met au niveau du reste
   var running = false, muted = false, timer = null;
   var base = 0, spike = 0, tension = 0, fight = 0, battle = false;
   var step = 0, nextTime = 0;
@@ -128,7 +120,19 @@
     delay.delayTime.value = 0.3; fb.gain.value = 0.3; lp.type = "lowpass"; lp.frequency.value = 2600;
     arpBus.connect(master); arpBus.connect(delay); delay.connect(lp); lp.connect(fb); fb.connect(delay); lp.connect(master);
 
-    noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    // musique calme : tout passe par calmIn (qui suit le fondu padCalm quand le combat arrive) ; un peu de réverbération partagée, sauf sur appareil modeste
+    calmIn = ctx.createGain(); calmIn.gain.value = CALM_GAIN; calmIn.connect(padCalm);
+    if (!lite) {
+      var cv = ctx.createConvolver(), wg = ctx.createGain(), len = Math.floor(ctx.sampleRate * 2.2), ir = ctx.createBuffer(2, len, ctx.sampleRate), c, j, st, ch;
+      for (c = 0; c < 2; c++) {
+        ch = ir.getChannelData(c); st = 0;
+        for (j = 0; j < len; j++) { st += (Math.random() * 2 - 1 - st) * 0.35; ch[j] = st * Math.pow(1 - j / len, 3.2); }
+      }
+      cv.buffer = ir; wg.gain.value = 0.5;
+      verbIn = ctx.createGain(); verbIn.connect(cv); cv.connect(wg); wg.connect(out);
+    }
+
+    noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 4, ctx.sampleRate);
     var d = noiseBuf.getChannelData(0);
     for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     return true;
@@ -171,13 +175,138 @@
     s.start(t, rnd() * 0.5); s.stop(t + dur + 0.02);
   }
 
-  /** Glissando d'un oscillateur (effets sonores). */
-  function sweep(type, f0, f1, t, dur, vol) {
-    var o = ctx.createOscillator(), g = ctx.createGain();
+  /** Envoie `node` vers `dest`, plus un peu de réverbération (`wet` 0..1, ignorée sur appareil modeste). */
+  function route(node, dest, wet) {
+    node.connect(dest);
+    if (wet && verbIn) { var s = ctx.createGain(); s.gain.value = wet * (dest === sfx ? 1 : CALM_GAIN); node.connect(s); s.connect(verbIn); }
+  }
+
+  /** Glissando d'un oscillateur (effets sonores). `lp` = filtre passe-bas, `wet` = réverbération, `atk` = attaque douce (évite le « clic » des sinus). */
+  function sweep(type, f0, f1, t, dur, vol, lp, wet, atk) {
+    var o = ctx.createOscillator(), g = ctx.createGain(), last = g, fl;
     o.type = type;
     o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
-    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g); g.connect(sfx); o.start(t); o.stop(t + dur + 0.03);
+    if (atk) { g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + atk); } else g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g);
+    if (lp) { fl = ctx.createBiquadFilter(); fl.type = "lowpass"; fl.frequency.value = lp; g.connect(fl); last = fl; }
+    route(last, sfx, wet);
+    o.start(t); o.stop(t + dur + 0.03);
+  }
+
+  /* ---------- instruments doux de la musique calme (écrits pour être agréables longtemps : sinus, cordes pincées, peu d'aigus) ---------- */
+  var CH = { I: [0, 4, 7], ii: [2, 5, 9], iii: [4, 7, 11], IV: [5, 9, 12], V: [7, 11, 14], vi: [9, 12, 16] }; // accords par degré (demi-tons depuis la tonique)
+  var PEN = [0, 2, 4, 7, 9];
+  // 8 mesures par style, la tonique et le style viennent du monde
+  var CALM = {
+    uke: { root: 62, prog: ["I", "V", "vi", "IV", "I", "IV", "V", "I"] },
+    kalimba: { root: 55, prog: ["I", "vi", "IV", "V", "I", "iii", "IV", "V"] },
+    vibe: { root: 52, prog: ["ii", "V", "I", "vi", "ii", "V", "I", "I"] }
+  };
+  function pick(a) { return a[Math.floor(rnd() * a.length)]; }
+
+  /** Oscillateur à enveloppe douce (attaque `atk`, extinction exponentielle) vers la musique calme (ou `dest`). */
+  function osc(type, hz, t, dur, vol, atk, wet, lp, dest) {
+    var o = ctx.createOscillator(), g = ctx.createGain(), last = g, fl;
+    o.type = type; o.frequency.setValueAtTime(hz, t);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + (atk || 0.005)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g);
+    if (lp) { fl = ctx.createBiquadFilter(); fl.type = "lowpass"; fl.frequency.value = lp; g.connect(fl); last = fl; }
+    route(last, dest || calmIn, wet);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+  function brush(t, dur, vol, hz, wet) { // souffle de balais : le bruit monte puis retombe
+    var s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    s.buffer = noiseBuf; f.type = "bandpass"; f.frequency.value = hz; f.Q.value = 0.7;
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + dur * 0.4); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(f); f.connect(g); route(g, calmIn, wet);
+    s.start(t, rnd() * 0.5); s.stop(t + dur + 0.02);
+  }
+  function thump(t, vol) { // tambour sourd
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.frequency.setValueAtTime(120, t); o.frequency.exponentialRampToValueAtTime(60, t + 0.14);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
+    o.connect(g); route(g, calmIn, 0.05); o.start(t); o.stop(t + 0.3);
+  }
+  function wood(t, vol) { osc("sine", 780, t, 0.05, vol, 0.001, 0.15); }
+  function kalimba(midi, t, vol) {
+    var f = midiToHz(midi);
+    osc("sine", f, t, 1.1, vol, 0.002, 0.45);
+    osc("sine", f * 5.4, t, 0.06, vol * 0.2, 0.001, 0.2);
+  }
+  function vibe(midi, t, vol) { // vibraphone : sinus + tremolo lent
+    var f = midiToHz(midi), o = ctx.createOscillator(), g = ctx.createGain(), tr = ctx.createGain(), lfo = ctx.createOscillator(), lg = ctx.createGain();
+    o.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + 2.2);
+    tr.gain.value = 0.75; lfo.frequency.value = 4.6; lg.gain.value = 0.25; lfo.connect(lg); lg.connect(tr.gain);
+    o.connect(g); g.connect(tr); route(tr, calmIn, 0.45);
+    o.start(t); o.stop(t + 2.3); lfo.start(t); lfo.stop(t + 2.3);
+    osc("sine", f * 4, t, 0.35, vol * 0.12, 0.002, 0.3);
+  }
+  var ksCache = {};
+  function pluckBuf(midi) { // corde pincée (Karplus-Strong) calculée une fois par note
+    if (ksCache[midi]) return ksCache[midi];
+    var sr = ctx.sampleRate, N = Math.max(2, Math.round(sr / midiToHz(midi))), len = Math.floor(sr * (lite ? 1.2 : 1.7)), buf = ctx.createBuffer(1, len, sr), d = buf.getChannelData(0), line = new Float32Array(N), i, p, j;
+    for (i = 0; i < N; i++) line[i] = Math.random() * 2 - 1;
+    for (p = 0; p < 2; p++) for (i = N - 1; i > 0; i--) line[i] = 0.5 * (line[i] + line[i - 1]);
+    for (i = 0; i < len; i++) { j = i % N; d[i] = line[j]; line[j] = 0.997 * 0.5 * (line[j] + line[(j + 1) % N]); }
+    ksCache[midi] = buf; return buf;
+  }
+  function pluck(midi, t, vol) {
+    var s = ctx.createBufferSource(), g = ctx.createGain(), f = ctx.createBiquadFilter();
+    s.buffer = pluckBuf(midi); f.type = "lowpass"; f.frequency.value = 2600;
+    g.gain.setValueAtTime(vol * 2, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.1);
+    s.connect(f); f.connect(g); route(g, calmIn, 0.4); s.start(t); s.stop(t + s.buffer.duration);
+  }
+  function whistle(midi, t, dur, vol) { // sifflement : sinus avec vibrato, un souffle léger
+    var f = midiToHz(midi), o = ctx.createOscillator(), o2 = ctx.createOscillator(), g = ctx.createGain(), g2 = ctx.createGain(), lfo = ctx.createOscillator(), lg = ctx.createGain();
+    var atk = Math.min(0.14, dur * 0.4), nz = ctx.createBufferSource(), nf = ctx.createBiquadFilter(), ng = ctx.createGain(), end = t + dur + 0.15;
+    o.frequency.value = f; o2.frequency.value = f * 2; g2.gain.value = 0.12;
+    lfo.frequency.value = 5; lg.gain.value = f * 0.004; lfo.connect(lg); lg.connect(o.frequency);
+    [[g, vol], [ng, vol * 0.22]].forEach(function (p) {
+      p[0].gain.setValueAtTime(0.0001, t); p[0].gain.linearRampToValueAtTime(p[1], t + atk);
+      p[0].gain.setValueAtTime(p[1], t + dur - 0.12); p[0].gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.1);
+    });
+    o.connect(g); o2.connect(g2); g2.connect(g);
+    nz.buffer = noiseBuf; nf.type = "bandpass"; nf.frequency.value = f * 2; nf.Q.value = 2; nz.connect(nf); nf.connect(ng);
+    route(g, calmIn, 0.45); route(ng, calmIn, 0.45);
+    o.start(t); o2.start(t); lfo.start(t); nz.start(t, rnd() * 0.5);
+    o.stop(end); o2.stop(end); lfo.stop(end); nz.stop(end);
+  }
+  function softPad(notes, t, dur, vol, lp) { // nappe : triangles légèrement désaccordés, très filtrés
+    notes.forEach(function (m) {
+      (lite ? [0] : [-6, 6]).forEach(function (dt) {
+        var o = ctx.createOscillator(), g = ctx.createGain(), fl = ctx.createBiquadFilter();
+        o.type = "triangle"; o.frequency.value = midiToHz(m); o.detune.value = dt;
+        g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol * (lite ? 1.6 : 1), t + dur * 0.4); g.gain.linearRampToValueAtTime(0.0001, t + dur * 1.05);
+        fl.type = "lowpass"; fl.frequency.value = lp;
+        o.connect(g); g.connect(fl); route(fl, calmIn, 0.5);
+        o.start(t); o.stop(t + dur * 1.1);
+      });
+    });
+  }
+
+  /** Un huitième de la musique calme du monde : `b` = mesure (0..7), `i` = huitième (0..7), `e` = durée d'un huitième. Le hasard (ornements) change à chaque tour. */
+  function calmEighth(style, b, i, t, e) {
+    var def = CALM[style], c = CH[def.prog[b]], R = def.root, k;
+    if (style === "uke") { // ukulélé du matin : accords grattés, basse douce, petit sifflement
+      var strums = { 0: 0.06, 2: 0.035, 3: 0.05, 5: 0.035, 7: 0.04 };
+      if (strums[i]) [R + c[0], R + c[1], R + c[2], R + c[0] + 12].forEach(function (m, n) { pluck(m, t + n * 0.016, strums[i]); });
+      if (i === 0) pluck(R - 12 + c[0], t, 0.1);
+      if (i === 4) pluck(R - 12 + c[2], t, 0.07);
+      if (i === 2 || i === 6) wood(t, 0.02);
+      if ((i === 0 || i === 4) && b % 2 === 1) whistle(R + 24 + pick(PEN), t, e * 3, 0.03);
+    } else if (style === "kalimba") { // kalimba de bambou : notes espacées sur un bourdon, tambour sourd, pluie très légère
+      if (i === 0) { kalimba(R + 12 + pick(c), t, 0.08); softPad([R - 12, R - 5], t, e * 8, 0.035, 400); }
+      else if (rnd() < (i % 2 === 0 ? 0.55 : 0.2)) kalimba(R + 12 + pick(PEN) + (rnd() < 0.3 ? 12 : 0), t, 0.06);
+      if (i === 0) thump(t, 0.12); else if (i === 4) thump(t, 0.09);
+      if (rnd() < 0.35) brush(t, 0.3, 0.01, 6000, 0.2);
+    } else { // vibraphone cosmique : accords et notes de vibraphone, basse qui marche, balais
+      if (i === 0) [c[0], c[1], c[2]].forEach(function (x) { vibe(R + 12 + x, t, 0.05); });
+      else if ((i === 2 || i === 4 || i === 6) && rnd() < 0.55) vibe(R + 24 + pick(PEN), t, 0.05);
+      if (i % 2 === 0) { k = [c[0], c[1], c[2], c[1]][i / 2]; osc("sine", midiToHz(R - 12 + k), t, e * 1.7, 0.1, 0.02, 0); }
+      if (i === 2 || i === 6) brush(t, e * 1.2, 0.012, 5000, 0.2);
+    }
   }
 
   /** Souffle qui monte puis retombe (le filtre glisse de f0 à f1) : l'air aspiré par le portail. */
@@ -208,16 +337,17 @@
     if (lastSfx[name] && t - lastSfx[name] < 0.04) return; // évite les rafales
     lastSfx[name] = t;
     switch (name) {
-      case "jump": sweep("square", 240, 560, t, 0.14, 0.07); break;
-      case "djump": sweep("square", 360, 820, t, 0.14, 0.07); break;
+      // effets doux (choisis par le PO à l'écoute) : sinus arrondis, plus graves, un peu d'écho, à la place des carrés et dents de scie perçants
+      case "jump": sweep("sine", 260, 470, t, 0.16, 0.1, 1800, 0.2, 0.01); break;
+      case "djump": sweep("sine", 360, 620, t, 0.16, 0.1, 1800, 0.2, 0.01); break;
       case "land": noise(t, 0.05, 0.05, "lowpass", 600, sfx); break;
-      case "bit": tone("triangle", 988, t, 0.09, 0.09, sfx, 0.003); tone("triangle", 1319, t + 0.07, 0.16, 0.09, sfx, 0.003); break;
+      case "bit": osc("sine", 659, t, 0.2, 0.09, 0.004, 0.4, 0, sfx); osc("sine", 988, t + 0.08, 0.35, 0.08, 0.004, 0.5, 0, sfx); break;
       case "heart": [523, 659, 784].forEach(function (f, i) { tone("triangle", f, t + i * 0.07, 0.2, 0.09, sfx, 0.004); }); break;
       case "swing": noise(t, 0.14, 0.2, "bandpass", 1500, sfx); sweep("triangle", 620, 240, t, 0.11, 0.07); break; // « fouiii » : souffle + glissando, même dans le vide
       case "hit": noise(t, 0.08, 0.12, "bandpass", 1400, sfx); sweep("square", 220, 110, t, 0.09, 0.06); break;
-      case "kill": sweep("sawtooth", 400, 90, t, 0.22, 0.08); noise(t, 0.14, 0.09, "lowpass", 1800, sfx); break;
-      case "stomp": sweep("square", 300, 120, t, 0.12, 0.09); break;
-      case "hurt": sweep("sawtooth", 200, 70, t, 0.28, 0.12); break;
+      case "kill": sweep("sine", 420, 150, t, 0.16, 0.1, 1200, 0.1, 0.006); noise(t, 0.08, 0.04, "lowpass", 900, sfx); break;
+      case "stomp": sweep("sine", 320, 130, t, 0.12, 0.1, 1200, 0.1, 0.006); break;
+      case "hurt": sweep("sine", 240, 130, t, 0.3, 0.14, 900, 0.15, 0.01); sweep("sine", 120, 60, t, 0.24, 0.08); break;
       case "throw": sweep("triangle", 1000, 500, t, 0.12, 0.07); break;
       case "checkpoint": [392, 523, 659].forEach(function (f, i) { tone("triangle", f, t + i * 0.09, 0.3, 0.09, sfx, 0.004); }); break;
       case "star": [523, 659, 784, 1047, 1319, 1568].forEach(function (f, i) { tone("triangle", f, t + i * 0.06, 0.28, 0.1, sfx, 0.004); tone("square", f * 2, t + i * 0.06, 0.1, 0.03, sfx, 0.004); }); break;
@@ -226,15 +356,15 @@
       case "crate-hit": noise(t, 0.06, 0.09, "bandpass", 1200, sfx); break;
       case "shot": sweep("triangle", 700, 350, t, 0.1, 0.05); break;
       case "dash": noise(t, 0.16, 0.08, "bandpass", 2200, sfx); sweep("sawtooth", 200, 520, t, 0.16, 0.05); break;
-      case "bark": [0, 0.15].forEach(function (dt2) { sweep("sawtooth", 560, 300, t + dt2, 0.1, 0.075); noise(t + dt2, 0.05, 0.05, "bandpass", 1500, sfx); }); break;
+      case "bark": [0, 0.17].forEach(function (dt2) { sweep("triangle", 430, 290, t + dt2, 0.13, 0.1, 1100, 0.1, 0.008); noise(t + dt2, 0.06, 0.02, "lowpass", 900, sfx); }); break;
       case "scare": sweep("triangle", 500, 1100, t, 0.14, 0.06); sweep("triangle", 1100, 700, t + 0.14, 0.1, 0.05); break;
       case "snuff": noise(t, 0.3, 0.14, "bandpass", 760, sfx); sweep("triangle", 540, 120, t, 0.32, 0.06); tone("triangle", 1760, t + 0.14, 0.18, 0.05, sfx, 0.003); tone("triangle", 2349, t + 0.2, 0.2, 0.04, sfx, 0.003); break; // « pschiit » magique
       case "magic": [523, 659, 784, 988, 1175, 1568, 1976, 2349, 3136].forEach(function (f, i) { tone("triangle", f, t + i * 0.07, 0.42, 0.08, sfx, 0.004); tone("sine", f * 2, t + i * 0.07 + 0.02, 0.3, 0.035, sfx, 0.004); }); noise(t + 0.55, 0.5, 0.05, "highpass", 5000, sfx); break; // glissando scintillant
       case "finish": [523, 659, 784, 1047].forEach(function (f, i) { tone("triangle", f, t + i * 0.08, 0.5, 0.1, sfx, 0.004); }); break;
       case "portal-open": sweep("sine", 150, 330, t, 0.5, 0.08); [392, 523, 659, 784].forEach(function (f, i) { tone("sine", f, t + 0.08 + i * 0.08, 0.5, 0.07, sfx, 0.01); }); break; // le portail s'ouvre : bourdon qui monte + petit accord doux
       case "portal": swell(t, 0.7, 0.16, 400, 2600); sweep("sine", 240, 900, t, 0.65, 0.06); tone("sine", 1319, t + 0.5, 0.35, 0.06, sfx, 0.01); tone("sine", 1760, t + 0.58, 0.4, 0.05, sfx, 0.01); break; // OctoCat est aspiré : souffle qui monte, puis scintillement
-      case "laser": sweep("square", 1500, 500, t, 0.09, 0.05); break; // pew
-      case "boing": sweep("sine", 180, 760, t, 0.22, 0.12); sweep("triangle", 360, 1500, t + 0.03, 0.18, 0.05); break; // ressort
+      case "laser": sweep("sine", 900, 520, t, 0.14, 0.07, 1600, 0.3, 0.008); break; // plip
+      case "boing": sweep("sine", 200, 520, t, 0.26, 0.12, 1500, 0.3, 0.01); break; // ressort
       case "crumble": noise(t, 0.2, 0.1, "lowpass", 500, sfx); noise(t + 0.08, 0.14, 0.07, "bandpass", 900, sfx); break;
       case "boom": noise(t, 0.7, 0.28, "lowpass", 700, sfx); sweep("sawtooth", 220, 40, t, 0.6, 0.14); noise(t + 0.1, 0.5, 0.12, "bandpass", 1500, sfx); break; // le gardien explose
       case "bomb": sweep("triangle", 520, 300, t, 0.12, 0.04); break;
@@ -265,11 +395,6 @@
       out.connect(bus);
       o.start(t); o.stop(t + dur + 0.3);
     }
-    if (fight < 0.98) {
-      chordFor(false, tension, bar).forEach(function (semi, i) {
-        (lite ? [0] : [-4, 4]).forEach(function (d) { note(ROOT + semi + (i === 0 ? -12 : 0), "triangle", padCalm, lite ? 0.07 : 0.045, 0, d); });
-      });
-    }
     if (battle || fight > 0.02) {
       chordFor(true, 0, bar).forEach(function (semi, i) {
         (lite ? [0] : [-6, 6]).forEach(function (d) { note(ROOT + semi + (i === 0 ? -12 : 0), "sawtooth", padFight, lite ? 0.06 : 0.04, 1100, d); });
@@ -281,43 +406,10 @@
     }
   }
 
-  /** Musique calme / alerte : légère, sautillante. */
+  /** Musique calme / alerte : un air doux par monde (calmEighth), sans grosse caisse ni charleston ; l'alerte ajoute pouls, « ping » et pizzicato par-dessus. */
   function calmStep(s, t, stepDur, bar, pos) {
-    var chord = chordFor(false, tension, bar), alert = tension > 0.5 && bar === 2;
-
-    // thème (en alerte, le si et le mi de la 3e mesure deviennent mineurs : la couleur change sans bruit)
-    var m = melodyAt(false, bar, pos);
-    if (m) {
-      var n = ROOT + 12 + m[1];
-      if (alert && (m[1] === 9 || m[1] === 14)) n -= 1;
-      bell(n, t, Math.max(0.25, stepDur * m[2] * 1.1), 0.1, arpBus);
-    }
-    // ornements discrets (pentatonique), un peu plus présents quand la tension monte
-    else if (!lite && pos % 2 === 1 && rnd() < 0.05 + 0.2 * tension) {
-      bell(pickNote(tension, rnd) + 12, t, 0.3, 0.035, arpBus);
-    }
-
-    // basse sautillante
-    var bassHz = midiToHz(ROOT + chord[0] - 12), fifthHz = midiToHz(ROOT + chord[2] - 12);
-    if (pos === 0) tone("triangle", bassHz, t, stepDur * 3.5, 0.2, master, 0.006, 500);
-    if (pos === 6) tone("triangle", bassHz * 2, t, stepDur * 1.8, 0.13, master, 0.006, 700);
-    if (pos === 8) tone("triangle", fifthHz, t, stepDur * 3, 0.17, master, 0.006, 500);
-    if (pos === 12 || pos === 14) tone("triangle", pos === 12 ? bassHz : fifthHz, t, stepDur * 1.8, 0.12, master, 0.006, 600);
-
-    // percussions feutrées : pouls doux, charleston léger sur les contretemps
-    if (pos === 0 || pos === 8) kick(t, 0.28, false);
-    if (pos % 4 === 2) noise(t, 0.03, 0.02, "highpass", 8500, drumBus);
-    if (pos === 4 || pos === 12) noise(t, 0.05, 0.03, "bandpass", 3200, drumBus); // petit clap
-
-    // couleur du monde : la jungle ajoute un shaker et des claves ; l'espace ajoute un arpège de synthé et un charleston en doubles-croches
-    if (WORLD === 1) {
-      if (pos % 2 === 0) noise(t, 0.04, pos % 4 === 0 ? 0.035 : 0.02, "bandpass", 6500, drumBus); // shaker
-      if (pos === 3 || pos === 11 || pos === 14) tone("triangle", 1180, t, 0.05, 0.06, drumBus, 0.001); // claves
-    } else if (WORLD === 2) {
-      noise(t, 0.02, pos % 4 === 2 ? 0.03 : 0.015, "highpass", 9000, drumBus); // charleston
-      if (!lite || pos % 4 === 0) tone("square", midiToHz(ROOT + chord[[0, 2, 1, 3][(pos >> 1) % 4]] + 12), t, stepDur * 1.4, 0.026, arpBus, 0.004, 2400); // arpège
-      if (pos === 6 || pos === 14) kick(t, 0.18, false);
-    }
+    var chord = chordFor(false, tension, bar), bassHz = midiToHz(ROOT + chord[0] - 12);
+    if (pos % 2 === 0) calmEighth(STYLE, Math.floor(s / 16) % 8, pos >> 1, t, stepDur * 2);
 
     // alerte : pouls de cœur, « ping » aigu, pizzicato plus nerveux
     if (tension > 0.25 && (pos === 0 || pos === 3)) kick(t, 0.1 + 0.3 * tension, false);
@@ -406,7 +498,7 @@
       if (w === WORLD) return;
       WORLD = w;
       var pr = PROFILES[w];
-      ROOT = pr ? pr.root : 50; BASE_BPM = pr ? pr.bpm : 100; TIMBRE = pr ? pr.timbre : "bell"; MELODY_CALM = pr ? pr.melody : BASE_MELODY;
+      ROOT = pr ? pr.root : 50; BASE_BPM = pr ? pr.bpm : 100; FIGHT_ADD = pr ? pr.fightAdd : 48; TIMBRE = pr ? pr.timbre : "bell"; STYLE = pr ? pr.style : "uke";
     },
     world: function () { return WORLD; },
     /** Tension 0..1 : 0 = calme joyeux ; plus haut = alerte (changement léger). Le combat passe par setBattle. */
