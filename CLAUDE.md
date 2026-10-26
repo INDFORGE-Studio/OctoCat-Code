@@ -163,7 +163,7 @@ Règle du PO : **toujours joyeuse, entraînante et douce** ; **épique et intens
 | Alerte | `def.mood` 0..1 (niveau 1 = 0,35), pic de `hit()` | tempo jusqu'à 112, pouls de cœur, bourdon grave, « ping » aigu, Sol mineur emprunté à la 3e mesure |
 | Combat | `def.combat: true` ou `OctoMusic.setBattle(true)` | Ré mineur, 148 BPM, grosse caisse/caisse claire, basse en croches, cuivres, mélodie héroïque, choc d'entrée |
 
-`hit()` = petit accord grave + pic de tension (jamais de combat) ; `victory()` = arpège majeur, retour au calme.
+Entrée dans le portail (accueil, énigmes, fin de la magie) : effets `portal-open` (le portail s'ouvre : bourdon qui monte + accord doux) puis `portal` (souffle qui monte + scintillement) ; avant, cette animation était muette. `hit()` = petit accord grave + pic de tension (jamais de combat) ; `victory()` = arpège majeur, retour au calme.
 Démarre au premier geste (autoplay) ; bouton ♪ ON/OFF + curseur de volume discret (`.octo-audio`), tous deux mémorisés dans `localStorage` (clés `octocat-code:music:v2`, `octocat-code:volume`). Le premier clic sur ♪ lance la musique (il ne la coupe pas). Vérifié par `npm test` (théorie, thèmes) et `npm run shot` (signal audio, calme → alerte → combat, titre d'onglet).
 
 ## 14. Optimisation multi-plateformes (PC, portable, tablette, Android, iOS)

@@ -155,6 +155,7 @@
             .then(function () {
               octo.play("success");
               sc.portal.play("opening");
+              if (window.OctoMusic) window.OctoMusic.sfx("portal-open");
               k.shake(4);
               return h.wait(0.35);
             })
@@ -165,6 +166,7 @@
               return h.wait(0.5);
             })
             .then(function () {
+              if (window.OctoMusic) window.OctoMusic.sfx("portal");
               octo.play("run");
               return h.tween(0.7, function (e) {
                 octo.pos.x = PORTAL_X - 60 + 60 * e;

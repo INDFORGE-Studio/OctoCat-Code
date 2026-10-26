@@ -180,6 +180,16 @@
     o.connect(g); g.connect(sfx); o.start(t); o.stop(t + dur + 0.03);
   }
 
+  /** Souffle qui monte puis retombe (le filtre glisse de f0 à f1) : l'air aspiré par le portail. */
+  function swell(t, dur, vol, f0, f1) {
+    var s = ctx.createBufferSource(), g = ctx.createGain(), f = ctx.createBiquadFilter();
+    s.buffer = noiseBuf; f.type = "bandpass"; f.Q.value = 0.8;
+    f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + dur * 0.55); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(f); f.connect(g); g.connect(sfx);
+    s.start(t, rnd() * 0.5); s.stop(t + dur + 0.02);
+  }
+
   /** Prépare l'audio pour les effets, même musique coupée (nécessite un geste préalable de l'utilisateur, déjà fait en jeu). */
   function ensureCtx() {
     if (!ctx && !init()) return false;
@@ -190,7 +200,7 @@
   }
 
   var lastSfx = {};
-  /** Effets sonores de jeu, synthétisés (aucun fichier) : jump, djump, land, bit, heart, hit, kill, stomp, hurt, swing, throw, checkpoint, finish, laser, boing, crumble, boom, bomb, ufo, wave. */
+  /** Effets sonores de jeu, synthétisés (aucun fichier) : jump, djump, land, bit, heart, hit, kill, stomp, hurt, swing, throw, checkpoint, finish, laser, boing, crumble, boom, bomb, ufo, wave, portal-open, portal. */
   function playSfx(name) {
     if (window.OctoSettings && window.OctoSettings.get("sfx") === false) return;
     if (!ensureCtx()) return;
@@ -221,6 +231,8 @@
       case "snuff": noise(t, 0.3, 0.14, "bandpass", 760, sfx); sweep("triangle", 540, 120, t, 0.32, 0.06); tone("triangle", 1760, t + 0.14, 0.18, 0.05, sfx, 0.003); tone("triangle", 2349, t + 0.2, 0.2, 0.04, sfx, 0.003); break; // « pschiit » magique
       case "magic": [523, 659, 784, 988, 1175, 1568, 1976, 2349, 3136].forEach(function (f, i) { tone("triangle", f, t + i * 0.07, 0.42, 0.08, sfx, 0.004); tone("sine", f * 2, t + i * 0.07 + 0.02, 0.3, 0.035, sfx, 0.004); }); noise(t + 0.55, 0.5, 0.05, "highpass", 5000, sfx); break; // glissando scintillant
       case "finish": [523, 659, 784, 1047].forEach(function (f, i) { tone("triangle", f, t + i * 0.08, 0.5, 0.1, sfx, 0.004); }); break;
+      case "portal-open": sweep("sine", 150, 330, t, 0.5, 0.08); [392, 523, 659, 784].forEach(function (f, i) { tone("sine", f, t + 0.08 + i * 0.08, 0.5, 0.07, sfx, 0.01); }); break; // le portail s'ouvre : bourdon qui monte + petit accord doux
+      case "portal": swell(t, 0.7, 0.16, 400, 2600); sweep("sine", 240, 900, t, 0.65, 0.06); tone("sine", 1319, t + 0.5, 0.35, 0.06, sfx, 0.01); tone("sine", 1760, t + 0.58, 0.4, 0.05, sfx, 0.01); break; // OctoCat est aspiré : souffle qui monte, puis scintillement
       case "laser": sweep("square", 1500, 500, t, 0.09, 0.05); break; // pew
       case "boing": sweep("sine", 180, 760, t, 0.22, 0.12); sweep("triangle", 360, 1500, t + 0.03, 0.18, 0.05); break; // ressort
       case "crumble": noise(t, 0.2, 0.1, "lowpass", 500, sfx); noise(t + 0.08, 0.14, 0.07, "bandpass", 900, sfx); break;
