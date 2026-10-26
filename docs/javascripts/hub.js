@@ -69,11 +69,13 @@
       var scoreShadow = k.add([k.text(pad(0), { size: scSize, font: "monospace" }), k.pos(scRight + 1, scY + 2), k.anchor("right"), k.color(rgb("#000000")), k.opacity(0.8), k.fixed(), k.z(31.9), "hudchrome"]);
       var scoreTxt = k.add([k.text(pad(0), { size: scSize, font: "monospace" }), k.pos(scRight, scY + 1), k.anchor("right"), k.color(rgb("#ffe08a")), k.fixed(), k.z(32), "hudchrome"]);
       var scoreT = 0, scoreDur = Math.min(1.6, 0.4 + score / 400), scoreDone = score <= 0, scoreFlash = 0;
-      k.add([k.text("NIVEAUX TERMINES : " + done + "/" + P.levels.length, { size: 10, font: "monospace" }), k.pos(10, 8),
-        k.color(rgb("#f0f6fc")), k.fixed(), k.z(32), "hudchrome"]);
+      // le jeu = 3 tours de 10 niveaux : le compteur va jusqu'à 30 (les tours finis + ceux du tour en cours) ; jeu fini = 30/30
       var fin = P.get().finished, WI = window.OctoWorlds ? window.OctoWorlds.info[P.world()] : null;
+      var totalLevels = P.LAPS * P.levels.length, doneLevels = fin ? totalLevels : Math.min(totalLevels, P.laps() * P.levels.length + done);
+      k.add([k.text("NIVEAUX TERMINES : " + doneLevels + "/" + totalLevels, { size: 10, font: "monospace" }), k.pos(10, 8),
+        k.color(rgb("#f0f6fc")), k.fixed(), k.z(32), "hudchrome"]);
       var tourTxt = fin ? "JEU TERMINE - " + P.LAPS + "/" + P.LAPS + " TOURS" : "TOUR " + Math.min(P.LAPS, P.laps() + 1) + "/" + P.LAPS + " - " + P.lang().toUpperCase();
-      if (WI && P.world() > 0) tourTxt += " - " + WI.short; // le monde du langage en cours
+      if (WI && P.world() > 0 && !fin) tourTxt += " - " + WI.short; // le monde du langage en cours (jeu fini : pas de monde, on les rejoue tous)
       k.add([k.text(tourTxt, { size: 9, font: "monospace" }), k.pos(10, 22), k.color(rgb(fin ? "#ffe08a" : "#a5d6ff")), k.fixed(), k.z(32), "hudchrome"]);
 
       if (CARD) k.get("hudchrome").forEach(function (o) { o.destroy(); }); // image de partage (dev/social.mjs) : l'accueil sans invite ni compteurs
