@@ -90,7 +90,9 @@
       // HUD (capitales sans accents : la police par défaut de KAPLAY n'a pas les accents)
       // panneau sombre derrière le texte : lisible sur tous les décors, même clairs
       k.add([k.rect(Math.min(sc.viewW, 286), 28 + (opts.lines || []).length * 16), k.pos(0, 0), k.color(rgb("#0d1117")), k.opacity(0.62), k.fixed(), k.z(30.5)]);
-      k.add([k.text(opts.title, { size: 11, font: "monospace" }), k.pos(10, 8), k.color(rgb("#e6edf3")), k.fixed(), k.z(31)]);
+      var idm = /^level(\d+)$/.exec(ctx.name || ""), wt = idm && window.OctoWorlds && window.OctoProgress ? window.OctoWorlds.title(parseInt(idm[1], 10), window.OctoProgress.world()) : null;
+      var head = wt ? String(wt).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase() + " - NIVEAU " + idm[1] : opts.title; // le titre du niveau dans le monde en cours
+      k.add([k.text(head, { size: 11, font: "monospace" }), k.pos(10, 8), k.color(rgb("#e6edf3")), k.fixed(), k.z(31)]);
       var lines = (opts.lines || []).map(function (l, i) {
         return k.add([k.text(l.text, { size: i === 0 ? 14 : 12, font: "monospace" }), k.pos(10, 24 + i * 16), k.color(rgb(l.color || "#d29922")), k.fixed(), k.z(31)]);
       });

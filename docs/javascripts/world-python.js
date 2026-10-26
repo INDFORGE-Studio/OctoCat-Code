@@ -73,8 +73,22 @@
     ] } }
   };
 
+  /** Le serpent d'Octo (niveaux 2, 6, 10) : une grille 28 × 15, des pierres, des Glitch qui patrouillent ; une pièce = une case. */
+  var ARENAS = {
+    2: { mode: "snake", theme: "pysnake2", cols: 28, rows: 15, speed: 6, hpMax: 5, seed: 11, coins: 9,
+      walls: [[8, 3, 2, 2], [17, 10, 3, 1], [12, 6, 1, 3], [22, 4, 2, 2], [5, 11, 3, 1]],
+      glitches: [{ x: 14, y: 2, dx: 0, dy: 1, speed: 2.2 }], hearts: [[24, 12]] },
+    6: { mode: "snake", theme: "pysnake6", cols: 28, rows: 15, speed: 6.6, hpMax: 5, seed: 23, coins: 12,
+      walls: [[6, 2, 1, 5], [6, 9, 1, 5], [13, 5, 6, 1], [13, 9, 6, 1], [21, 2, 1, 5], [21, 9, 1, 5]],
+      glitches: [{ x: 10, y: 7, dx: 1, dy: 0, speed: 2.4 }, { x: 24, y: 3, dx: 0, dy: 1, speed: 2.6 }], hearts: [[2, 2]], stars: [[16, 7]] },
+    10: { mode: "snake", theme: "pysnake10", cols: 28, rows: 15, speed: 7, hpMax: 5, seed: 31, coins: 15, combat: true,
+      walls: [[4, 3, 8, 1], [16, 3, 8, 1], [4, 11, 8, 1], [16, 11, 8, 1], [13, 5, 2, 5]],
+      glitches: [{ x: 3, y: 7, dx: 0, dy: 1, speed: 2.6 }, { x: 24, y: 7, dx: 0, dy: -1, speed: 2.8 }, { x: 14, y: 1, dx: 1, dy: 0, speed: 3 }], hearts: [[14, 13]], stars: [[2, 12], [25, 2]] }
+  };
+
   var runs = {};
+  Object.keys(ARENAS).forEach(function (id) { runs[id] = ARENAS[id]; });
   Object.keys(TOWERS).forEach(function (id) { var t = TOWERS[id]; runs[id] = { mode: "platform", theme: t.theme, abilities: t.abilities, tower: t.tower }; });
 
-  W.register(1, { titles: TITLES, runs: runs, themes: THEMES, towers: TOWERS });
+  W.register(1, { titles: TITLES, runs: runs, themes: THEMES, towers: TOWERS, arenas: ARENAS });
 })();

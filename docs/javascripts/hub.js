@@ -71,7 +71,9 @@
       var scoreT = 0, scoreDur = Math.min(1.6, 0.4 + score / 400), scoreDone = score <= 0, scoreFlash = 0;
       k.add([k.text("NIVEAUX TERMINES : " + done + "/" + P.levels.length, { size: 10, font: "monospace" }), k.pos(10, 8),
         k.color(rgb("#f0f6fc")), k.fixed(), k.z(32), "hudchrome"]);
-      var fin = P.get().finished, tourTxt = fin ? "JEU TERMINE - " + P.LAPS + "/" + P.LAPS + " TOURS" : "TOUR " + Math.min(P.LAPS, P.laps() + 1) + "/" + P.LAPS + " - " + P.lang().toUpperCase();
+      var fin = P.get().finished, WI = window.OctoWorlds ? window.OctoWorlds.info[P.world()] : null;
+      var tourTxt = fin ? "JEU TERMINE - " + P.LAPS + "/" + P.LAPS + " TOURS" : "TOUR " + Math.min(P.LAPS, P.laps() + 1) + "/" + P.LAPS + " - " + P.lang().toUpperCase();
+      if (WI && P.world() > 0) tourTxt += " - " + WI.short; // le monde du langage en cours
       k.add([k.text(tourTxt, { size: 9, font: "monospace" }), k.pos(10, 22), k.color(rgb(fin ? "#ffe08a" : "#a5d6ff")), k.fixed(), k.z(32), "hudchrome"]);
 
       if (CARD) k.get("hudchrome").forEach(function (o) { o.destroy(); }); // image de partage (dev/social.mjs) : l'accueil sans invite ni compteurs
@@ -166,7 +168,7 @@
         var locked = lv.id > state2.unlocked, done = !!state2.completed[lv.id];
         row.className = "octo-picker__row" + (locked ? " is-locked" : "") + (done ? " is-done" : "");
         row.disabled = locked;
-        row.textContent = lv.id + "  " + lv.title + (done ? "  ✓" : locked ? "  🔒" : "");
+        row.textContent = lv.id + "  " + ((window.OctoWorlds && window.OctoWorlds.title(lv.id, P.world())) || lv.title) + (done ? "  ✓" : locked ? "  🔒" : "");
         row.addEventListener("click", function () { ctx.go("level" + lv.id); });
         panel.appendChild(row);
       });
@@ -175,28 +177,28 @@
       ctx.host.appendChild(picker);
 
       /** Un tour de 10 niveaux vient d'être fini : on présente la nouvelle apparence et on fait choisir le langage du tour suivant. */
-      var SKIN_NAMES = ["OctoCat", "OctoNinja", "OctoPrincesse", "OctoCosmos"], DOG_NAMES = ["Laita", "Laita Bandana", "Laita Royale", "Laita Etoilee"];
+      var SKIN_NAMES = ["OctoCat", "OctoNinja", "OctoPrincesse", "OctoCosmos", "OctoBot"], DOG_NAMES = ["Laita", "Laita Bandana", "Laita Royale", "Laita Etoilee", "Laita Turbo"];
       function openLapUp() {
-        var tour = P.laps(), L = window.OctoLangs, dlg = document.createElement("div"), card = document.createElement("div");
+        var tour = P.laps(), L = window.OctoLangs, WD = window.OctoWorlds, dlg = document.createElement("div"), card = document.createElement("div"), opts = P.nextLangs();
         dlg.className = "octo-dialog is-open octo-lapup"; card.className = "octo-dialog__card";
         function add(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; card.appendChild(n); return n; }
         add("h2", "octo-dialog__title", "🎉 TOUR " + tour + " TERMINE !");
         var intro = add("p", "octo-dialog__text", "Tu as vaincu les 10 niveaux ! Regarde : OctoCat et Laita ont une toute nouvelle apparence. Voici " + SKIN_NAMES[tour] + " et " + DOG_NAMES[tour].replace("Etoilee", "Étoilée") + " ✨");
         intro.className = "octo-dialog__text";
-        add("div", "octo-dialog__label", "💻 CHOISIS TON LANGAGE POUR LE TOUR " + (tour + 1));
-        add("p", "octo-dialog__tip", "Les énigmes seront les mêmes, mais tu les écriras dans ce langage. Tes pièces sont gardées !");
-        var row = add("div", "octo-lang-row"), used = [P.lang()];
-        (L ? L.LANGS : ["Python"]).forEach(function (lang) {
-          var b = document.createElement("button"); b.type = "button"; b.className = "octo-lang";
-          var nm = document.createElement("span"); nm.className = "octo-lang__name"; nm.textContent = (L ? L.INFO[lang].icon : "") + " " + lang;
-          var tg = document.createElement("span"); tg.className = "octo-lang__tag"; tg.textContent = L ? L.INFO[lang].tagline : "";
+        add("div", "octo-dialog__label", opts.length > 1 ? "🌍 CHOISIS TON PROCHAIN MONDE (TOUR " + (tour + 1) + ")" : "🌍 TON DERNIER MONDE : TOUR " + (tour + 1));
+        add("p", "octo-dialog__tip", opts.length > 1 ? "Chaque langage a son propre monde, avec d'autres décors et d'autres jeux. Les énigmes sont les mêmes, tu les écriras dans ce langage. Tu feras l'autre monde au dernier tour. Tes pièces sont gardées !" : "Il ne reste qu'un monde à découvrir : c'est le dernier tour ! Tes pièces sont gardées.");
+        var row = add("div", "octo-lang-row");
+        opts.forEach(function (lang) {
+          var wi = WD ? WD.info[WD.ofLang(lang)] : null, b = document.createElement("button"); b.type = "button"; b.className = "octo-lang";
+          var nm = document.createElement("span"); nm.className = "octo-lang__name"; nm.textContent = (wi ? wi.icon + " " + wi.name : "") + "  ·  " + lang;
+          var tg = document.createElement("span"); tg.className = "octo-lang__tag"; tg.textContent = (wi ? wi.blurb + ". " : "") + (L ? L.INFO[lang].tagline : "");
           b.appendChild(nm); b.appendChild(tg);
-          if (used.indexOf(lang) >= 0) { var dn = document.createElement("span"); dn.className = "octo-lang__done"; dn.textContent = "c'est le langage du tour qui vient de finir"; b.appendChild(dn); }
           b.addEventListener("click", function () {
             P.startLap(lang);
             dlg.remove(); lapDialog = null;
-            if (window.OctoMusic) window.OctoMusic.sfx("star");
-            sc.burst(octo.pos.x + 20, octo.pos.y - 40, ["#ffe08a", "#ffffff", "#58a6ff", "#bc8cff"], 26);
+            if (window.OctoMusic) window.OctoMusic.sfx("magic");
+            sc.burst(octo.pos.x + 20, octo.pos.y - 40, ["#ffe08a", "#ffffff", "#58a6ff", "#bc8cff"], 40);
+            h.wait(0.5).then(function () { ctx.go("hub"); }); // la scène est refaite : le décor du nouveau monde apparaît
           });
           row.appendChild(b);
         });
@@ -206,6 +208,27 @@
         h.wait(0.4).then(function () { sc.burst(octo.pos.x + 20, octo.pos.y - 40, ["#ffe08a", "#ffffff", "#f778ba", "#39c5cf"], 40); });
       }
       if (P.pendingLap()) openLapUp();
+
+      // le robot : gagné en finissant le jeu sans la magie des torches ; l'accueil le présente une seule fois
+      var robotDlg = null;
+      if (P.robotNew() && !CARD && !P.pendingLap()) {
+        robotDlg = document.createElement("div"); robotDlg.className = "octo-dialog is-open octo-lapup";
+        var rc = document.createElement("div"); rc.className = "octo-dialog__card"; robotDlg.appendChild(rc);
+        var rAdd = function (tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; n.textContent = text; rc.appendChild(n); return n; };
+        rAdd("h2", "octo-dialog__title", "🤖 COSTUME SECRET DÉBLOQUÉ !");
+        rAdd("p", "octo-dialog__text", "Tu as fini le jeu sans jamais utiliser la magie des torches : bravo, c'est très fort ! Voici OctoBot, le robot d'acier à visière lumineuse, et sa chienne Laita Turbo, avec son sac à réaction.");
+        rAdd("p", "octo-dialog__tip", "Tu peux le mettre quand tu veux avec le bouton 🎭 COSTUME.");
+        var rRow = document.createElement("div"); rRow.className = "octo-lang-row"; rc.appendChild(rRow);
+        [["🤖 Mettre OctoBot !", true], ["Plus tard", false]].forEach(function (o) {
+          var bt = document.createElement("button"); bt.type = "button"; bt.className = "octo-lang";
+          var nm = document.createElement("span"); nm.className = "octo-lang__name"; nm.textContent = o[0]; bt.appendChild(nm);
+          bt.addEventListener("click", function () { P.robotSeen(); robotDlg.remove(); robotDlg = null; if (o[1] && P.pickSkin(4)) ctx.go("hub"); });
+          rRow.appendChild(bt);
+        });
+        ctx.host.appendChild(robotDlg);
+        if (window.OctoMusic) window.OctoMusic.sfx("magic");
+        rRow.querySelector("button").focus();
+      }
 
       // choix du costume (à côté du bouton du son) : seulement une fois plus de 499 pièces gagnées ; on peut alors reprendre n'importe quelle apparence
       var skinBox = null;
@@ -221,11 +244,13 @@
           var skinPanel = document.createElement("div"); skinPanel.className = "octo-skin__panel";
           var skinHead = document.createElement("div"); skinHead.className = "octo-skin__head"; skinHead.textContent = "CHOISIS TON COSTUME";
           skinPanel.appendChild(skinHead);
-          var ICONS = ["🐱", "🥷", "👑", "🌌"], now = P.skin();
-          SKIN_NAMES.forEach(function (nm, i) {
-            var row = document.createElement("button"); row.type = "button"; row.className = "octo-skin__row" + (i === now ? " is-on" : "");
-            row.textContent = ICONS[i] + "  " + nm + " + " + DOG_NAMES[i].replace("Etoilee", "Étoilée") + (i === now ? "  ✓" : "");
-            row.addEventListener("click", function () { if (i !== now && P.pickSkin(i)) ctx.go("hub"); else { skinBox.classList.remove("is-open"); skinBtn.setAttribute("aria-expanded", "false"); } }); // la scène est refaite : les sprites prennent le nouveau costume
+          var ICONS = ["🐱", "🥷", "👑", "🌌", "🤖"], now = P.skin(), choices = P.skinChoices(), list = choices.slice();
+          if (choices.length && choices.indexOf(P.laps()) < 0 && P.laps() <= 3) list.unshift(-1); // moins de 500 pièces : on peut revenir au costume du tour
+          list.forEach(function (i) {
+            var auto = i === -1, nm = auto ? "Costume du tour" : SKIN_NAMES[i];
+            var row = document.createElement("button"); row.type = "button"; row.className = "octo-skin__row" + ((auto ? now === P.laps() : i === now) ? " is-on" : "");
+            row.textContent = (auto ? "↺" : ICONS[i]) + "  " + nm + (auto ? " (" + SKIN_NAMES[P.laps()] + ")" : " + " + DOG_NAMES[i].replace("Etoilee", "Étoilée")) + ((auto ? now === P.laps() : i === now) ? "  ✓" : "");
+            row.addEventListener("click", function () { var target = auto ? -1 : i; if ((auto ? now !== P.laps() : i !== now) && P.pickSkin(target)) ctx.go("hub"); else { skinBox.classList.remove("is-open"); skinBtn.setAttribute("aria-expanded", "false"); } }); // la scène est refaite : les sprites prennent le nouveau costume
             skinPanel.appendChild(row);
           });
           skinBtn.addEventListener("click", function () { var o = skinBox.classList.toggle("is-open"); skinBtn.setAttribute("aria-expanded", String(o)); skinBtn.blur(); });
@@ -234,7 +259,31 @@
         }
       }
 
-      return { reset: function () {}, destroy: function () { picker.remove(); if (skinBox) skinBox.remove(); if (lapDialog) lapDialog.remove(); } };
+      // jeu fini : on peut rejouer n'importe lequel des trois mondes (bouton à côté du costume)
+      var worldBox = null;
+      if (P.get().finished && !CARD && window.OctoWorlds) {
+        var audioBox2 = ctx.host.querySelector(".octo-audio");
+        if (audioBox2) {
+          worldBox = document.createElement("div"); worldBox.className = "octo-skin octo-worldpick";
+          var wBtn = document.createElement("button"); wBtn.type = "button"; wBtn.className = "octo-mute octo-skin__toggle";
+          wBtn.appendChild(document.createTextNode("🌍"));
+          var wLbl = document.createElement("span"); wLbl.className = "octo-skin__label"; wLbl.textContent = " MONDE"; wBtn.appendChild(wLbl);
+          wBtn.setAttribute("aria-label", "Choisir le monde à rejouer"); wBtn.setAttribute("aria-expanded", "false");
+          var wPanel = document.createElement("div"); wPanel.className = "octo-skin__panel";
+          var wHead = document.createElement("div"); wHead.className = "octo-skin__head"; wHead.textContent = "REJOUER UN MONDE"; wPanel.appendChild(wHead);
+          window.OctoWorlds.info.forEach(function (wi) {
+            var r = document.createElement("button"); r.type = "button"; r.className = "octo-skin__row" + (wi.id === P.world() ? " is-on" : "");
+            r.textContent = wi.icon + "  " + wi.name + " (" + wi.lang + ")" + (wi.id === P.world() ? "  ✓" : "");
+            r.addEventListener("click", function () { if (wi.id !== P.world() && P.pickWorld(wi.lang)) ctx.go("hub"); else { worldBox.classList.remove("is-open"); wBtn.setAttribute("aria-expanded", "false"); } });
+            wPanel.appendChild(r);
+          });
+          wBtn.addEventListener("click", function () { var o = worldBox.classList.toggle("is-open"); wBtn.setAttribute("aria-expanded", String(o)); wBtn.blur(); });
+          worldBox.appendChild(wBtn); worldBox.appendChild(wPanel);
+          audioBox2.insertBefore(worldBox, audioBox2.firstChild);
+        }
+      }
+
+      return { reset: function () {}, destroy: function () { picker.remove(); if (skinBox) skinBox.remove(); if (worldBox) worldBox.remove(); if (lapDialog) lapDialog.remove(); if (robotDlg) robotDlg.remove(); } };
     }
   });
 })();

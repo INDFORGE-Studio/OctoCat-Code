@@ -112,7 +112,7 @@
       sc.laita(octo, OCTO_X); // Laita attend, assise devant l'OctoCat
 
       // HUD : titre, ligne de code d'état et barre de vie du Gardien (5 cases)
-      k.add([k.text("ARENE DU GARDIEN - NIVEAU 10", { size: 11, font: "monospace" }), k.pos(10, 8), k.color(rgb("#e6edf3")), k.fixed(), k.z(31)]);
+      k.add([k.text(window.OctoWorlds ? window.OctoWorlds.header(10, "ARENE DU GARDIEN - NIVEAU 10") : "ARENE DU GARDIEN - NIVEAU 10", { size: 11, font: "monospace" }), k.pos(10, 8), k.color(rgb("#e6edf3")), k.fixed(), k.z(31)]);
       var pvTxt = k.add([k.text("v_pv = " + HP, { size: 14, font: "monospace" }), k.pos(10, 24), k.color(rgb("#f85149")), k.fixed(), k.z(31)]);
       var pips = [];
       for (var i = 0; i < HP; i++) {

@@ -106,7 +106,8 @@
     };
   }
 
-  function createPad(host, input, brawl, shuriken) {
+  function createPad(host, input, brawl, shuriken, opts) {
+    opts = opts || {}; // opts.jump / opts.attack = false : pas ce bouton (serpent, invasion) ; opts.attackLabel : son dessin
     var wrap = el("div", "octo-pad");
     function btn(label, action, cls, aria) {
       var b = el("button", "octo-pad__btn " + (cls || ""), label);
@@ -121,8 +122,8 @@
     left.appendChild(btn("◀", "left", "", "Gauche"));
     left.appendChild(btn("▶", "right", "", "Droite"));
     if (brawl) { left.appendChild(btn("▲", "up", "octo-pad__btn--up", "Haut")); left.appendChild(btn("▼", "down", "octo-pad__btn--down", "Bas")); }
-    right.appendChild(btn("⤒", "jump", "octo-pad__btn--round", "Sauter"));
-    right.appendChild(btn("⚔", "attack", "octo-pad__btn--round octo-pad__btn--hot", "Attaquer"));
+    if (opts.jump !== false) right.appendChild(btn("⤒", "jump", "octo-pad__btn--round", "Sauter"));
+    if (opts.attack !== false) right.appendChild(btn(opts.attackLabel || "⚔", "attack", "octo-pad__btn--round octo-pad__btn--hot", opts.attackAria || "Attaquer"));
     if (shuriken) right.appendChild(btn("★", "throw", "octo-pad__btn--round", "Lancer un shuriken"));
     right.appendChild(btn("🐕", "dog", "octo-pad__btn--round", "Appeler Laita"));
     wrap.appendChild(left); wrap.appendChild(right);
@@ -139,6 +140,7 @@
   /* ---------- scène ---------- */
 
   function createRun(k, h, def, hooks) {
+    if (window.OctoPlay.modes[def.run.mode]) return window.OctoPlay.modes[def.run.mode](k, h, def, hooks); // l'invasion (JavaScript) et le serpent (Python) ont leur propre trajet : play-arcade.js
     var run = def.run, brawl = run.mode === "brawl", W = window.OctoWorlds, theme = (W && W.themes[run.theme]) || THEMES[run.theme] || THEMES.forest;
     var VW = k.width(), VH = k.height();
     var rgb = function (hex) { return k.Color.fromHex(hex); };
@@ -812,5 +814,9 @@
     return ctrl;
   }
 
-  window.OctoPlay = { createRun: createRun, THEMES: THEMES, current: null };
+  window.OctoPlay = {
+    createRun: createRun, THEMES: THEMES, current: null, modes: {},
+    // outils partagés avec play-arcade.js (entrées, boutons tactiles, texte, réglages)
+    kit: { createInput: createInput, createPad: createPad, el: el, clamp: clamp, plain: plain, rainbowHex: rainbowHex, music: music, settings: settings, menuOpen: menuOpen }
+  };
 })();

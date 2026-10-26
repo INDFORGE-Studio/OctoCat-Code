@@ -887,6 +887,15 @@
       canvas.focus();
     }
 
+    /** Le niveau avec le titre de son monde (briefing et éditeur) : « Le Marais des Chaînes » en Python, « La Nébuleuse des Chaînes » en JavaScript… */
+    function titled(def) {
+      var wt = window.OctoWorlds && P.world ? window.OctoWorlds.title(def.id, P.world()) : null;
+      if (!wt) return def;
+      var c = Object.assign({}, def, { title: wt });
+      if (def.briefing) c.briefing = Object.assign({}, def.briefing, { title: wt });
+      return c;
+    }
+
     function enter(name, def, isLevel) {
       leave();
       cur.name = name; cur.def = def; cur.ctrl = null;
@@ -895,7 +904,7 @@
       var ctx = { go: goTo, host: host, name: name, reserve: isLevel ? 0.4 : 0 };
       applyFx();
       cur.ctrl = def.scene(k, helpers, ctx);
-      if (isLevel) ui.showLevel(window.OctoLangs ? window.OctoLangs.apply(def, P.lang()) : def); else { ui.hide(); canvas.focus(); }
+      if (isLevel) { var shown = window.OctoLangs ? window.OctoLangs.apply(def, P.lang()) : def; ui.showLevel(titled(shown)); } else { ui.hide(); canvas.focus(); }
     }
 
     Object.keys(scenes).forEach(function (name) { k.scene(name, function () { enter(name, scenes[name], false); }); });

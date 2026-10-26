@@ -983,7 +983,7 @@
       }
       if (candleNear) inp.attack = sim.time % 0.5 < 0.25;
       if (p.onGround) jumpHold = 0;
-      if (needJump && p.onGround) { inp.jump = !sim._lastJump; jumpHold = 0.34; } // (on relâche d'abord : sans nouvel appui, atterrir juste devant une marche ne ferait rien)
+      if (needJump && p.onGround) { inp.jump = !sim._lastJump; jumpHold = 0.34 / (sim.gravity || 1); } // (on relâche d'abord : sans nouvel appui, atterrir juste devant une marche ne ferait rien)
       else if (jumpHold > 0) { inp.jump = true; jumpHold -= dt; }
       // double saut : on le déclenche près du sommet si un mur ou un vide bloque encore
       if (!p.onGround && ab.doubleJump && p.jumps < 2 && p.vy > -60 && (wall || !solidAt(p.x + dir * 30, p.y + 20)) ) { inp.jump = !sim._lastJump; }

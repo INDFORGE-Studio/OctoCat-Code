@@ -136,7 +136,7 @@
 
       // HUD (capitales sans accents : la police par défaut de KAPLAY n'a pas les accents)
       k.add([k.rect(sc.viewW, 16), k.pos(0, 40), k.color(rgb("#0d1117")), k.opacity(0.42), k.fixed(), k.z(30.5)]); // prolonge la barre du HUD sous la 3e ligne
-      k.add([k.text("PONT DES BOOLEENS - NIVEAU 5", { size: 11, font: "monospace" }), k.pos(10, 8), k.color(rgb("#e6edf3")), k.fixed(), k.z(31)]);
+      k.add([k.text(window.OctoWorlds ? window.OctoWorlds.header(5, "PONT DES BOOLEENS - NIVEAU 5") : "PONT DES BOOLEENS - NIVEAU 5", { size: 11, font: "monospace" }), k.pos(10, 8), k.color(rgb("#e6edf3")), k.fixed(), k.z(31)]);
       var energyTxt = k.add([k.text("v_energie = " + SHOWN_ENERGY, { size: 12, font: "monospace" }), k.pos(10, 24), k.color(rgb("#58a6ff")), k.fixed(), k.z(31)]);
       var bridgeTxt = k.add([k.text('v_pont = "fragile"', { size: 12, font: "monospace" }), k.pos(10, 40), k.color(rgb("#d29922")), k.fixed(), k.z(31)]);
       var banner = k.add([k.text("", { size: 18, font: "monospace" }), k.pos(sc.viewW / 2, 70), k.anchor("center"),

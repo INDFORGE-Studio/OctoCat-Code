@@ -159,7 +159,7 @@
   }
 
   var lastSfx = {};
-  /** Effets sonores de jeu, synthétisés (aucun fichier) : jump, djump, land, bit, heart, hit, kill, stomp, hurt, swing, throw, checkpoint, finish. */
+  /** Effets sonores de jeu, synthétisés (aucun fichier) : jump, djump, land, bit, heart, hit, kill, stomp, hurt, swing, throw, checkpoint, finish, laser, boing, crumble, boom, bomb, ufo, wave. */
   function playSfx(name) {
     if (window.OctoSettings && window.OctoSettings.get("sfx") === false) return;
     if (!ensureCtx()) return;
@@ -190,6 +190,13 @@
       case "snuff": noise(t, 0.3, 0.14, "bandpass", 760, sfx); sweep("triangle", 540, 120, t, 0.32, 0.06); tone("triangle", 1760, t + 0.14, 0.18, 0.05, sfx, 0.003); tone("triangle", 2349, t + 0.2, 0.2, 0.04, sfx, 0.003); break; // « pschiit » magique
       case "magic": [523, 659, 784, 988, 1175, 1568, 1976, 2349, 3136].forEach(function (f, i) { tone("triangle", f, t + i * 0.07, 0.42, 0.08, sfx, 0.004); tone("sine", f * 2, t + i * 0.07 + 0.02, 0.3, 0.035, sfx, 0.004); }); noise(t + 0.55, 0.5, 0.05, "highpass", 5000, sfx); break; // glissando scintillant
       case "finish": [523, 659, 784, 1047].forEach(function (f, i) { tone("triangle", f, t + i * 0.08, 0.5, 0.1, sfx, 0.004); }); break;
+      case "laser": sweep("square", 1500, 500, t, 0.09, 0.05); break; // pew
+      case "boing": sweep("sine", 180, 760, t, 0.22, 0.12); sweep("triangle", 360, 1500, t + 0.03, 0.18, 0.05); break; // ressort
+      case "crumble": noise(t, 0.2, 0.1, "lowpass", 500, sfx); noise(t + 0.08, 0.14, 0.07, "bandpass", 900, sfx); break;
+      case "boom": noise(t, 0.7, 0.28, "lowpass", 700, sfx); sweep("sawtooth", 220, 40, t, 0.6, 0.14); noise(t + 0.1, 0.5, 0.12, "bandpass", 1500, sfx); break; // le gardien explose
+      case "bomb": sweep("triangle", 520, 300, t, 0.12, 0.04); break;
+      case "ufo": [880, 660, 880, 660, 990].forEach(function (f, i) { tone("sine", f, t + i * 0.07, 0.1, 0.05, sfx, 0.004); }); break;
+      case "wave": [196, 247, 196, 247].forEach(function (f, i) { tone("sawtooth", f, t + i * 0.12, 0.16, 0.06, sfx, 0.004, 900); }); break;
       default: break;
     }
   }
