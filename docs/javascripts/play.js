@@ -483,7 +483,7 @@
       });
     }
 
-    var SFX = { jump: "jump", djump: "djump", land: "land", swing: "swing", hit: "hit", kill: "kill", stomp: "stomp", hurt: "hurt", bit: "bit", heart: "heart", throw: "throw", checkpoint: "checkpoint", finish: "finish", candle: "hit", die: "hurt", fall: "hurt", wave: "hurt", star: "star", power: "power", crate: "crate", "crate-hit": "crate-hit", shot: "shot", dash: "dash", bark: "bark", scare: "scare", secret: "power", "secret-out": "checkpoint", pad: "boing", crumble: "crumble", crumbled: "crumble" };
+    var SFX = { jump: "jump", djump: "djump", land: "land", swing: "swing", hit: "hit", kill: "kill", stomp: "stomp", hurt: "hurt", bit: "bit", heart: "heart", throw: "throw", checkpoint: "checkpoint", finish: "finish", candle: "hit", die: "hurt", fall: "hurt", wave: "hurt", star: "star", power: "power", crate: "crate", "crate-hit": "crate-hit", shot: "shot", dash: "dash", bark: "bark", scare: "scare", secret: "power", "secret-out": "checkpoint", rescue: "checkpoint", pad: "boing", crumble: "crumble", crumbled: "crumble" };
 
     function handle(ev) {
       var m = music();
@@ -508,6 +508,7 @@
         case "restart": resetWorldObjs(); snapCam(); say("TOUT RECOMMENCE", "#f85149"); break;
         case "secret": snapCam(); say("SALLE SECRETE !", "#ffd54a"); burst(ev.x, ev.y - 40, ["#ffd54a", "#fff4c2", "#ffffff"], 20, 0.9); break;
         case "secret-out": snapCam(); say("DE RETOUR !", "#7ee787"); break;
+        case "rescue": snapCam(); say("HOP ! ON REMONTE", "#7ee787"); burst(ev.x, ev.y - 20, ["#7ee787", "#ffffff", "#ffd54a"], 14, 0.8); break;
         case "wave": say("ATTENTION !", "#f85149"); k.shake(5); break;
         case "star": say("INVINCIBLE !", "#ffffff"); burst(ev.x, ev.y, ["#ff6a6a", "#ffd54a", "#7ee787", "#58a6ff", "#bc8cff"], 26, 1.1); k.shake(3); break;
         case "power": say("SUPER SHURIKEN !", "#ffd54a"); burst(ev.x, ev.y, ["#ffd54a", "#fff4c2", "#ffffff"], 18, 0.9); break;

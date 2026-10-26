@@ -339,6 +339,7 @@
       scan(false);
       sim.cp = { x: spawn.x, y: spawn.y };
       if (sim.secret) sim.secret.inRoom = false;
+      sim.climbed = false;
       p.hp = CFG.hpMax; p.x = spawn.x; p.y = spawn.y; p.vx = 0; p.vy = 0; p.inv = 1.5; p.swing = 0; p.star = 0; p.power = 0; p.facing = 1;
       sim.dog.x = p.x - 46; sim.dog.y = p.y; sim.dog.state = "follow"; sim.dog.cd = 0; sim.dog.vx = 0;
       emit("restart", spawn.x, spawn.y);
@@ -596,6 +597,11 @@
       if (sec && sec.warp && !sec.inRoom && overlap(pr, sec.warp)) { sec.inRoom = true; sec.visits++; teleport(sec.spawn); emit("secret", p.x, p.y); } // tour : le petit portail doré mène à la salle secrète
       if (sec && sec.inRoom && overlap(pr, sec.exit)) { // le tuyau : retour dans le niveau, devant le dernier trou
         sec.inRoom = false; teleport(sec.out); emit("secret-out", p.x, p.y);
+      }
+      if (sim.vertical && !(sec && sec.inRoom)) { // tour : retomber tout en bas après être monté (sous une plateforme, le bloc de départ est parfois trop haut pour remonter) = Laita ramène au dernier drapeau, sans perdre de cœur
+        var floorY = (sim.tower.rows - 1) * TILE, pocket = (sim.tower.platforms[1].r + 1) * TILE; // la poche : le sol à droite de la 1re marche, sous la 2e plateforme (on n'en remonte pas)
+        if (p.onGround && p.y < floorY - 100) sim.climbed = true;
+        else if ((sim.climbed || p.x > pocket) && p.onGround && p.y >= floorY - 1) { sim.climbed = false; teleport(sim.cp); emit("rescue", p.x, p.y); }
       }
       if (p.y > sim.h + 120) {
         if (sec && !sec.inRoom && p.x > sec.gapL - 10 && p.x < sec.gapR + 10) { sec.inRoom = true; sec.visits++; teleport(sec.spawn); emit("secret", p.x, p.y); }

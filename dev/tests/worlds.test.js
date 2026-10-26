@@ -68,6 +68,52 @@ test("tour : le robot grimpe jusqu'au terminal dans les 7 tours (ressorts, plate
   }
 });
 
+test("tour : en marchant vers le portail doré on prend d'abord les deux pièces de sa plateforme (aucune derrière lui)", () => {
+  for (const id of PLATFORM_LEVELS) {
+    const r = W.data(1).runs[id], g = S.buildTower(r.tower), warp = g.warp;
+    if (!warp) continue;
+    if (warp.b >= (g.length - 1) * 32 - 1) { // portail du sol (repli) : tout à gauche du départ, les pièces sur le chemin de la 1re marche, jamais dans la poche à droite
+      const sim = S.createPlatform(g, r.abilities), sec = sim.secret, pocket = (g.tower.platforms[1].r + 1) * 32;
+      assert.ok(warp.r <= 40, `tour ${id} : le portail du sol est à gauche du départ`);
+      const bits0 = sim.stats.bits;
+      for (let t = 0; t < 4 && sim.player.x < pocket - 20; t += DT) sim.step({ right: true }, DT);
+      assert.equal(sim.stats.bits - bits0, 3, `tour ${id} : les 3 pièces sont sur le chemin de la 1re marche`);
+      for (let t = 0; t < 6 && !sec.inRoom; t += DT) sim.step({ left: true }, DT);
+      assert.ok(sec.inRoom, `tour ${id} : en marchant vers la gauche on entre dans le portail`);
+      continue;
+    }
+    const sim = S.createPlatform(g, r.abilities), p = sim.player, sec = sim.secret;
+    const wc = (warp.l + warp.r) / 2, ty = warp.b;
+    const row = g[Math.round(ty / 32) - 1], cs = []; for (let c = 0; c < row.length; c++) if (row[c] === "o" && Math.abs((c + 0.5) * 32 - wc) < 70) cs.push(c);
+    assert.equal(cs.length, 2, `tour ${id} : 2 pièces près du portail`);
+    const dir = cs[0] * 32 < wc ? 1 : -1; // on arrive par le côté des pièces
+    p.x = (dir > 0 ? cs[0] - 0.2 : cs[1] + 1.2) * 32; p.y = ty; p.vx = 0; p.vy = 0;
+    const bits0 = sim.stats.bits;
+    for (let t = 0; t < 3 && !sec.inRoom; t += DT) sim.step({ right: dir > 0, left: dir < 0 }, DT);
+    assert.ok(sec.inRoom, `tour ${id} : le portail s'ouvre`);
+    assert.equal(sim.stats.bits - bits0, 2, `tour ${id} : les deux pièces ont été prises avant`);
+  }
+});
+
+test("tour : retomber sur le sol après être monté ramène au dernier drapeau, sans perdre de cœur (plus de piège sous une plateforme)", () => {
+  for (const id of PLATFORM_LEVELS) {
+    const r = W.data(1).runs[id], g = S.buildTower(r.tower), sim = S.createPlatform(g, r.abilities), p = sim.player, plats = g.tower.platforms;
+    const up = plats[2], floorY = (g.tower.rows - 1) * 32;
+    p.x = (up.l + up.r + 1) / 2 * 32; p.y = up.ty * 32; p.vx = 0; p.vy = 0;
+    run(sim, idle, 0.3);
+    assert.ok(sim.climbed, `tour ${id} : on est monté`);
+    // on se laisse tomber tout en bas, juste à côté du bloc de départ
+    p.x = (plats[1].r + 1.5) * 32; p.y = floorY - 40; p.vy = 0;
+    const hp = p.hp, seen = [];
+    sim.climbed = false; p.x = (plats[1].r + 1.5) * 32; p.y = floorY - 10; p.vy = 0; // (même sans être monté : la poche à droite de la 1re marche est un cul-de-sac)
+    sim.events.length = 0;
+    run(sim, idle, 1.5);
+    sim.events.forEach((e) => seen.push(e.t));
+    assert.ok(seen.includes("rescue"), `tour ${id} : Laita ramène le joueur`);
+    assert.equal(p.hp, hp, "aucun cœur perdu");
+  }
+});
+
 test("tour : le portail secret mène à la salle de 28 pièces et le tuyau ramène près de lui ; on ne tombe jamais plus bas que le sol", () => {
   for (const id of PLATFORM_LEVELS) {
     const r = W.data(1).runs[id], g = S.buildTower(r.tower), sim = S.createPlatform(g, r.abilities), sec = sim.secret;
