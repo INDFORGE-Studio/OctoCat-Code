@@ -54,7 +54,8 @@
   function menuOpen() { var S = settings(); return !!(S && S.isOpen()); }
 
   function createInput(brawl) {
-    var kb = {}, pad = {}, latch = {}; // latch : un appui plus court qu'une image (clic rapide, tape) compte quand même
+    var kb = {}, pad = {}, latch = {}, tapJump = false; // tapJump : un NOUVEL appui sur une touche de saut (même si une autre touche de saut est déjà tenue : Z + Espace)
+    // latch : un appui plus court qu'une image (clic rapide, tape) compte quand même
     function typing(e) { return e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName); }
     function reset() { kb = {}; pad = {}; latch = {}; }
     function onKey(down) {
@@ -63,6 +64,7 @@
         var a = actionOf(e.code);
         if (!a || typing(e)) return;
         kb[a] = down; if (down) latch[a] = true;
+        if (down && !e.repeat && (a === "jump" || (a === "up" && !brawl))) tapJump = true;
         e.preventDefault();
       };
     }
@@ -89,14 +91,14 @@
     window.addEventListener("blur", reset);
     return {
       pad: pad, kbReset: reset,
-      setPad: function (a, v) { pad[a] = v; if (v) latch[a] = true; },
+      setPad: function (a, v) { pad[a] = v; if (v) { latch[a] = true; if (a === "jump" || (a === "up" && !brawl)) tapJump = true; } },
       get: function () {
         var on = function (a) { return !!(kb[a] || pad[a] || latch[a]); };
         var out = {
           left: on("left"), right: on("right"), up: !!(brawl && on("up")), down: on("down"),
-          jump: on("jump") || (!brawl && on("up")), attack: on("attack"), throw: on("throw"), dog: on("dog")
+          jump: on("jump") || (!brawl && on("up")), attack: on("attack"), throw: on("throw"), dog: on("dog"), jumpTap: tapJump
         };
-        latch = {};
+        latch = {}; tapJump = false;
         return out;
       },
       destroy: function () {

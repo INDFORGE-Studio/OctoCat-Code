@@ -388,7 +388,7 @@
 
     function stepOnce(inp, dt) {
       var dir = (inp.right ? 1 : 0) - (inp.left ? 1 : 0), i, e;
-      var jumpPressed = !!inp.jump && !prev.jump, attackPressed = !!inp.attack && !prev.attack, throwPressed = !!inp.throw && !prev.throw, dogPressed = !!inp.dog && !prev.dog;
+      var jumpPressed = (!!inp.jump && !prev.jump) || !!inp.jumpTap, attackPressed = !!inp.attack && !prev.attack, throwPressed = !!inp.throw && !prev.throw, dogPressed = !!inp.dog && !prev.dog;
       prev.jump = !!inp.jump; prev.attack = !!inp.attack; prev.throw = !!inp.throw; prev.dog = !!inp.dog;
       sim.time += dt;
       if (p.inv > 0) p.inv -= dt;
@@ -404,7 +404,7 @@
 
       // --- saut (délai de grâce, tampon, saut variable, double saut) ---
       p.coyote = p.onGround ? CFG.coyote : p.coyote - dt;
-      p.buffer = jumpPressed ? CFG.buffer : p.buffer - dt;
+      p.buffer = jumpPressed || (inp.jump && p.onGround) ? CFG.buffer : p.buffer - dt; // touche tenue : on saute de nouveau dès qu'on retouche le sol
       if (p.buffer > 0 && p.coyote > 0) {
         p.vy = -CFG.jumpV; p.coyote = 0; p.buffer = 0; p.onGround = false; p.jumps = 1; p.cut = false;
         emit("jump", p.x, p.y);
@@ -612,8 +612,8 @@
 
     /** Avance de `dt` secondes (découpé en pas fixes de 1/120 s pour la stabilité). */
     sim.step = function (input, dt) {
-      var n = Math.max(1, Math.ceil(dt / (1 / 120))), h = dt / n;
-      for (var i = 0; i < n; i++) stepOnce(input || {}, h);
+      var n = Math.max(1, Math.ceil(dt / (1 / 120))), h = dt / n, inp = input || {}, rest = inp.jumpTap ? Object.assign({}, inp, { jumpTap: false }) : inp; // (un nouvel appui ne compte qu'au 1er pas de l'image)
+      for (var i = 0; i < n; i++) stepOnce(i === 0 ? inp : rest, h);
     };
     var spawnY = spawn.y, lastProg = 0;
     sim.progress = function () {
