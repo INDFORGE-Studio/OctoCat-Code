@@ -14,7 +14,8 @@
     var out = [
       ["title", "OCTOCAT-CODE"], ["sub", "APPRENDS A CODER EN T'AMUSANT"], ["gap"],
       ["head", "UN JEU DE"], ["name", "INDFORGE STUDIO"], ["gap"],
-      ["head", "IDEE, DIRECTION ET TESTS"], ["name", "MICKAEL"], ["gap"],
+      ["head", "IDEE, DIRECTION ET TESTS"], ["name", "MARIUS_FR"], ["gap"],
+      ["head", "MERCI AUX BETA-TESTEURS"], ["name", "LIAM"], ["name", "ELIAS"], ["name", "IZIA"], ["name", "LA VRAIE LAITA"], ["name", "LA TEAM FISTILAND"], ["gap"],
       ["head", "CODE, PIXEL ART ET MUSIQUE"], ["name", "FABRIQUES PAR ORDINATEUR"], ["name", "AVEC CLAUDE, D'ANTHROPIC"],
       ["small", "AUCUNE IMAGE, AUCUN FICHIER DE SON :"], ["small", "TOUT EST DESSINE ET JOUE PAR DU CODE"], ["gap"],
       ["head", "LES HEROS"],
