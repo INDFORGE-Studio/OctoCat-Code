@@ -353,9 +353,9 @@
       emit(fell ? "fall" : "die", p.x, p.y);
       // une chute coûte un cœur et ramène au dernier drapeau ; à 0 cœur (chute ou coups), tout recommence au début du niveau
       if (fell && !sim.relax) p.hp -= 1;
-      if (!fell || p.hp <= 0) {
-        if (!fell || p.hp <= 0) { restartLevel(); return; }
-      }
+      if (sim.vertical && p.hp <= 0) p.hp = CFG.hpMax; // une tour : à 0 cœur on repart du dernier drapeau (sinon les drapeaux ne serviraient à rien), cœurs pleins
+      else if (!fell || p.hp <= 0) { restartLevel(); return; }
+      sim.dog.x = sim.cp.x - 46; sim.dog.y = sim.cp.y; sim.dog.state = "follow"; sim.dog.vx = 0;
       p.x = sim.cp.x; p.y = sim.cp.y; p.vx = 0; p.vy = 0; p.inv = 1.5; p.swing = 0;
     }
     function hurtPlayer(fromX, amount) {
@@ -388,7 +388,7 @@
 
     function stepOnce(inp, dt) {
       var dir = (inp.right ? 1 : 0) - (inp.left ? 1 : 0), i, e;
-      var jumpPressed = !!inp.jump && !prev.jump, attackPressed = !!inp.attack && !prev.attack, throwPressed = !!inp.throw && !prev.throw, dogPressed = !!inp.dog && !prev.dog;
+      var jumpPressed = (!!inp.jump && !prev.jump) || !!inp.jumpTap, attackPressed = !!inp.attack && !prev.attack, throwPressed = !!inp.throw && !prev.throw, dogPressed = !!inp.dog && !prev.dog;
       prev.jump = !!inp.jump; prev.attack = !!inp.attack; prev.throw = !!inp.throw; prev.dog = !!inp.dog;
       sim.time += dt;
       if (p.inv > 0) p.inv -= dt;
@@ -404,7 +404,7 @@
 
       // --- saut (délai de grâce, tampon, saut variable, double saut) ---
       p.coyote = p.onGround ? CFG.coyote : p.coyote - dt;
-      p.buffer = jumpPressed ? CFG.buffer : p.buffer - dt;
+      p.buffer = jumpPressed || (inp.jump && p.onGround) ? CFG.buffer : p.buffer - dt; // touche tenue : on saute de nouveau dès qu'on retouche le sol
       if (p.buffer > 0 && p.coyote > 0) {
         p.vy = -CFG.jumpV; p.coyote = 0; p.buffer = 0; p.onGround = false; p.jumps = 1; p.cut = false;
         emit("jump", p.x, p.y);
@@ -612,8 +612,8 @@
 
     /** Avance de `dt` secondes (découpé en pas fixes de 1/120 s pour la stabilité). */
     sim.step = function (input, dt) {
-      var n = Math.max(1, Math.ceil(dt / (1 / 120))), h = dt / n;
-      for (var i = 0; i < n; i++) stepOnce(input || {}, h);
+      var n = Math.max(1, Math.ceil(dt / (1 / 120))), h = dt / n, inp = input || {}, rest = inp.jumpTap ? Object.assign({}, inp, { jumpTap: false }) : inp; // (un nouvel appui ne compte qu'au 1er pas de l'image)
+      for (var i = 0; i < n; i++) stepOnce(i === 0 ? inp : rest, h);
     };
     var spawnY = spawn.y, lastProg = 0;
     sim.progress = function () {

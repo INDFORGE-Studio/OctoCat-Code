@@ -54,6 +54,29 @@ test("double saut : seulement avec la capacité", () => {
   assert.ok(apex({ doubleJump: true }) > apex({}) + 40);
 });
 
+test("saut : en gardant la touche appuyée on saute de nouveau à chaque retour au sol (pas besoin de relâcher)", () => {
+  const sim = S.createPlatform(S.buildCourse([{ t: "flat", n: 12 }, { t: "end", n: 8 }]), {});
+  run(sim, idle, 0.5);
+  let jumps = 0;
+  for (let t = 0; t < 3; t += DT) { sim.step({ jump: true }, DT); }
+  sim.events.forEach((e) => { if (e.t === "jump") jumps++; });
+  assert.ok(jumps >= 3, `${jumps} sauts en 3 s avec la touche tenue`);
+});
+
+test("double saut : un nouvel appui compte même si une autre touche de saut est déjà tenue (Z tenu + Espace)", () => {
+  const apex = (tap) => {
+    const sim = S.createPlatform(S.buildCourse([{ t: "flat", n: 12 }, { t: "end", n: 8 }]), { doubleJump: true });
+    run(sim, idle, 0.5);
+    const y0 = sim.player.y; let min = y0;
+    for (let t = 0; t < 1.2; t += DT) {
+      // la touche de saut reste tenue tout le temps ; à 0,35 s un nouvel appui (l'autre touche)
+      sim.step({ jump: true, jumpTap: tap && Math.abs(t - 0.35) < DT / 2 }, DT); min = Math.min(min, sim.player.y);
+    }
+    return y0 - min;
+  };
+  assert.ok(apex(true) > apex(false) + 30);
+});
+
 test("ennemis : les pics et les marcheurs blessent, l'écrasement et l'épée tuent, la chute ramène au point de contrôle", () => {
   let sim = S.createPlatform(S.buildCourse([{ t: "flat", n: 10, spikes: [4] }, { t: "end", n: 8 }]), {});
   run(sim, { right: true }, 2);

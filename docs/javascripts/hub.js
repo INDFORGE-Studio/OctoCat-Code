@@ -283,7 +283,20 @@
         }
       }
 
-      return { reset: function () {}, destroy: function () { picker.remove(); if (skinBox) skinBox.remove(); if (worldBox) worldBox.remove(); if (lapDialog) lapDialog.remove(); if (robotDlg) robotDlg.remove(); } };
+      // jeu fini (quelle que soit la fin : avec ou sans OctoBot) : on peut revoir le générique quand on veut
+      var credBtn = null;
+      if (P.get().finished && !CARD) {
+        var audioBox3 = ctx.host.querySelector(".octo-audio");
+        if (audioBox3) {
+          credBtn = document.createElement("button"); credBtn.type = "button"; credBtn.className = "octo-mute octo-skin__toggle octo-credits-btn";
+          credBtn.appendChild(document.createTextNode("🎬"));
+          var cLbl = document.createElement("span"); cLbl.className = "octo-skin__label"; cLbl.textContent = " CREDITS"; credBtn.appendChild(cLbl);
+          credBtn.setAttribute("aria-label", "Revoir le générique de fin");
+          credBtn.addEventListener("click", function () { credBtn.blur(); ctx.go("credits"); });
+          audioBox3.insertBefore(credBtn, audioBox3.firstChild);
+        }
+      }
+      return { reset: function () {}, destroy: function () { picker.remove(); if (skinBox) skinBox.remove(); if (worldBox) worldBox.remove(); if (credBtn) credBtn.remove(); if (lapDialog) lapDialog.remove(); if (robotDlg) robotDlg.remove(); } };
     }
   });
 })();

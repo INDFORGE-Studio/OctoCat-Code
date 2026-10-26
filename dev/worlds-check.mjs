@@ -41,12 +41,13 @@ for (const id of levels) {
     const c = window.OctoPlay.current, S = window.OctoSim;
     const botOf = { platform: S.platformBot, brawl: S.brawlBot, snake: S.snakeBot, invaders: S.invadersBot }[c.sim.mode] || S.platformBot;
     const bot = botOf(c.sim);
-    c.input.get = () => bot(1 / 60);
+    let last = performance.now(); // le robot reçoit le vrai temps écoulé (en navigateur sans écran les images ne durent pas toujours 1/60 s)
+    c.input.get = () => { const n = performance.now(), dt = Math.min(0.05, (n - last) / 1000); last = n; return bot(dt); };
   });
   await page.waitForTimeout(7000);
   await page.screenshot({ path: path.join(OUT, `world${world}-${id}-b.png`) });
   let ok = false;
-  try { await page.waitForSelector(".octo-dialog.is-open", { timeout: 120000 }); ok = true; } catch { /* trop long */ }
+  try { await page.waitForSelector(".octo-dialog.is-open", { timeout: 280000 }); ok = true; } catch { /* trop long */ }
   const st = await sim(() => { const c = window.OctoPlay.current; return c ? { prog: c.sim.progress(), bits: c.sim.stats.bits, total: c.sim.stats.bitsTotal, deaths: c.sim.stats.deaths } : null; });
   ok_(`monde ${world} niveau ${id} : l'énigme s'ouvre après le trajet`, ok, JSON.stringify(st));
 }

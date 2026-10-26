@@ -77,7 +77,7 @@ test("tour : en marchant vers le portail doré on prend d'abord les deux pièces
       assert.ok(warp.r <= 40, `tour ${id} : le portail du sol est à gauche du départ`);
       const bits0 = sim.stats.bits;
       for (let t = 0; t < 4 && sim.player.x < pocket - 20; t += DT) sim.step({ right: true }, DT);
-      assert.equal(sim.stats.bits - bits0, 3, `tour ${id} : les 3 pièces sont sur le chemin de la 1re marche`);
+      assert.equal(sim.stats.bits - bits0, 2, `tour ${id} : les 2 pièces sont sur le chemin de la 1re marche`);
       for (let t = 0; t < 6 && !sec.inRoom; t += DT) sim.step({ left: true }, DT);
       assert.ok(sec.inRoom, `tour ${id} : en marchant vers la gauche on entre dans le portail`);
       continue;
@@ -92,6 +92,48 @@ test("tour : en marchant vers le portail doré on prend d'abord les deux pièces
     for (let t = 0; t < 3 && !sec.inRoom; t += DT) sim.step({ right: dir > 0, left: dir < 0 }, DT);
     assert.ok(sec.inRoom, `tour ${id} : le portail s'ouvre`);
     assert.equal(sim.stats.bits - bits0, 2, `tour ${id} : les deux pièces ont été prises avant`);
+  }
+});
+
+test("tour : à 0 cœur on repart du dernier drapeau allumé (cœurs pleins), pas tout en bas ; sans drapeau, du départ", () => {
+  const r = W.data(1).runs[1], g = S.buildTower(r.tower), sim = S.createPlatform(g, r.abilities), p = sim.player, ck = sim.checkpoints[0];
+  assert.ok(ck, "un drapeau");
+  p.x = ck.x; p.y = ck.y; p.vx = 0; p.vy = 0;
+  run(sim, idle, 0.3);
+  assert.ok(ck.on, "drapeau allumé");
+  p.x += 70; p.hp = 1; p.inv = 0;
+  sim.enemies.push({ type: "walker", x: p.x, y: p.y, w: 22, h: 28, vx: 0, vy: 0, dir: -1, hp: 1, hurt: 0, alive: true, tx: 0 });
+  run(sim, idle, 0.5);
+  assert.equal(p.hp, 5, "cœurs pleins");
+  assert.ok(Math.abs(p.x - ck.x) < 20 && Math.abs(p.y - ck.y) < 40, `retour au drapeau (${p.x.toFixed(0)},${p.y.toFixed(0)} pour ${ck.x},${ck.y})`);
+  assert.equal(sim.stats.deaths, 1);
+});
+
+test("tour : on peut toujours atteindre le portail doré en sautant depuis sa plateforme, sans passer par le terminal (7 tours)", () => {
+  for (const id of PLATFORM_LEVELS) {
+    const r = W.data(1).runs[id], g = S.buildTower(r.tower), warp = g.warp, plats = g.tower.platforms;
+    const sim = S.createPlatform(g, r.abilities), p = sim.player, sec = sim.secret;
+    if (warp.b >= (g.length - 1) * 32 - 1) continue; // portail du sol : on y marche
+    const wcx = (warp.l + warp.r) / 2, ty = warp.b;
+    const dist = (q) => (wcx < q.l * 32 ? q.l * 32 - wcx : wcx - (q.r + 1) * 32);
+    const from = plats.filter((q) => !q.floor && q !== plats[plats.length - 1] && q.ty * 32 === ty).sort((u, v) => dist(u) - dist(v))[0];
+    assert.ok(from && dist(from) < 200, `tour ${id} : une plateforme (pas la dernière) porte le portail`);
+    const dir = wcx > (from.l + from.r + 1) * 16 ? 1 : -1;
+    p.x = (dir > 0 ? from.r + 0.5 : from.l + 0.5) * 32; p.y = ty; p.vx = 0; p.vy = 0;
+    run(sim, idle, 0.2);
+    let ok = false, jumped = 0, held = false;
+    const edge = dir > 0 ? (from.r + 1) * 32 - 6 : from.l * 32 + 6;
+    for (let t = 0; t < 3 && !ok; t += DT) {
+      const atEdge = dir > 0 ? p.x >= edge : p.x <= edge;
+      let jump = false;
+      if (p.onGround && atEdge && !held) { jump = true; held = true; jumped = t; }
+      else if (held && t - jumped < 0.3) jump = true; // tenu : saut plein
+      else if (held && r.abilities.doubleJump && t - jumped > 0.34 && t - jumped < 0.4) jump = true; // (nouvel appui : double saut)
+      sim.step({ right: dir > 0, left: dir < 0, jump }, DT);
+      ok = sec.inRoom;
+    }
+    assert.ok(ok, `tour ${id} : le portail est atteignable par un saut depuis le bord de sa plateforme`);
+    assert.ok(!sim.finished, `tour ${id} : sans toucher le terminal`);
   }
 });
 

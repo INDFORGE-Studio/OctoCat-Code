@@ -4,7 +4,7 @@
  * OctoCat pilote sa fusée en bas de l'écran, Laita à son côté. Des vagues d'envahisseurs descendent en formation (elles vont d'un bord à l'autre,
  * puis descendent d'un cran) et lâchent des bombes. On tire vers le haut ; les bunkers arrêtent les bombes ; une soucoupe-mystère laisse du butin.
  *
- *   def = { hpMax, shields, ufoEvery, waves: [ { cols, rows, kinds: ["squid","crab","drone"] (du haut vers le bas), speed, fire, coins, boss } ] }
+ *   def = { hpMax, shields, ufoEvery, waves: [ { cols, rows, kinds: ["squid","crab","drone"] (du haut vers le bas), speed, fire, volley (bombes lâchées d'un coup), armor (points de vie en plus), coins, boss } ] }
  *   Une pièce par envahisseur « doré » (coins = leur nombre dans la vague) : comme au Double Dragon, `bitsTotal` = le total des pièces du niveau.
  *
  * Règles gentilles : si une formation arrive en bas elle repart vers le haut (et coûte un cœur), jamais de partie perdue d'un coup ; à 0 cœur, tout recommence
@@ -16,9 +16,9 @@
   var S = window.OctoSim, CFG = S.CFG;
 
   var KINDS = {
-    drone: { hp: 1, w: 22, h: 16, score: 1, fire: 1 },
+    drone: { hp: 2, w: 22, h: 16, score: 1, fire: 1 },
     crab: { hp: 2, w: 24, h: 16, score: 2, fire: 1.2 },
-    squid: { hp: 2, w: 22, h: 18, score: 3, fire: 1.6, aim: true },
+    squid: { hp: 3, w: 22, h: 18, score: 3, fire: 1.6, aim: true },
     mother: { hp: 40, w: 84, h: 34, score: 10, fire: 0, boss: true }
   };
   var DX = 34, DY = 26;
@@ -76,8 +76,8 @@
       for (i = 0; i < n; i++) coinAt[Math.min(total - 1, Math.floor((i + 0.5) * total / n))] = true;
       sim.formation = { x: (W - (cols - 1) * DX) / 2, y: -rows * DY, dir: 1, speed: sp.speed || 28, cols: cols, rows: rows, entering: true, targetY: sp.top || 58, fireT: 1.6 };
       for (r = 0; r < rows; r++) for (c = 0; c < cols; c++) {
-        var kind = kinds[Math.min(r, kinds.length - 1)], K = KINDS[kind], idx = r * cols + c;
-        sim.enemies.push({ id: w.idx + ":" + idx, kind: kind, c: c, r: r, x: 0, y: 0, w: K.w, h: K.h, hp: K.hp, maxHp: K.hp, alive: true, coin: !!coinAt[idx], flash: 0 });
+        var kind = kinds[Math.min(r, kinds.length - 1)], K = KINDS[kind], idx = r * cols + c, hp0 = K.hp + (sp.armor || 0);
+        sim.enemies.push({ id: w.idx + ":" + idx, kind: kind, c: c, r: r, x: 0, y: 0, w: K.w, h: K.h, hp: hp0, maxHp: hp0, alive: true, coin: !!coinAt[idx], flash: 0 });
       }
       placeFormation();
       if (sp.boss) {
@@ -189,11 +189,15 @@
         if (!f.entering && !frozen && alive.length) {
           f.fireT -= dt * (cur.spec.fire || 0.6) * (1 + 0.8 * (1 - alive.length / (f.cols * f.rows)));
           if (f.fireT <= 0) {
-            f.fireT = 1.1 + rnd() * 0.9;
+            f.fireT = 0.8 + rnd() * 0.7;
             var bottoms = {};
             alive.forEach(function (q) { if (!bottoms[q.c] || q.r > bottoms[q.c].r) bottoms[q.c] = q; });
-            var keys = Object.keys(bottoms), q2 = bottoms[keys[Math.floor(rnd() * keys.length)]];
-            if (q2) dropBomb(q2.x, q2.y + 8, KINDS[q2.kind].aim && rnd() < 0.55);
+            var keys = Object.keys(bottoms), nb = Math.min(keys.length, cur.spec.volley || 1);
+            for (var vb = 0; vb < nb; vb++) { // une salve : plusieurs colonnes lâchent d'un coup
+              var ki = Math.floor(rnd() * keys.length), q2 = bottoms[keys[ki]];
+              keys.splice(ki, 1);
+              if (q2) dropBomb(q2.x, q2.y + 8, KINDS[q2.kind].aim && rnd() < 0.7);
+            }
           }
         }
       }
@@ -249,7 +253,8 @@
       }
       // leurs bombes
       for (i = sim.bombs.length - 1; i >= 0; i--) {
-        b = sim.bombs[i]; b.x += (b.vx || 0) * dt; b.y += b.vy * dt;
+        b = sim.bombs[i]; if (!b) continue; // (un K.O. en cours de boucle remet le niveau à zéro : la liste des bombes est une autre)
+        b.x += (b.vx || 0) * dt; b.y += b.vy * dt;
         var dead = b.y > H + 10 || b.x < -10 || b.x > W + 10;
         for (var k2 = 0; k2 < sim.shields.length && !dead; k2++) {
           var sh = sim.shields[k2];
@@ -260,7 +265,8 @@
       }
       // le butin tombe : on le prend en passant dessus
       for (i = sim.items.length - 1; i >= 0; i--) {
-        var it = sim.items[i]; it.y += it.vy * dt;
+        var it = sim.items[i]; if (!it) continue;
+        it.y += it.vy * dt;
         if (!it.got && hit(it.x, it.y, 12, 12, p.x, p.y - 6, 20, 18)) pickup(it);
         if (it.got || it.y > H + 12) sim.items.splice(i, 1);
       }

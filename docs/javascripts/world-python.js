@@ -49,7 +49,7 @@
       P(4, { cp: true, candles: [2] }), P(4, { en: [1], bits: [3] }), P(5, { fly: [1], candles: [3] }), P(4, { gapBit: true }), P(4, { tough: [2], cp: true }), P(4), P(4, { dash: [1] }), P(7, { end: 4 })
     ] } },
     4: { theme: "py4", abilities: { doubleJump: true, shuriken: true }, tower: { platforms: [
-      P(0), P(5, { bits: [2] }), P(4, { fly: [1] }), P(4, { gap: 2, en: [2], cp: true, gapBit: true }), P(4, { dash: [3] }), P(4, { gap: 2, bits: [1], gapBit: true }), P(4, { secret: true, tough: [2] }),
+      P(0), P(5, { bits: [2, 3] }), P(4, { fly: [1] }), P(4, { gap: 2, en: [2], cp: true, gapBit: true }), P(4, { dash: [3] }), P(4, { gap: 2, bits: [1], gapBit: true }), P(4, { secret: true, tough: [2] }),
       P(4, { gap: 2, cp: true, fly: [2], bits: [3] }), P(4, { hop: [2] }), P(4, { gap: 2, gapBit: true }), P(5, { en: [1, 3], cp: true }), P(4, { gap: 2, fly: [1], gapBit: true }), P(4, { dash: [2] }),
       P(4, { gap: 2, bits: [1] }), P(4, { cp: true }), P(4, { gap: 2, gapBit: true }), P(7, { end: 4 })
     ] } },

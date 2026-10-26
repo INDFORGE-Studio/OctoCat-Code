@@ -80,7 +80,7 @@
     var order = [];
     secrets.forEach(function (sp) { // la plateforme marquée d'abord, puis les plus proches (on cherche une place libre)
       var at = plats.indexOf(sp);
-      plats.map(function (q, qi) { return { q: q, d: Math.abs(qi - at) }; }).filter(function (e) { return !e.q.floor; })
+      plats.map(function (q, qi) { return { q: q, d: Math.abs(qi - at) }; }).filter(function (e) { return !e.q.floor && e.q !== plats[plats.length - 1]; }) // (jamais sur la dernière : le terminal se trouve sur le chemin du portail et finit le niveau)
         .sort(function (u, v) { return u.d - v.d; }).forEach(function (e) { if (order.indexOf(e.q) < 0) order.push(e.q); });
     });
     order.forEach(function (pl) {
@@ -104,7 +104,7 @@
     if (secrets.length && !warp) { // pas de place en hauteur : le portail doré est sur le sol de départ, tout à gauche (derrière le départ), les pièces sont avant la 1re marche
       // (jamais à droite de la 1re marche : cette poche sous la 2e plateforme est un cul-de-sac, on ne peut pas en remonter)
       var c0 = Math.max(2, placed[1].l - 5);
-      [0, 1, 2].forEach(function (d) { put(c0 + d, floorRow - 1, "o"); });
+      [0, 1].forEach(function (d) { put(c0 + d, floorRow - 1, "o"); });
       warp = { l: -4, r: TILE + 4, t: (floorRow - 2) * TILE, b: floorRow * TILE, out: { x: 2.5 * TILE, y: floorRow * TILE } };
     }
 

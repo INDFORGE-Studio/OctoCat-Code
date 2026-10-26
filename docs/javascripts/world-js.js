@@ -102,19 +102,26 @@
   /** L'invasion (niveaux 2, 6, 10) : des vagues d'envahisseurs ; `coins` = nombre d'envahisseurs dorés (une pièce chacun). */
   var ARENAS = {
     2: { mode: "invaders", theme: "spinv2", hpMax: 5, shields: 3, ufoEvery: 24, waves: [
-      { cols: 5, rows: 2, kinds: ["crab", "drone"], speed: 26, fire: 0.5, coins: 3 },
-      { cols: 5, rows: 2, kinds: ["squid", "drone"], speed: 30, fire: 0.6, coins: 3 },
-      { cols: 5, rows: 3, kinds: ["squid", "crab", "drone"], speed: 33, fire: 0.7, coins: 3 }
+      { cols: 5, rows: 2, kinds: ["crab", "drone"], speed: 26, fire: 0.7, coins: 1 },
+      { cols: 5, rows: 2, kinds: ["squid", "drone"], speed: 30, fire: 0.8, coins: 2 },
+      { cols: 5, rows: 3, kinds: ["squid", "crab", "drone"], speed: 33, fire: 0.9, volley: 2, coins: 2 },
+      { cols: 6, rows: 3, kinds: ["squid", "crab", "crab"], speed: 35, fire: 1, volley: 2, armor: 1, coins: 2 },
+      { cols: 6, rows: 3, kinds: ["squid", "squid", "crab"], speed: 38, fire: 1.1, volley: 2, armor: 1, coins: 2 }
     ] },
     6: { mode: "invaders", theme: "spinv6", hpMax: 5, shields: 3, ufoEvery: 22, waves: [
-      { cols: 5, rows: 2, kinds: ["crab", "drone"], speed: 30, fire: 0.7, coins: 4 },
-      { cols: 6, rows: 2, kinds: ["squid", "crab"], speed: 34, fire: 0.8, coins: 4 },
-      { cols: 6, rows: 3, kinds: ["squid", "crab", "drone"], speed: 37, fire: 0.9, coins: 4 }
+      { cols: 5, rows: 2, kinds: ["crab", "drone"], speed: 30, fire: 0.65, coins: 2 },
+      { cols: 6, rows: 2, kinds: ["squid", "crab"], speed: 34, fire: 0.75, volley: 2, coins: 2 },
+      { cols: 6, rows: 3, kinds: ["squid", "crab", "drone"], speed: 37, fire: 0.85, volley: 2, coins: 3 },
+      { cols: 6, rows: 3, kinds: ["squid", "crab", "crab"], speed: 39, fire: 0.95, volley: 2, armor: 1, coins: 2 },
+      { cols: 7, rows: 3, kinds: ["squid", "squid", "crab"], speed: 41, fire: 1.05, volley: 2, armor: 1, coins: 3 }
     ] },
     10: { mode: "invaders", theme: "spinv10", hpMax: 5, shields: 3, ufoEvery: 20, waves: [
-      { cols: 6, rows: 2, kinds: ["crab", "drone"], speed: 34, fire: 0.8, coins: 5 },
-      { cols: 6, rows: 3, kinds: ["squid", "crab", "drone"], speed: 38, fire: 0.9, coins: 5 },
-      { cols: 6, rows: 2, kinds: ["squid", "crab"], speed: 36, fire: 0.9, coins: 5, boss: { hp: 30 } }
+      { cols: 6, rows: 2, kinds: ["crab", "drone"], speed: 34, fire: 0.75, coins: 2 },
+      { cols: 6, rows: 3, kinds: ["squid", "crab", "drone"], speed: 38, fire: 0.85, volley: 2, coins: 2 },
+      { cols: 6, rows: 3, kinds: ["squid", "crab", "crab"], speed: 40, fire: 0.95, volley: 2, armor: 1, coins: 3 },
+      { cols: 7, rows: 3, kinds: ["squid", "squid", "crab"], speed: 42, fire: 1.05, volley: 2, armor: 1, coins: 3 },
+      { cols: 7, rows: 3, kinds: ["squid", "squid", "squid"], speed: 44, fire: 1.05, volley: 2, armor: 1, coins: 2 },
+      { cols: 6, rows: 2, kinds: ["squid", "crab"], speed: 38, fire: 0.8, coins: 3, boss: { hp: 30 } }
     ] }
   };
 

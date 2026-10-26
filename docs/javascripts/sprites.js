@@ -225,8 +225,9 @@
     // accessoires selon l'apparence
     if (skinNow === 4) { // robot : plaques rivetées, antenne à ampoule qui clignote, capteurs aux oreilles
       [[4.5, cy - 4], [19.5, cy - 4], [4.5, cy + 3.5], [19.5, cy + 3.5]].forEach(function (q) { b.set(q[0], q[1], O.L); });
-      b.line(12, cy - 7, 12, cy - 9.5 + dy * 0, O.DD);
-      b.set(12, cy - 10, Math.floor((o.phase || 0) * 1.3) % 2 ? "#ff5d73" : "#4be3ff"); b.set(12, cy - 11, "#ffffff");
+      var ay = Math.max(cy - 10, 2); // (l'ampoule de l'antenne reste dans le sprite, sinon elle disparaissait quand le corps remonte)
+      b.line(12, cy - 7, 12, ay + 1, O.DD);
+      b.set(12, ay, Math.floor((o.phase || 0) * 1.3) % 2 ? "#ff5d73" : "#4be3ff"); b.set(12, ay - 1, "#ffffff");
       b.set(4, 2 + dy, O.pink); b.set(20, 2 + dy, O.pink);
       b.line(12, cy - 6.5, 12, cy - 5, O.DD);
     } else if (skinNow === 1) { // ninja : bandeau rouge noué à gauche, plaque d'argent
@@ -235,10 +236,11 @@
       b.rect(11, cy - 6, 2, 2, "#e9ecef"); b.set(11, cy - 5, "#6c757d");
     } else if (skinNow === 2) { // roi : couronne dorée à pierres
       b.rect(8, cy - 8, 8, 2, "#fff0a0");
-      [8, 10, 14, 15].forEach(function (x) { b.set(x, cy - 9, "#fff0a0"); }); b.set(12, cy - 10, "#fff0a0"); b.set(12, cy - 9, "#fff0a0");
+      [8, 10, 14, 15].forEach(function (x) { b.set(x, cy - 9, "#fff0a0"); }); b.set(12, Math.max(cy - 10, 1), "#fff0a0"); b.set(12, cy - 9, "#fff0a0");
       b.set(12, cy - 7, "#e5383b"); b.set(9, cy - 7, "#4dabf7"); b.set(15, cy - 7, "#4dabf7");
     } else if (skinNow === 3) { // cosmos : étoiles sur la tête, auréole dorée
-      for (t = 0; t < 6.3; t += 0.2) b.set(12 + 5.4 * Math.cos(t), cy - 9.2 + 1.5 * Math.sin(t), "#ffe066");
+      var hy = Math.max(cy - 9.2, 2.6); // (l'auréole ne monte jamais plus haut que le bord du sprite : quand le corps remonte, elle était rognée)
+      for (t = 0; t < 6.3; t += 0.2) b.set(12 + 5.4 * Math.cos(t), hy + 1.3 * Math.sin(t), "#ffe066");
       [[7, cy - 3], [16, cy - 4], [12, cy - 5], [5, cy + 1], [19, cy + 2], [9, cy + 4]].forEach(function (q) { if (b.get(q[0], q[1])) b.set(q[0], q[1], "#ffffff"); });
       if (b.get(18, cy - 2) && b.get(17, cy - 2) && b.get(19, cy - 2)) { b.set(18, cy - 2, "#fff4b8"); b.set(17, cy - 2, "#ffffff"); b.set(19, cy - 2, "#ffffff"); b.set(18, cy - 3, "#ffffff"); b.set(18, cy - 1, "#ffffff"); }
     }
