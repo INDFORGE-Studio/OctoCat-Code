@@ -46,21 +46,23 @@ async function boot(state, hash = "", settings = { skipAlways: true }, expect = 
 const done = (n) => Object.fromEntries(Array.from({ length: n }, (_, i) => [i + 1, { at: 1, flawless: true }]));
 
 // 1. les 4 apparences (?skin=N) sur l'accueil
-for (const n of [0, 1, 2, 3]) {
+for (const n of [0, 1, 2, 3, 4]) {
   await page.goto("about:blank");
   await page.goto(`${URL0}?skin=${n}`, { waitUntil: "load" });
   await page.waitForFunction(() => document.documentElement.getAttribute("data-octo-scene"), null, { timeout: 15000 });
   await page.waitForTimeout(1200);
   await shot("skin" + n);
 }
-ok("4 apparences sans erreur", errs.length === 0, errs.join(" | "));
+ok("5 apparences sans erreur", errs.length === 0, errs.join(" | "));
 
 // 2. fin d'un tour : fenêtre de choix du langage, puis énigmes dans ce langage
-await boot({ laps: 1, pendingLap: true, lapLang: "Python", completed: {}, unlocked: 1 });
-ok("tour 1 fini : la fenêtre de choix du langage s'ouvre", (await page.locator(".octo-lapup.is-open .octo-lang").count()) === 3);
+await boot({ laps: 1, pendingLap: true, lapLang: "Pseudo-code", langsDone: ["Pseudo-code"], completed: {}, unlocked: 1 });
+ok("tour 1 (pseudo-code) fini : la fenêtre propose Python et JavaScript, pas le pseudo-code déjà fait", (await page.locator(".octo-lapup.is-open .octo-lang").count()) === 2 && (await page.locator(".octo-lapup .octo-lang", { hasText: "Pseudo-code" }).count()) === 0);
 await shot("lapup");
 await page.locator(".octo-lang", { hasText: "JavaScript" }).click();
-await page.waitForTimeout(500);
+await page.waitForTimeout(1300);
+ok("la scène est refaite dans le monde de JavaScript (décor de l'espace)", await page.evaluate(() => window.OctoProgress.world() === 2));
+await shot("hub-world2");
 ok("choix du langage : fenêtre fermée, langage mémorisé", (await page.locator(".octo-lapup").count()) === 0 && (await page.evaluate(() => window.OctoProgress.lang() === "JavaScript" && !window.OctoProgress.pendingLap())));
 await page.reload({ waitUntil: "load" });
 await sceneIs("hub");
@@ -99,8 +101,8 @@ ok("niveau 10 fini : tour 1 compté, niveaux reverrouillés, fenêtre du nouveau
 await shot("lapup-after-level10");
 
 // 4. 3e tour fini -> générique
-await boot({ laps: 2, lapLang: "Pseudo-code", unlocked: 10, completed: done(9) }, "#level10");
-await solveLevel10("Pseudo-code");
+await boot({ laps: 2, lapLang: "JavaScript", langsDone: ["Pseudo-code", "Python"], unlocked: 10, completed: done(9) }, "#level10");
+await solveLevel10("JavaScript");
 await sceneIs("credits");
 ok("3e tour fini : le générique se lance", (await scene()) === "credits" && (await page.evaluate(() => window.OctoProgress.get().creditsPending && window.OctoProgress.laps() === 3)));
 await page.waitForTimeout(4000); await shot("credits-1");
@@ -111,6 +113,20 @@ await sceneIs("hub");
 await page.waitForTimeout(1200);
 ok("après « FIN » : retour à l'accueil, générique terminé (une seule fois)", await page.evaluate(() => !window.OctoProgress.creditsPending() && window.OctoProgress.get().finished));
 await shot("hub-final");
+ok("jeu fini sans la magie : OctoBot est débloqué et présenté à l'accueil", await page.evaluate(() => window.OctoProgress.robotUnlocked()) && (await page.locator(".octo-lapup.is-open").count()) === 1);
+await page.locator(".octo-lang", { hasText: "Mettre OctoBot" }).click();
+await page.waitForTimeout(1500);
+ok("OctoBot choisi : le costume 4 est en place et la présentation ne revient pas", (await page.evaluate(() => window.OctoProgress.skin() === 4 && !window.OctoProgress.robotNew())) && (await page.locator(".octo-lapup").count()) === 0);
+await shot("hub-robot");
+
+// 4 bis. jeu fini : le bouton MONDE permet de rejouer n'importe quel monde
+await boot({ laps: 3, finished: true, lapLang: "Python", langsDone: ["Pseudo-code", "Python", "JavaScript"], unlocked: 10, completed: done(10) });
+ok("jeu fini : bouton MONDE présent", (await page.locator(".octo-worldpick").count()) === 1);
+await page.locator(".octo-worldpick .octo-skin__toggle").click();
+await shot("world-picker");
+await page.locator(".octo-worldpick .octo-skin__row", { hasText: "Galaxie" }).click();
+await page.waitForTimeout(1200);
+ok("monde rejoué : JavaScript", await page.evaluate(() => window.OctoProgress.world() === 2 && window.OctoProgress.laps() === 3));
 
 // 5. page fermée pendant le générique : il reprend au rechargement
 await boot({ laps: 3, finished: true, creditsPending: true, unlocked: 10, completed: done(10) }, "", { skipAlways: true }, "credits");

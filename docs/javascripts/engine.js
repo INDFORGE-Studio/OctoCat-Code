@@ -880,9 +880,10 @@
       leave();
       cur.name = "run" + def.id; cur.def = null;
       ui.hide();
+      var world = window.OctoWorlds && P.world ? P.world() : 0; // un langage = un monde : le trajet (et son titre) change avec lui
+      if (music().setWorld) music().setWorld(world); // et la musique : tonalité, tempo et timbre du monde
       music().setMood(0); music().setBattle(false);
       applyFx();
-      var world = window.OctoWorlds && P.world ? P.world() : 0; // un langage = un monde : le trajet (et son titre) change avec lui
       cur.ctrl = window.OctoPlay.createRun(k, helpers, world ? window.OctoWorlds.apply(def, world) : def, { finish: function () { goTo("level" + def.id, { skip: true }); } });
       canvas.focus();
     }
@@ -891,14 +892,15 @@
     function titled(def) {
       var wt = window.OctoWorlds && P.world ? window.OctoWorlds.title(def.id, P.world()) : null;
       if (!wt) return def;
-      var c = Object.assign({}, def, { title: wt });
-      if (def.briefing) c.briefing = Object.assign({}, def.briefing, { title: wt });
+      var c = Object.assign({}, def, { title: wt }), lore = window.OctoWorlds.lore(def.id, P.world());
+      if (def.briefing) c.briefing = Object.assign({}, def.briefing, { title: wt }, lore ? { lore: lore } : {}); // l'histoire change avec le monde, la leçon reste la même
       return c;
     }
 
     function enter(name, def, isLevel) {
       leave();
       cur.name = name; cur.def = def; cur.ctrl = null;
+      if (music().setWorld) music().setWorld(P.world ? P.world() : 0);
       music().setMood(isLevel && def.mood != null ? def.mood : 0);
       music().setBattle(isLevel && !!def.combat); // combat : musique épique, seulement pour les niveaux qui le demandent
       var ctx = { go: goTo, host: host, name: name, reserve: isLevel ? 0.4 : 0 };

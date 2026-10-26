@@ -31,6 +31,8 @@
     ofLang: function (lang) { for (var i = 0; i < INFO.length; i++) if (INFO[i].lang === lang) return i; return -1; },
     /** Titre d'un niveau dans un monde (null pour le monde 0 : on garde le titre d'origine). */
     title: function (id, w) { var d = data[w]; return d && d.titles ? d.titles[id - 1] || null : null; },
+    /** L'histoire du briefing dans un monde (null pour le monde 0 : on garde celle d'origine). */
+    lore: function (id, w) { var d = data[w]; return d && d.lore ? d.lore[id - 1] || null : null; },
     /** Titre affiché en haut d'une énigme (capitales sans accents : la police du canvas n'a pas les accents), dans le monde en cours. */
     header: function (id, fallback) {
       var P = window.OctoProgress, wt = P && P.world ? Worlds.title(id, P.world()) : null;

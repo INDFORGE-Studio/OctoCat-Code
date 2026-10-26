@@ -21,7 +21,11 @@
       ["name", "OCTOCAT"], ["small", "LE CHAT-PIEUVRE QUI CODE"],
       ["name", "LAITA"], ["small", "LA CHIENNE FIDELE QUI FAIT PEUR AUX MONSTRES"], ["small", "D'APRES LA VRAIE LAITA"],
       ["name", "LES GLITCHS"], ["small", "LES BUGS : ILS ONT PERDU CETTE FOIS"], ["gap"],
-      ["head", "LES 10 MONDES"]
+      ["head", "LES 3 MONDES"],
+      ["name", "GITHUBIA"], ["small", "LA FORET DES SYNTAXES - PSEUDO-CODE"],
+      ["name", "LA TOUR DU SERPENT"], ["small", "ON GRIMPE JUSQU'A LA LUNE - PYTHON"], ["small", "ET LE SERPENT D'OCTO"],
+      ["name", "LA GALAXIE JAVASCRIPT"], ["small", "L'ESPACE ET L'INVASION - JAVASCRIPT"], ["gap"],
+      ["head", "LES 10 NIVEAUX"]
     ];
     P.levels.forEach(function (lv) { out.push(["name", lv.id + "  " + plain(lv.title)]); });
     out.push(["gap"], ["head", "CE QUE TU AS APPRIS"],
@@ -34,7 +38,9 @@
       ["name", "GITHUB PAGES"], ["small", "L'HEBERGEMENT"], ["gap"],
       ["head", "TES EXPLOITS"],
       ["name", "TOURS TERMINES : " + P.LAPS + "/" + P.LAPS], ["name", "NIVEAUX REUSSIS : " + P.LAPS * P.levels.length],
-      ["name", "PIECES EN POCHE : " + P.coins()], ["gap"],
+      ["name", "PIECES EN POCHE : " + P.coins()]);
+    if (P.robotUnlocked()) out.push(["name", "COSTUME SECRET : OCTOBOT"], ["small", "FINI SANS LA MAGIE DES TORCHES !"]);
+    out.push(["gap"],
       ["head", "MERCI A TOI !"], ["name", "TU AS CODE JUSQU'AU BOUT"], ["small", "MAINTENANT, A TOI DE CREER TES PROPRES JEUX"], ["gap"], ["gap"]);
     return out;
   }

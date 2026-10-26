@@ -86,9 +86,23 @@
       glitches: [{ x: 3, y: 7, dx: 0, dy: 1, speed: 2.6 }, { x: 24, y: 7, dx: 0, dy: -1, speed: 2.8 }, { x: 14, y: 1, dx: 1, dy: 0, speed: 3 }], hearts: [[14, 13]], stars: [[2, 12], [25, 2]] }
   };
 
+  /** L'histoire de chaque énigme dans ce monde (le briefing garde la même leçon, seul le décor de l'histoire change). */
+  var LORE = [
+    "Au pied de la grande Tour du Serpent, les racines brillent dans le noir et murmurent en langage d'ordinateur ! Pour monter au premier étage, il faut régler la vitesse d'OctoCat… mais un Glitch bloque le premier Portail à Code.",
+    "Dans le Marais des Chaînes, les mots flottent comme des nénuphars ! Le gardien Glitch ne laisse passer que ceux qui connaissent le mot secret : `\"octocat\"`.",
+    "Dans les Galeries de Jade, un vieux monte-charge ne démarre que si on lui dit combien pèsent **toutes** les caisses. Les Glitches ont effacé le calcul du chef des galeries. Aide-le !",
+    "Sur le Sentier des Lanternes, une porte magique obéit à la **logique**. Deux lanternes te montrent ce qu'elle voit : est-ce que l'OctoCat a la **clé** ? Y a-t-il un **garde** devant la porte ?",
+    "Tu as passé le portail ! Dans la Canopée, un pont de lianes se défait case par case… Seuls les endroits où la condition est **vraie** tiennent encore.",
+    "Au Marché Suspendu, le marchand accueille chaque client selon la taille de sa bourse. Mais les Glitches ont brouillé sa règle : il ne reconnaît plus les clients **aisés** !",
+    "Au pied des Cascades du Temps, une forge d'eau et de feu tourne jour et nuit… mais le forgeron Glitch frappe toujours le même coup au lieu de recommencer. Apprends-lui à **répéter** !",
+    "Dans le Temple des Nuages, le gardien compte les offrandes **marche par marche**. Pour ouvrir la porte, il veut la **somme** de toutes les pièces posées sur l'escalier.",
+    "Dans les Jardins Volants, une machine fabrique des Glitches numérotés. Seuls ceux qui ont un numéro **pair** sont instables : il faut les repérer avant qu'ils n'explosent !",
+    "Tout en haut de la tour, sous la lune, le Serpent dort… et le Glitch Gardien veille ! Pour le battre, il faut frapper encore et encore, **sans t'arrêter** tant qu'il tient debout."
+  ];
+
   var runs = {};
   Object.keys(ARENAS).forEach(function (id) { runs[id] = ARENAS[id]; });
   Object.keys(TOWERS).forEach(function (id) { var t = TOWERS[id]; runs[id] = { mode: "platform", theme: t.theme, abilities: t.abilities, tower: t.tower }; });
 
-  W.register(1, { titles: TITLES, runs: runs, themes: THEMES, towers: TOWERS, arenas: ARENAS });
+  W.register(1, { titles: TITLES, lore: LORE, runs: runs, themes: THEMES, towers: TOWERS, arenas: ARENAS });
 })();

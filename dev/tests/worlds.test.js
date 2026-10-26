@@ -26,6 +26,7 @@ test("mondes : chaque niveau a un trajet et un titre dans les deux nouveaux mond
       const base = engine.levels[id], before = JSON.stringify(base.run), v = W.apply(base, w);
       assert.ok(v.run && v.run.mode, `monde ${w} niveau ${id} : un trajet`);
       assert.notEqual(v.title, base.title, `monde ${w} niveau ${id} : titre propre au monde`);
+      assert.ok(W.lore(id, w) && W.lore(id, w) !== base.briefing.lore, `monde ${w} niveau ${id} : histoire propre au monde`);
       assert.equal(JSON.stringify(base.run), before, "niveau d'origine intact");
       assert.equal(v.run.mode, ARENA_LEVELS.includes(id) ? (w === 1 ? "snake" : "invaders") : "platform", `monde ${w} niveau ${id} : mode de jeu`);
     }

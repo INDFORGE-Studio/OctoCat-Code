@@ -51,13 +51,13 @@ for (const id of levels) {
   const problems = [];
   page.on("pageerror", (e) => problems.push("pageerror: " + e.message));
   page.on("console", (m) => { if (m.type() === "error") problems.push("console: " + m.text()); });
-  await page.goto(`http://127.0.0.1:${PORT}${BASE}?unlock=all#level${id}`, { waitUntil: "load" });
+  await page.goto(`http://127.0.0.1:${PORT}${BASE}?unlock=all${process.env.WORLD ? "&world=" + process.env.WORLD : ""}#level${id}`, { waitUntil: "load" }); // WORLD=1 (Python) ou 2 (JavaScript) : le trajet et le décor de ce monde
   await page.waitForFunction(() => window.OctoPlay && window.OctoPlay.current, null, { timeout: 15000 });
   await page.waitForTimeout(1200);
   await page.screenshot({ path: path.join(OUT, `run-${id}${MOBILE ? "-m" : ""}-intro.png`) });
   await page.evaluate(() => {
     const c = window.OctoPlay.current, S = window.OctoSim;
-    const bot = (c.sim.mode === "brawl" ? S.brawlBot : S.platformBot)(c.sim);
+    const bot = ({ brawl: S.brawlBot, snake: S.snakeBot, invaders: S.invadersBot }[c.sim.mode] || S.platformBot)(c.sim);
     c.input.get = () => bot(1 / 60);
   });
   if (MOBILE) {

@@ -8,7 +8,9 @@
  *      tempo un peu plus vif, pouls de cœur, bourdon grave, « ping » aigu, couleur modale (sol mineur) sur la 3e mesure.
  *   3. COMBAT (setBattle) : épique et intense. Ré mineur, ~148 BPM, grosse caisse et caisse claire, basse
  *      en croches, cuivres, mélodie héroïque. Réservé aux affrontements.
- * API : unlock() (geste utilisateur), setMood(0..1) = tension, setBattle(bool), hit(), victory(), toggle(), state(), level().
+ * Trois MONDES, trois couleurs (setWorld) : GitHubia en ré majeur (glockenspiel), la Tour du Serpent de Python en sol majeur (marimba de la jungle, shaker),
+ * la Galaxie JavaScript en mi majeur (arpège de synthé, charleston, un peu plus vif). Le combat reste épique dans les trois, transposé dans la tonalité du monde.
+ * API : unlock() (geste utilisateur), setWorld(0..2), setMood(0..1) = tension, setBattle(bool), hit(), victory(), toggle(), state(), level().
  */
 (function () {
   "use strict";
@@ -17,7 +19,7 @@
 
   /* ---------- théorie (pure, testée sous Node) ---------- */
 
-  var ROOT = 50; // ré 3 (MIDI)
+  var ROOT = 50; // ré 3 (MIDI) ; change avec le monde (setWorld)
   var SCALE_CALM = [0, 2, 4, 7, 9];     // pentatonique majeure
   var SCALE_ALERT = [0, 3, 5, 7, 8];    // couleur mineure empruntée
   // une mesure par accord : I – vi – IV – V7 (Ré, Si m, Sol, La 7)
@@ -41,11 +43,30 @@
     [[0, 14, 3], [3, 11, 1], [4, 14, 4], [8, 16, 2], [10, 14, 2], [12, 11, 4]]
   ];
 
+  /* ---------- les mondes : tonalité, tempo, timbre, mélodie ---------- */
+  var BASE_BPM = 100, WORLD = 0, TIMBRE = "bell";
+  var PROFILES = [
+    null, // monde 0 : les valeurs ci-dessus (ré majeur, glockenspiel)
+    { root: 55, bpm: 108, timbre: "marimba", melody: [ // monde 1 : sol majeur, marimba de la jungle
+      [[0, 7, 2], [3, 9, 1], [4, 12, 2], [7, 9, 1], [8, 7, 2], [11, 4, 1], [12, 7, 4]],
+      [[0, 9, 2], [3, 12, 1], [4, 14, 2], [7, 12, 1], [8, 9, 2], [10, 7, 2], [12, 4, 4]],
+      [[0, 4, 2], [3, 7, 1], [4, 12, 2], [7, 9, 1], [8, 7, 2], [10, 4, 1], [11, 2, 1], [12, 0, 4]],
+      [[0, 7, 2], [2, 9, 2], [4, 12, 3], [8, 14, 2], [10, 12, 2], [12, 9, 4]]
+    ] },
+    { root: 52, bpm: 116, timbre: "chip", melody: [ // monde 2 : mi majeur, arpèges de synthé
+      [[0, 12, 2], [2, 16, 2], [4, 19, 2], [6, 16, 2], [8, 12, 2], [10, 16, 2], [12, 19, 4]],
+      [[0, 12, 2], [2, 16, 2], [4, 21, 2], [6, 16, 2], [8, 12, 2], [10, 16, 2], [12, 21, 4]],
+      [[0, 9, 2], [2, 12, 2], [4, 17, 2], [6, 12, 2], [8, 9, 2], [10, 12, 2], [12, 17, 4]],
+      [[0, 11, 2], [2, 14, 2], [4, 19, 2], [6, 14, 2], [8, 11, 2], [10, 14, 2], [12, 19, 4]]
+    ] }
+  ];
+  var BASE_MELODY = MELODY_CALM;
+
   function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
   function midiToHz(m) { return 440 * Math.pow(2, (m - 69) / 12); }
-  /** Tempo : 100 BPM au calme, jusqu'à 112 en alerte, 148 en combat. */
+  /** Tempo : 100 BPM au calme (108 / 116 dans les autres mondes), jusqu'à +12 en alerte, +48 en combat. */
   function bpmFor(tension, fight) {
-    return 100 + 12 * clamp(tension, 0, 1) + 48 * clamp(fight || 0, 0, 1);
+    return BASE_BPM + 12 * clamp(tension, 0, 1) + 48 * clamp(fight || 0, 0, 1);
   }
   /** Note d'ornement : pentatonique claire ; la couleur d'alerte n'apparaît que lorsque la tension monte. */
   function pickNote(tension, rnd) {
@@ -128,6 +149,16 @@
   /** Note de glockenspiel / marimba : fondamentale triangle + harmonique sinus qui s'éteint vite. */
   function bell(midi, t, dur, vol, dest) {
     var hz = midiToHz(midi);
+    if (TIMBRE === "marimba") { // jungle : un son de bois, court et rond
+      tone("sine", hz, t, Math.min(dur, 0.5), vol * 1.15, dest, 0.002);
+      tone("triangle", hz * 3.9, t, 0.07, vol * 0.3, dest, 0.001);
+      return;
+    }
+    if (TIMBRE === "chip") { // espace : un synthé carré, adouci par un filtre
+      tone("square", hz, t, Math.min(dur, 0.32), vol * 0.55, dest, 0.003, 3200);
+      tone("triangle", hz * 2, t, Math.min(dur, 0.2), vol * 0.3, dest, 0.003);
+      return;
+    }
     tone("triangle", hz, t, dur, vol, dest, 0.004);
     tone("sine", hz * 2, t, dur * 0.45, vol * 0.45, dest, 0.003);
   }
@@ -266,6 +297,16 @@
     if (pos % 4 === 2) noise(t, 0.03, 0.02, "highpass", 8500, drumBus);
     if (pos === 4 || pos === 12) noise(t, 0.05, 0.03, "bandpass", 3200, drumBus); // petit clap
 
+    // couleur du monde : la jungle ajoute un shaker et des claves ; l'espace ajoute un arpège de synthé et un charleston en doubles-croches
+    if (WORLD === 1) {
+      if (pos % 2 === 0) noise(t, 0.04, pos % 4 === 0 ? 0.035 : 0.02, "bandpass", 6500, drumBus); // shaker
+      if (pos === 3 || pos === 11 || pos === 14) tone("triangle", 1180, t, 0.05, 0.06, drumBus, 0.001); // claves
+    } else if (WORLD === 2) {
+      noise(t, 0.02, pos % 4 === 2 ? 0.03 : 0.015, "highpass", 9000, drumBus); // charleston
+      if (!lite || pos % 4 === 0) tone("square", midiToHz(ROOT + chord[[0, 2, 1, 3][(pos >> 1) % 4]] + 12), t, stepDur * 1.4, 0.026, arpBus, 0.004, 2400); // arpège
+      if (pos === 6 || pos === 14) kick(t, 0.18, false);
+    }
+
     // alerte : pouls de cœur, « ping » aigu, pizzicato plus nerveux
     if (tension > 0.25 && (pos === 0 || pos === 3)) kick(t, 0.1 + 0.3 * tension, false);
     if (tension > 0.5 && pos % 8 === 4) tone("sine", midiToHz(ROOT + 31), t, 0.35, 0.05, arpBus, 0.004);
@@ -347,6 +388,15 @@
   var Music = {
     /** À appeler depuis un geste utilisateur (politique d'autoplay des navigateurs). */
     unlock: function () { begin(); },
+    /** Le monde en cours (0 GitHubia, 1 Python, 2 JavaScript) : change de tonalité, de tempo, de timbre et de mélodie ; le morceau repart de la mesure en cours. */
+    setWorld: function (w) {
+      w = w === 1 || w === 2 ? w : 0;
+      if (w === WORLD) return;
+      WORLD = w;
+      var pr = PROFILES[w];
+      ROOT = pr ? pr.root : 50; BASE_BPM = pr ? pr.bpm : 100; TIMBRE = pr ? pr.timbre : "bell"; MELODY_CALM = pr ? pr.melody : BASE_MELODY;
+    },
+    world: function () { return WORLD; },
     /** Tension 0..1 : 0 = calme joyeux ; plus haut = alerte (changement léger). Le combat passe par setBattle. */
     setMood: function (m) { base = clamp(m, 0, 1); },
     /** Combat : musique épique et intense (true), retour au calme (false). */

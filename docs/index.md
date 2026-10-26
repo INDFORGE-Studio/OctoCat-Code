@@ -1,14 +1,14 @@
 ---
 template: game.html
 title: OCTOCAT-CODE
-description: "Jeu d'aventure rétro gratuit pour apprendre à coder en s'amusant : 10 mondes, Python, JavaScript et pseudo-code, dès 8 ans, dans ton navigateur."
+description: "Jeu d'aventure rétro gratuit pour apprendre à coder en s'amusant : 3 mondes (pseudo-code, Python, JavaScript), tour à grimper, invasion de l'espace, serpent, dès 8 ans, dans ton navigateur."
 ---
 
 <!-- Page de jeu plein écran : le jeu vit dans le canvas (overrides/game.html). Le texte ci-dessous n'est lu que par les moteurs de recherche et les lecteurs d'écran. -->
 
 ## Apprends à coder en t'amusant
 
-OCTOCAT-CODE est un jeu d'aventure rétro en pixel art, gratuit et en français, qui se joue directement dans le navigateur (ordinateur, tablette ou téléphone) : rien à installer, pas de compte. Tu guides OctoCat, un chat-pieuvre violet, et Laita, sa fidèle chienne, à travers 10 mondes. À chaque monde, un trajet d'action (plateformes, combats, ninja…) mène à une énigme de code : en écrivant la bonne ligne, tu ouvres le portail vers le monde suivant.
+OCTOCAT-CODE est un jeu d'aventure rétro en pixel art, gratuit et en français, qui se joue directement dans le navigateur (ordinateur, tablette ou téléphone) : rien à installer, pas de compte. Tu guides OctoCat, un chat-pieuvre violet, et Laita, sa fidèle chienne, à travers 10 niveaux et 3 mondes. À chaque niveau, un trajet d'action (plateformes, combats, ninja…) mène à une énigme de code : en écrivant la bonne ligne, tu ouvres le portail vers le niveau suivant.
 
 ## Ce que tu apprends
 
@@ -19,9 +19,9 @@ OCTOCAT-CODE est un jeu d'aventure rétro en pixel art, gratuit et en français,
 - les conditions : si, sinon si, sinon ;
 - les boucles : pour et tant que.
 
-Les énigmes se résolvent en Python, en JavaScript ou en pseudo-code, au choix : après chaque tour de 10 mondes, tu changes de langage et d'apparence. Le jeu se termine après 3 tours, avec un générique de fin.
+Le jeu se joue en 3 tours, un langage par tour et un monde par langage. Tu commences par le pseudo-code, le plus doux, dans GitHubia. Puis tu choisis Python (la Tour du Serpent, où l'on grimpe jusqu'à la lune et où le serpent d'Octo grandit) ou JavaScript (la Galaxie JavaScript, avec sa gravité lunaire et son invasion d'envahisseurs) ; le dernier tour est l'autre langage. À chaque tour, OctoCat change d'apparence. Un costume secret, le robot OctoBot, récompense ceux qui finissent le jeu sans utiliser la magie des torches. Le jeu se termine après 3 tours, avec un générique de fin.
 
-## Les 10 mondes
+## Les 10 niveaux
 
 1. La Forêt des Syntaxes : les variables
 2. Le Village des Chaînes : les textes

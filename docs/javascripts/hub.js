@@ -190,8 +190,8 @@
         var row = add("div", "octo-lang-row");
         opts.forEach(function (lang) {
           var wi = WD ? WD.info[WD.ofLang(lang)] : null, b = document.createElement("button"); b.type = "button"; b.className = "octo-lang";
-          var nm = document.createElement("span"); nm.className = "octo-lang__name"; nm.textContent = (wi ? wi.icon + " " + wi.name : "") + "  ·  " + lang;
-          var tg = document.createElement("span"); tg.className = "octo-lang__tag"; tg.textContent = (wi ? wi.blurb + ". " : "") + (L ? L.INFO[lang].tagline : "");
+          var nm = document.createElement("span"); nm.className = "octo-lang__name"; nm.textContent = wi ? wi.icon + " " + wi.name : lang;
+          var tg = document.createElement("span"); tg.className = "octo-lang__tag"; tg.textContent = (wi ? wi.blurb + ". " : "") + "Langage : " + lang + (L ? ". " + L.INFO[lang].tagline : "");
           b.appendChild(nm); b.appendChild(tg);
           b.addEventListener("click", function () {
             P.startLap(lang);

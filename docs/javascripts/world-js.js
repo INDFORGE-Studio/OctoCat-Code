@@ -118,9 +118,23 @@
     ] }
   };
 
+  /** L'histoire de chaque énigme dans ce monde (le briefing garde la même leçon, seul le décor de l'histoire change). */
+  var LORE = [
+    "Bienvenue à bord de la Station Syntaxe ! Ici, les machines parlent en langage d'ordinateur, et la fusée d'OctoCat n'a pas assez de vitesse pour décoller. Un Glitch bloque le premier Portail à Code…",
+    "Dans la Nébuleuse des Chaînes, tout le monde parle avec des **mots**. Le gardien Glitch ne laisse passer que ceux qui connaissent le mot secret : `\"octocat\"`.",
+    "Sur la Lune des Opérations, un vieil ascenseur lunaire ne démarre que si on lui dit combien pèsent **toutes** les caisses. Les Glitches ont effacé le calcul du chef de la base. Aide-le !",
+    "Sur l'Anneau des Torches, une porte spatiale obéit à la **logique**. Deux voyants te montrent ce qu'elle voit : est-ce que l'OctoCat a la **clé** ? Y a-t-il un **garde** devant la porte ?",
+    "Tu as passé le portail ! Devant toi, un pont de comètes s'éteint case par case… Seuls les endroits où la condition est **vraie** brillent encore.",
+    "Au Marché Interstellaire, le marchand accueille chaque client selon la taille de sa bourse. Mais les Glitches ont brouillé sa règle : il ne reconnaît plus les clients **aisés** !",
+    "Dans la Forge des Étoiles, on fabrique des étoiles jour et nuit… mais le forgeron Glitch frappe toujours le même coup au lieu de recommencer. Apprends-lui à **répéter** !",
+    "Le gardien du Temple des Trous Noirs compte les offrandes **marche par marche**. Pour ouvrir la porte, il veut la **somme** de toutes les pièces posées sur l'escalier.",
+    "Dans le Tri des Astéroïdes, une machine fabrique des Glitches numérotés. Seuls ceux qui ont un numéro **pair** sont instables : il faut les repérer avant qu'ils n'explosent !",
+    "Sur sa planète, le Glitch Gardien attend dans son vaisseau-mère ! Pour le battre, il faut tirer encore et encore, **sans t'arrêter** tant qu'il tient debout."
+  ];
+
   var runs = {};
   Object.keys(ARENAS).forEach(function (id) { runs[id] = ARENAS[id]; });
   Object.keys(COURSES).forEach(function (id) { var c = COURSES[id]; runs[id] = { mode: "platform", theme: c.theme, abilities: c.abilities, course: c.course }; });
 
-  W.register(2, { titles: TITLES, runs: runs, themes: THEMES, courses: COURSES, arenas: ARENAS });
+  W.register(2, { titles: TITLES, lore: LORE, runs: runs, themes: THEMES, courses: COURSES, arenas: ARENAS });
 })();
