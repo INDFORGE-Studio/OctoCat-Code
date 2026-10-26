@@ -24,11 +24,12 @@ function load(stored) {
 
 function playAll(P, upTo = 10) { let last = null; for (let id = 1; id <= upTo; id++) last = P.complete(id); return last; }
 
-test("tours : au départ, tour 0, apparence d'origine, Python", () => {
+test("tours : au départ, tour 0, apparence d'origine, pseudo-code (le plus doux) dans le monde de départ", () => {
   const P = load();
   assert.equal(P.laps(), 0);
   assert.equal(P.skin(), 0);
-  assert.equal(P.lang(), "Python");
+  assert.equal(P.lang(), "Pseudo-code");
+  assert.equal(P.world(), 0);
   assert.equal(P.pendingLap(), false);
   assert.equal(P.creditsPending(), false);
 });
@@ -53,17 +54,41 @@ test("tours : finir les 10 niveaux ouvre le tour suivant (apparence 1, niveaux r
   assert.equal(P.bank(1, 15), 15);
 });
 
-test("tours : choisir le langage démarre le tour (Pseudo-code, JavaScript ; langage inconnu = Python) et donne « Polyglotte »", () => {
+test("tours : après le tour 1 (pseudo-code) on choisit Python ou JavaScript ; le dernier tour est l'autre ; chaque langage a son monde", () => {
   const P = load();
   playAll(P);
+  assert.deepEqual(Array.from(P.nextLangs()), ["Python", "JavaScript"], "au choix, jamais le pseudo-code déjà fait");
   P.startLap("JavaScript");
   assert.equal(P.lang(), "JavaScript");
+  assert.equal(P.world(), 2);
   assert.equal(P.pendingLap(), false);
   assert.ok(P.get().achievements.polyglot);
+  playAll(P);
+  assert.deepEqual(Array.from(P.nextLangs()), ["Python"], "il ne reste qu'un monde à découvrir");
+  P.startLap("Pseudo-code"); // refusé : déjà joué, on reçoit le seul langage restant
+  assert.equal(P.lang(), "Python");
+  assert.equal(P.world(), 1);
   const Q = load();
   playAll(Q);
   Q.startLap("Brainfuck");
-  assert.equal(Q.lang(), "Python");
+  assert.equal(Q.lang(), "Python", "langage inconnu : le premier langage encore à découvrir");
+  const Z = load();
+  playAll(Z);
+  Z.startLap("Pseudo-code");
+  assert.equal(Z.lang(), "Python", "pas de retour au pseudo-code pendant l'aventure");
+});
+
+test("monde : une fois le jeu fini on peut rejouer les trois mondes ; pas avant", () => {
+  const P = load();
+  assert.equal(P.pickWorld("Python"), false, "jeu pas fini");
+  playAll(P); P.startLap("Python"); playAll(P); P.startLap("JavaScript"); playAll(P);
+  assert.equal(P.get().finished, true);
+  assert.equal(P.pickWorld("Pseudo-code"), true);
+  assert.equal(P.world(), 0);
+  assert.equal(P.pickWorld("Brainfuck"), false);
+  assert.equal(P.pickWorld("JavaScript"), true);
+  assert.equal(P.world(), 2);
+  assert.equal(P.laps(), 3, "rejouer un monde ne change pas les tours");
 });
 
 test("tours : le 2e tour donne l'apparence 2, le 3e tour la fin du jeu : crédits, apparence 3, rien ne se reverrouille", () => {
@@ -71,7 +96,7 @@ test("tours : le 2e tour donne l'apparence 2, le 3e tour la fin du jeu : crédit
   playAll(P); P.startLap("JavaScript");
   assert.equal(playAll(P).lap, "lap");
   assert.equal(P.skin(), 2);
-  P.startLap("Pseudo-code");
+  P.startLap("Python");
   const end = playAll(P);
   assert.equal(end.lap, "end");
   assert.equal(P.laps(), 3);
@@ -119,7 +144,7 @@ test("magie des torches : 10 niveaux passés par la magie = tour fini, puis fin 
   P.startLap("JavaScript");
   for (let id = 1; id <= 10; id++) last = P.complete(id, { magic: true });
   assert.equal(last.lap, "lap");
-  P.startLap("Pseudo-code");
+  P.startLap("Python");
   for (let id = 1; id <= 10; id++) last = P.complete(id, { magic: true });
   assert.equal(last.lap, "end");
   assert.equal(P.creditsPending(), true);
@@ -144,6 +169,10 @@ test("tours : la sauvegarde garde tours, langage et fin ; un code truqué est as
   const R = load();
   assert.equal(R.importSave(JSON.stringify({ unlocked: 3, laps: 99, lapLang: "Cobol", pendingLap: "oui" })).ok, true);
   assert.equal(R.laps(), 3, "tours plafonnés");
-  assert.equal(R.lang(), "Python", "langage inconnu refusé");
+  assert.equal(R.lang(), "Pseudo-code", "langage inconnu refusé : on garde celui de départ");
+  const old = load({ "octocat-code:v1": JSON.stringify({ version: 1, unlocked: 4, laps: 0, lapLang: "Python", completed: {} }) });
+  assert.equal(old.lang(), "Pseudo-code", "ancienne sauvegarde du tour 1 : on passe au nouveau départ en pseudo-code");
+  const old1 = load({ "octocat-code:v1": JSON.stringify({ version: 1, unlocked: 1, laps: 1, lapLang: "JavaScript", pendingLap: true, completed: {} }) });
+  assert.deepEqual(Array.from(old1.nextLangs()), ["Pseudo-code"], "ancienne sauvegarde : le tour 1 était en Python, il reste du choix");
   assert.equal(R.pendingLap(), false, "seul un vrai booléen compte");
 });

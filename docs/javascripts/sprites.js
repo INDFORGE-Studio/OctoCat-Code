@@ -776,5 +776,9 @@
     k.loadSprite("vignette", vignetteSprite());
   }
 
-  window.OctoSprites = { registerAll: registerAll, palette: C, Buf: Buf, single: single, sheet: sheet, seeded: seeded };
+  window.OctoSprites = {
+    registerAll: registerAll, palette: C, Buf: Buf, single: single, sheet: sheet, seeded: seeded,
+    // constructeurs réutilisés par les autres mondes (sprites-worlds.js) : même dessin, autres couleurs
+    builders: { bushBuf: bushBuf, tuftBuf: tuftBuf, mushroomBuf: mushroomBuf, flowerBuf: flowerBuf, rockBuf: rockBuf, signBuf: signBuf, torchBuf: torchBuf, glitchBuf: glitchBuf, portalBuf: portalBuf, cloudBuf: cloudBuf, BAYER: BAYER }
+  };
 })();

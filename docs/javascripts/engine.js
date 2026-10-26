@@ -769,13 +769,19 @@
     k.shake = function (n) { if (!window.OctoSettings || window.OctoSettings.get("shake")) rawShake.call(k, n); };
     window.OctoSprites.registerAll(k);
     if (window.OctoSprites.registerRun) window.OctoSprites.registerRun(k);
-    // apparences : « octo » et « laita » deviennent « octo-sN » / « laita-sN » selon le tour (N = 0 à 3), lu au moment où l'objet est créé
-    var rawSprite = k.sprite, skinMemo = null;
-    document.addEventListener("octo:progress", function () { skinMemo = null; });
+    if (window.OctoSprites.registerWorlds) window.OctoSprites.registerWorlds(k); // décors des mondes 2 (Python) et 3 (JavaScript)
+    if (window.OctoSprites.registerSpace) window.OctoSprites.registerSpace(k); // sprites de l'invasion de l'espace et du serpent
+    // apparences : « octo » et « laita » deviennent « octo-sN » / « laita-sN » selon le tour (N = 0 à 4), lu au moment où l'objet est créé ;
+    // le monde en cours (un langage = un monde) change le décor : « sky » devient « sky-w1 » (Python) ou « sky-w2 » (JavaScript)
+    var rawSprite = k.sprite, skinMemo = null, worldMemo = null, worldNames = window.OctoSprites.worldSprites || {};
+    document.addEventListener("octo:progress", function () { skinMemo = null; worldMemo = null; });
     k.sprite = function (name, opt) {
       if (name === "octo" || name === "laita") {
         if (skinMemo === null) skinMemo = window.OctoProgress ? window.OctoProgress.skin() : 0;
         if (skinMemo) name = name + "-s" + skinMemo;
+      } else if (worldNames[name]) {
+        if (worldMemo === null) worldMemo = window.OctoProgress && window.OctoProgress.world ? window.OctoProgress.world() : 0;
+        if (worldMemo > 0) name = name + "-w" + worldMemo;
       }
       return rawSprite.call(k, name, opt);
     };
@@ -876,7 +882,8 @@
       ui.hide();
       music().setMood(0); music().setBattle(false);
       applyFx();
-      cur.ctrl = window.OctoPlay.createRun(k, helpers, def, { finish: function () { goTo("level" + def.id, { skip: true }); } });
+      var world = window.OctoWorlds && P.world ? P.world() : 0; // un langage = un monde : le trajet (et son titre) change avec lui
+      cur.ctrl = window.OctoPlay.createRun(k, helpers, world ? window.OctoWorlds.apply(def, world) : def, { finish: function () { goTo("level" + def.id, { skip: true }); } });
       canvas.focus();
     }
 

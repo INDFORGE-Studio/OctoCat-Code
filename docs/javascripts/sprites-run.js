@@ -368,5 +368,6 @@
   }
 
   window.OctoSprites.registerRun = registerRun;
+  window.OctoSprites.runBuilders = { bitBuf: bitBuf, heartBuf: heartBuf, spikeBuf: spikeBuf, terminalBuf: terminalBuf, candleBuf: candleBuf, batBuf: batBuf, kennelBuf: kennelBuf };
   window.OctoSprites.laitaBuf = laitaBuf; // (pour les contrôles visuels : dev/)
 })();

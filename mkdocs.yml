@@ -60,8 +60,10 @@ extra_javascript:
   - javascripts/settings.js
   - javascripts/fx.js
   - javascripts/sprites-run.js
+  - javascripts/sprites-worlds.js
   - javascripts/logo.js
   - javascripts/playsim.js
+  - javascripts/sim-tower.js
   - javascripts/play.js
   - javascripts/puzzle.js
   - javascripts/langs.js
@@ -79,3 +81,5 @@ extra_javascript:
   - javascripts/level8.js
   - javascripts/level9.js
   - javascripts/level10.js
+  - javascripts/worlds.js
+  - javascripts/world-python.js

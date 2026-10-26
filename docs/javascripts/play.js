@@ -139,10 +139,11 @@
   /* ---------- scène ---------- */
 
   function createRun(k, h, def, hooks) {
-    var run = def.run, brawl = run.mode === "brawl", theme = THEMES[run.theme] || THEMES.forest;
+    var run = def.run, brawl = run.mode === "brawl", W = window.OctoWorlds, theme = (W && W.themes[run.theme]) || THEMES[run.theme] || THEMES.forest;
     var VW = k.width(), VH = k.height();
     var rgb = function (hex) { return k.Color.fromHex(hex); };
-    var sim = brawl ? Sim.createBrawl(run, VW) : Sim.createPlatform(Sim.buildCourse(run.course), run.abilities || {});
+    var sim = brawl ? Sim.createBrawl(run, VW) : Sim.createPlatform(run.tower ? Sim.buildTower(run.tower) : Sim.buildCourse(run.course), run.abilities || {});
+    var vertical = !!sim.vertical; // une tour : on grimpe, le décor change avec l'altitude
     var ab = sim.abilities || {};
     var input = createInput(brawl);
     var host = document.querySelector(".octo-hero") || document.body;
@@ -163,13 +164,39 @@
         });
       };
     }
-    var skyLayer = layer("sky", 0.04, function (cy) { return cy - VH / 2; }, 0, theme.skyTint || "#ffffff");
-    var landLayer = layer(brawl && window.OctoSprites.cities[run.theme] ? "cityfar" : "land", 0.35, function (cy) { return cy + VH / 2 - 210; }, 1, theme.land);
+    var skyLayer = vertical ? function () {} : layer("sky", 0.04, function (cy) { return cy - VH / 2; }, 0, theme.skyTint || "#ffffff");
+    var landLayer = vertical ? function () {} : layer(brawl && window.OctoSprites.cities[run.theme] ? "cityfar" : "land", 0.35, function (cy) { return cy + VH / 2 - 210; }, 1, theme.land);
+    var altitude = vertical ? buildAltitudeBackdrop() : null; // dégradé du ciel + étoiles qui apparaissent en montant
     var clouds = [[40, 26, "cloud0", 5], [260, 54, "cloud1", 7], [430, 18, "cloud0", 4], [140, 80, "cloud1", 6]].map(function (c) {
       return { o: k.add([k.sprite(c[2]), k.pos(c[0], c[1]), k.scale(2), k.opacity(0.9), k.color(rgb(theme.skyTint || "#ffffff")), k.fixed(), k.z(0.5)]), x: c[0], sp: c[3] };
     });
 
-    var objs = new Map(), shurikenObjs = new Map(), bitObjs = [], candleObjs = [], cpObjs = [];
+    /** Couleur d'un dégradé à 3 repères (bas, milieu, haut) ; t = 0 en bas, 1 en haut. */
+    function grad3(stops, t) {
+      var a = stops, f = clamp(t, 0, 1) * 2, i = Math.min(1, Math.floor(f)), u = f - i, c0 = hexToRgb(a[i]), c1 = hexToRgb(a[i + 1]);
+      return k.rgb(Math.round(c0[0] + (c1[0] - c0[0]) * u), Math.round(c0[1] + (c1[1] - c0[1]) * u), Math.round(c0[2] + (c1[2] - c0[2]) * u));
+    }
+    function hexToRgb(hx) { var n = parseInt(hx.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+
+    /** Ciel d'une tour : une pile de bandes de couleur dont la teinte suit l'altitude de la caméra (de la forêt sombre aux étoiles), plus étoiles et lune. */
+    function buildAltitudeBackdrop() {
+      var stops = theme.alt || ["#1b2a22", "#2d4a8a", "#0b0a2a"], N = 14, bands = [], stars = [], j;
+      for (j = 0; j < N; j++) bands.push(k.add([k.rect(VW + 8, Math.ceil(VH / N) + 2), k.pos(-4, Math.floor(j * VH / N)), k.color(grad3(stops, 0)), k.fixed(), k.z(-4.9)]));
+      var rnd2 = window.OctoSprites.seeded(77 + def.id * 31);
+      for (j = 0; j < 70; j++) stars.push({ x: rnd2() * VW, y: rnd2() * VH, s: rnd2() < 0.18 ? 2 : 1, ph: rnd2() * 6.28, o: k.add([k.rect(2, 2), k.pos(0, 0), k.color(rgb("#ffffff")), k.opacity(0), k.fixed(), k.z(-4.8)]) });
+      var moon = k.add([k.sprite("moon"), k.pos(VW * 0.8, 44), k.anchor("center"), k.scale(2), k.opacity(0), k.fixed(), k.z(-4.7)]);
+      return {
+        update: function (cy, tt) {
+          var a = clamp(1 - cy / worldH, 0, 1), span = VH / worldH, j2;
+          for (j2 = 0; j2 < N; j2++) bands[j2].color = grad3(stops, clamp(a + (0.5 - (j2 + 0.5) / N) * span, 0, 1));
+          var night = clamp((a - 0.45) * 2.4, 0, 1);
+          stars.forEach(function (st) { st.o.pos.x = st.x; st.o.pos.y = st.y; st.o.width = st.s; st.o.height = st.s; st.o.opacity = night * (0.35 + 0.5 * Math.abs(Math.sin(tt * 1.3 + st.ph))); });
+          moon.opacity = clamp((a - 0.3) * 2, 0, 1) * 0.95;
+        }
+      };
+    }
+
+    var objs = new Map(), shurikenObjs = new Map(), bitObjs = [], candleObjs = [], cpObjs = [], padObjs = [], crumbObjs = [];
     var heartObjs = [], player, shadow, terminalObj, light = null;
     var cave = null, curtain = null, sparkT = 0, sparkGlow = null;
     if (!brawl && sim.secret) { // salle secrète : fond de grotte + rideau qui cache le niveau (seulement quand on y est), tuyau de sortie
@@ -181,7 +208,39 @@
       k.add([k.rect(6, 26), k.pos(ex.x - 9, ex.y - 32), k.color(rgb("#7ee787")), k.opacity(0.5), k.z(5.95)]);
       k.add([k.text("SORTIE", { size: 8, font: "monospace" }), k.pos(ex.x - 17, ex.y - 60), k.color(rgb("#7ee787")), k.z(6)]);
       sparkGlow = k.add([k.sprite("glow"), k.pos((scr.gapL + scr.gapR) / 2, scr.gapTop - 8), k.anchor("center"), k.scale((scr.gapR - scr.gapL) / 22, 1.4), k.color(rgb("#ffd54a")), k.opacity(0.26), k.z(5.7)]); // une lueur dorée au ras du trou secret
+      if (scr.warp) k.add([k.sprite("warp", { anim: "spin" }), k.pos((scr.warp.l + scr.warp.r) / 2, scr.warp.b), k.anchor("bot"), k.scale(2), k.z(5.7)]); // tour : le portail doré de la salle secrète
     }
+    /** Mur de fond de la tour (briques sombres, on ne voit que ce qui est à l'écran) + fenêtres éclairées, lianes et lanternes suspendues. */
+    function buildTowerWalls() {
+      var cols = sim.tower.cols, rowsT = sim.tower.rows, inner = rgb(theme.wall || "#3a3358"), outer = rgb(theme.outer || "#241f3a"), rnd3 = window.OctoSprites.seeded(311 + def.id * 17);
+      var wallOpt = { sprite: "wall0", pos: k.vec2(0, 0), scale: k.vec2(2, 2), color: inner };
+      k.add([k.pos(0, 0), k.z(2), {
+        draw: function () {
+          var cx = k.camPos().x, cy = k.camPos().y, hx = k.width() / 2 + 40, hy = k.height() / 2 + 40;
+          var c0 = Math.floor((cx - hx) / T), c1 = Math.ceil((cx + hx) / T), r0 = Math.max(0, Math.floor((cy - hy) / T)), r1 = Math.min(rowsT, Math.ceil((cy + hy) / T));
+          for (var rr = r0; rr <= r1; rr++) for (var cc = c0; cc <= c1; cc++) {
+            wallOpt.sprite = "wall" + (((cc * 7 + rr * 3) % 4 + 4) % 4 < 2 ? 0 : 1);
+            wallOpt.pos.x = cc * T; wallOpt.pos.y = rr * T;
+            wallOpt.color = cc >= 0 && cc < cols ? inner : outer;
+            k.drawSprite(wallOpt);
+          }
+        }
+      }]);
+      // fenêtres éclairées, lianes et lanternes
+      for (var rr2 = 3; rr2 < rowsT - 2; rr2 += 4) {
+        var wc = 1 + Math.floor(rnd3() * (cols - 2));
+        k.add([k.sprite("window"), k.pos(wc * T + 16, rr2 * T + 16), k.anchor("center"), k.scale(2), k.z(2.4)]);
+        k.add([k.sprite("glow"), k.pos(wc * T + 16, rr2 * T + 16), k.anchor("center"), k.scale(1.6), k.color(rgb(theme.lamp || "#ffd27a")), k.opacity(0.18), k.z(2.3)]);
+      }
+      sim.tower.platforms.forEach(function (pl, i) {
+        if (pl.floor || i % 2 || pl.crumble) return;
+        k.add([k.sprite("vine"), k.pos(pl.l * T + 6, pl.ty * T + T), k.scale(2), k.z(5.4)]);
+        var lx = (pl.l + pl.r + 1) / 2 * T;
+        k.add([k.sprite("lantern"), k.pos(lx, pl.ty * T + T), k.anchor("top"), k.scale(2), k.z(5.5)]);
+        k.add([k.sprite("glow"), k.pos(lx, pl.ty * T + T + 26), k.anchor("center"), k.scale(2.2), k.color(rgb(theme.lamp || "#ffd27a")), k.opacity(0.22), k.z(5.45)]);
+      });
+    }
+
     /** Bougies, pièces et drapeaux du trajet (posés au départ, reposés quand tout le niveau recommence). */
     function buildPlatformDynamics() {
       sim.candles.forEach(function (c) {
@@ -189,6 +248,8 @@
         candleObjs.push({ c: c, o: o2 });
       });
       sim.bits.forEach(function (b) { if (!b.got) bitObjs.push({ b: b, o: k.add([k.sprite("bit"), k.pos(b.x, b.y), k.anchor("center"), k.scale(1.6), k.z(6)]) }); });
+      if (!padObjs.length) sim.pads.forEach(function (pd) { padObjs.push({ pd: pd, o: k.add([k.sprite("pad"), k.pos(pd.x, pd.y), k.anchor("bot"), k.scale(2), k.z(5.6)]), sq: 0 }); });
+      if (!crumbObjs.length) sim.crumbles.forEach(function (cr) { crumbObjs.push({ c: cr, o: k.add([k.sprite("crumb"), k.pos(cr.tx * T, cr.ty * T), k.scale(2), k.color(rgb(theme.tile)), k.z(5)]) }); });
       sim.checkpoints.forEach(function (c) {
         var pole = k.add([k.rect(3, 40), k.pos(c.x - 1, c.y - 40), k.color(rgb("#8b949e")), k.z(5.8)]);
         var flag = k.add([k.rect(18, 11), k.pos(c.x + 2, c.y - 40), k.color(rgb("#f85149")), k.z(5.9)]);
@@ -212,12 +273,14 @@
       buildCity(FLOOR_Y);
       terminalObj = k.add([k.sprite("terminal"), k.pos(sim.terminal.x, sim.terminal.y), k.anchor("bot"), k.scale(2), k.z(6 + sim.terminal.y / 400)]);
     } else {
-      var solid = sim.solid, rowsN = solid.length, colsN = solid[0].length, tx, ty;
+      var solid = sim.solid, rowsN = solid.length, colsN = solid[0].length, tx, ty, crumbAt = {};
+      var wsfx = window.OctoProgress && window.OctoProgress.world && window.OctoProgress.world() > 0 ? "-w" + window.OctoProgress.world() : ""; // drawSprite ne passe pas par k.sprite : le monde en cours s'ajoute ici
+      sim.crumbles.forEach(function (cr) { crumbAt[cr.tx + "," + cr.ty] = true; }); // les plateformes qui s'effritent sont des objets à part (elles tremblent puis tombent)
       // Le sol : une seule couche qui dessine les colonnes visibles (des centaines de tuiles = des centaines d'objets à parcourir à chaque image sinon)
       var tileCols = [], tilePos = k.vec2(0, 0), tileOpt = { sprite: "", pos: tilePos, scale: k.vec2(2, 2), color: rgb(theme.tile) }; // (une seule table d'options réutilisée : aucune allocation par image)
       for (tx = 0; tx < colsN; tx++) {
         var col = [];
-        for (ty = 0; ty < rowsN; ty++) if (solid[ty][tx]) col.push({ y: ty * T, name: ((ty === 0 || !solid[ty - 1][tx]) ? "grass" : "dirt") + ((tx + ty) % 3) });
+        for (ty = 0; ty < rowsN; ty++) if (solid[ty][tx] && !crumbAt[tx + "," + ty]) col.push({ y: ty * T, name: ((ty === 0 || !solid[ty - 1][tx]) ? "grass" : "dirt") + ((tx + ty) % 3) + wsfx });
         tileCols.push(col);
       }
       k.add([k.pos(0, 0), k.z(5), {
@@ -229,7 +292,8 @@
           }
         }
       }]);
-      props(function (i) { // un élément de décor tous les ~5 colonnes, sur la première tuile de sol
+      if (vertical) buildTowerWalls();
+      else props(function (i) { // un élément de décor tous les ~5 colonnes, sur la première tuile de sol
         var cx = 3 + i * 5 + ((i * 7) % 3);
         if (cx >= colsN) return null;
         for (var r = 0; r < rowsN; r++) if (solid[r][cx] && (r === 0 || !solid[r - 1][cx])) return { x: cx * T + T / 2, y: r * T + 2, z: 3.5 };
@@ -417,7 +481,7 @@
       });
     }
 
-    var SFX = { jump: "jump", djump: "djump", land: "land", swing: "swing", hit: "hit", kill: "kill", stomp: "stomp", hurt: "hurt", bit: "bit", heart: "heart", throw: "throw", checkpoint: "checkpoint", finish: "finish", candle: "hit", die: "hurt", fall: "hurt", wave: "hurt", star: "star", power: "power", crate: "crate", "crate-hit": "crate-hit", shot: "shot", dash: "dash", bark: "bark", scare: "scare", secret: "power", "secret-out": "checkpoint" };
+    var SFX = { jump: "jump", djump: "djump", land: "land", swing: "swing", hit: "hit", kill: "kill", stomp: "stomp", hurt: "hurt", bit: "bit", heart: "heart", throw: "throw", checkpoint: "checkpoint", finish: "finish", candle: "hit", die: "hurt", fall: "hurt", wave: "hurt", star: "star", power: "power", crate: "crate", "crate-hit": "crate-hit", shot: "shot", dash: "dash", bark: "bark", scare: "scare", secret: "power", "secret-out": "checkpoint", pad: "boing", crumble: "crumble", crumbled: "crumble" };
 
     function handle(ev) {
       var m = music();
@@ -431,6 +495,9 @@
         case "kill": burst(ev.x, ev.y, ["#f85149", "#e3b341", "#ffffff", "#39c5cf"], 22); k.shake(4); break;
         case "stomp": burst(ev.x, ev.y, ["#ffffff", "#39c5cf"], 10); k.shake(3); squash(ev.extra); break;
         case "candle": burst(ev.x, ev.y, ["#f0883e", "#ffe08a"], 10); break;
+        case "pad": burst(ev.x, ev.y - 4, ["#ffffff", "#7ee787", "#ffe08a"], 8, 0.6); padObjs.forEach(function (q) { if (q.pd.x === ev.x) q.sq = 0.2; }); break;
+        case "crumble": burst(ev.x, ev.y, ["#a8747c", "#d8c0ff"], 4, 0.4); break;
+        case "crumbled": burst(ev.x, ev.y + 10, ["#a8747c", "#6a4757", "#d8c0ff"], 8, 0.5); break;
         case "hurt": hurtFlash = 0.35; k.shake(8); burst(ev.x, py - 10, ["#f85149", "#ffffff"], 10); break;
         case "die": case "fall": hurtFlash = 0.6; k.shake(10); say(ev.t === "fall" ? "CHUTE !" : "K.O. !", "#f85149"); break;
         case "bit": burst(ev.x, ev.y, ["#e3b341", "#fff4c2"], 6, 0.6); break;
@@ -459,6 +526,8 @@
       if (brawl) {
         tx = sim.lock ? sim.lock.l + VW / 2 : p.x + 30;
         ty = worldH - VH / 2;
+      } else if (vertical) {
+        tx = p.x; ty = p.y - VH * 0.18; // une tour : on regarde un peu au-dessus de soi
       } else {
         tx = p.x + p.facing * 40; ty = p.y - 80;
       }
@@ -519,6 +588,13 @@
         b.o.pos.y = b.b.y + Math.sin(t * 4 + i) * 2;
       });
       candleObjs.forEach(function (c) { if (!c.c.alive && c.o.exists()) c.o.destroy(); });
+      padObjs.forEach(function (q) { if (q.sq > 0) q.sq -= 1 / 60; q.o.scale = k.vec2(2 + (q.sq > 0 ? 0.5 * q.sq / 0.2 : 0), 2 - (q.sq > 0 ? 0.9 * q.sq / 0.2 : 0)); });
+      crumbObjs.forEach(function (q) {
+        var st = q.c.state;
+        q.o.opacity = st === 2 ? 0 : 1;
+        q.o.pos.x = q.c.tx * T + (st === 1 ? (Math.floor(t * 60) % 2 ? 1.5 : -1.5) : 0);
+        q.o.pos.y = q.c.ty * T + (st === 1 ? 1 : 0);
+      });
       cpObjs.forEach(function (c) { if (c.c.on) c.flag.color = rgb("#3fb950"); });
       // objets ramassables apparus en cours de partie (cœurs, bits des bougies)
       sim.items.forEach(function (it) {
@@ -673,6 +749,7 @@
       cam.x += (c.x - cam.x) * Math.min(1, 6 * dt); cam.y += (c.y - cam.y) * Math.min(1, 5 * dt);
       k.camPos(Math.round(cam.x * 2) / 2, Math.round(cam.y * 2) / 2);
       skyLayer(cam.x, cam.y); landLayer(cam.x, cam.y);
+      if (altitude) altitude.update(cam.y, time);
       if (cave) {
         var inRoom = sim.secret.inRoom;
         cave.opacity = inRoom ? 1 : 0; curtain.opacity = inRoom ? 1 : 0;
