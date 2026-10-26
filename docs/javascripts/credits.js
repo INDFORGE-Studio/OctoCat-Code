@@ -82,6 +82,18 @@
       for (tx = 150, i = 0; tx < WORLD; tx += k.rand(55, 120), i++) {
         var nm = PROPS[(i * 7 + 3) % PROPS.length];
         k.add([k.sprite(nm), k.pos(tx, BASE + 1), k.anchor("bot"), k.scale(nm === "tree" || nm === "palm" ? 2.2 : 2.6), k.color(rgb("#c9b8e8")), k.z(3.5)]);
+        if (nm === "torch") torchFlame(tx, BASE + 1 - 49);
+      }
+      // le sprite « torch » n'est que le bol sur son pied : la flamme est un objet à part (comme dans les trajets et devant le portail)
+      function torchFlame(fx, fy) {
+        var gl = k.add([k.sprite("glow"), k.pos(fx, fy - 6), k.anchor("center"), k.scale(1.8), k.color(rgb("#f0883e")), k.opacity(0.28), k.z(3.49)]);
+        var outer = k.add([k.rect(13, 20), k.pos(fx, fy + 3), k.anchor("bot"), k.color(rgb("#f0883e")), k.z(3.5)]);
+        var inner = k.add([k.rect(7, 13), k.pos(fx, fy + 3), k.anchor("bot"), k.color(rgb("#ffe08a")), k.z(3.51)]);
+        outer.onUpdate(function () {
+          var f = 0.8 + 0.2 * Math.sin(time * 11 + fx), g = 0.8 + 0.2 * Math.sin(time * 14 + fx * 2);
+          outer.height = Math.round(20 * f); inner.height = Math.round(13 * g);
+          gl.opacity = 0.22 + 0.1 * f;
+        });
       }
 
       // ----- les héros : OctoCat et Laita courent côte à côte -----
