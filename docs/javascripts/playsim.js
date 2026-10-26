@@ -22,7 +22,8 @@
     meleeReach: 38, whipReach: 52, swingTime: 0.28, swingCooldown: 0.34,
     shurikenSpeed: 330, shurikenLife: 0.9, shurikenCooldown: 0.3, shurikenMax: 2,
     starTime: 6, powerTime: 14, powerCooldown: 0.24, powerMax: 9, // cœur à pleine vie = invincibilité ; étoile des caisses = shuriken puissant
-    dogSpeed: 290, dogCooldown: 9, dogScare: 4, dogRange: 360 // Laita : course, attente entre deux appels, durée de la peur, portée de l'appel
+    dogSpeed: 290, dogCooldown: 9, dogScare: 4, dogRange: 360, // Laita : course, attente entre deux appels, durée de la peur, portée de l'appel
+    padHeight: 230, crumbleDelay: 0.5, crumbleBack: 2.6 // ressort : hauteur du bond (px) ; plateforme qui s'effrite : délai avant la chute, durée avant qu'elle revienne
   };
 
   function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
@@ -111,7 +112,8 @@
    *          en = marcheur, tough = costaud (2 PV), hop = sauteur (bondit vers toi), dash = fonceur (charge), fly = chauve-souris (pique)
    *    gap   {n}                                              n colonnes de vide (≤ 2, ≤ 3 avec double saut)
    *    up / down {n}                                          marche de n tuiles (≤ 2)
-   *    float {at, w, h, bits}                                 plateforme flottante à h tuiles du sol courant
+   *    float {at, w, h, bits, crumble}                        plateforme flottante à h tuiles du sol courant (crumble : elle s'effrite quand on s'y pose)
+   *    flat accepte aussi  pads: [colonnes]                   ressorts (le joueur rebondit très haut)
    *    end   {n}                                              sol final avec le terminal
    *    cave  {n, floor, open}                                 fin en grotte (apres le dernier trou) : falaise pleine hauteur, tunnel de `open` tuiles de haut
    *                                                           (floor tuiles de sol dessous) dont l'entree s'ouvre sur la paroi du trou ; le terminal est au fond
@@ -126,7 +128,7 @@
       var n = s.n || 0, start = col;
       if (s.t === "up") { cur += s.n; return; }
       if (s.t === "down") { cur -= s.n; return; }
-      if (s.t === "float") { floats.push({ col: col + (s.at || 0), w: s.w || 3, h: s.h || 3, base: cur, bits: s.bits !== false }); return; }
+      if (s.t === "float") { floats.push({ col: col + (s.at || 0), w: s.w || 3, h: s.h || 3, base: cur, bits: s.bits !== false, crumble: !!s.crumble }); return; }
       if (s.t === "gap") { for (i = 0; i < n; i++) heights.push(0); col += n; return; }
       if (s.t === "cave") { for (i = 0; i < n; i++) heights.push(ROWS); caveSeg = { start: col, n: n, floor: s.floor || 2, open: s.open || 4 }; col += n; return; }
       // flat / end
@@ -139,6 +141,7 @@
       (s.bits || []).forEach(function (o) { feat(start + o, "o", s.bitsUp || 1); });
       (s.candles || []).forEach(function (o) { feat(start + o, "c"); });
       (s.spikes || []).forEach(function (o) { feat(start + o, "^"); });
+      (s.pads || []).forEach(function (o) { feat(start + o, "J"); });
       if (s.cp != null) feat(start + s.cp, "C");
       if (s.t === "end") { endCol = start + Math.max(1, n - 3); feat(endCol, "T"); }
       col += n;
@@ -150,7 +153,7 @@
     for (var c2 = 0; c2 < cols; c2++) for (var h = 0; h < heights[c2]; h++) put(c2, ROWS - 1 - h, "#");
     floats.forEach(function (f) {
       var top = ROWS - heights[clamp(f.col, 0, cols - 1)] - f.h; // rangée de la plateforme
-      for (var k = 0; k < f.w; k++) put(f.col + k, top, "=");
+      for (var k = 0; k < f.w; k++) put(f.col + k, top, f.crumble ? "~" : "=");
       if (f.bits) for (var b = 0; b < f.w; b++) put(f.col + b, top - 1, "o");
     });
     for (var c3 in feats) {
@@ -182,6 +185,7 @@
    */
   function addSecretRoom(rows) {
     var R = rows.length, cols = rows[0].length, gaps = [], cur = null, c, r, i;
+    if (rows.warp) return addWarpRoom(rows);
     for (c = 0; c < cols; c++) {
       var ground = false;
       for (r = 0; r < R; r++) if (rows[r].charAt(c) === "#") { ground = true; break; }
@@ -220,29 +224,51 @@
     return { rows: rows.map(function (row, ri) { return row + wall + room[ri].join(""); }), info: info };
   }
 
+  /** Salle secrète d'une tour : un trou de corniche qui ne fait pas tomber mais mène à la même grotte pleine de pièces (rows.warp = { l, r, t, b, out: { x, y } }, en pixels). */
+  function addWarpRoom(rows) {
+    var R = rows.length, cols = rows[0].length, i, r, wp = rows.warp;
+    var SEP = 3, W = 26, hs = [], room = [], put2 = function (ci, ri, ch) { if (ri >= 0 && ri < R) room[ri][ci] = ch; };
+    for (i = 0; i < W; i++) hs.push(i < 11 ? 2 : i < 15 ? 3 : i < 19 ? 4 : i < 23 ? 3 : 2);
+    for (r = 0; r < R; r++) { room.push([]); for (i = 0; i < W; i++) room[r].push(R - r <= hs[i] ? "#" : " "); }
+    [3, 5, 7, 9].forEach(function (ci) { put2(ci, R - hs[ci] - 1, "o"); });
+    for (i = 11; i < 23; i++) { put2(i, R - hs[i] - 1, "o"); put2(i, R - hs[i] - 2, "o"); }
+    var r0 = cols + SEP;
+    var info = {
+      gapL: wp.l, gapR: wp.r, gapTop: wp.t, levelW: cols * TILE, curtainR: (cols + SEP - 1) * TILE, roomL: r0 * TILE,
+      spawn: { x: (r0 + 2.5) * TILE, y: (R - 2) * TILE }, out: wp.out, inRoom: false, visits: 0,
+      warp: { l: wp.l, r: wp.r, t: wp.t, b: wp.b }
+    };
+    var ex = (r0 + 24.5) * TILE;
+    info.exit = { x: ex, y: (R - 2) * TILE, l: ex - 18, r: ex + 18, t: (R - 2) * TILE - 46, b: (R - 2) * TILE };
+    var wall = ""; for (i = 0; i < SEP; i++) wall += "#";
+    return { rows: rows.map(function (row, ri) { return row + wall + room[ri].join(""); }), info: info };
+  }
+
   function createPlatform(rows, abilities) {
-    var ab = abilities || {}, caveInfo = rows.cave || null;
+    var ab = abilities || {}, caveInfo = rows.cave || null, GS = ab.gravity || 1; // GS : gravité (0,55 = lunaire)
+    var tower = rows.tower || null, route = rows.route || null;
     var secretRoom = addSecretRoom(rows);
     if (secretRoom) rows = secretRoom.rows;
     var cols = rows[0].length, R = rows.length;
     var sim = {
       mode: "platform", w: cols * TILE, h: R * TILE, abilities: ab, time: 0, finished: false,
       events: [], stats: { bits: 0, bitsTotal: 0, deaths: 0, kills: 0 },
-      enemies: [], bits: [], candles: [], items: [], spikes: [], checkpoints: [], shurikens: [], terminal: null,
-      player: null, cp: null, solid: [], dog: null, secret: secretRoom ? secretRoom.info : null, cave: caveInfo
+      enemies: [], bits: [], candles: [], items: [], spikes: [], checkpoints: [], shurikens: [], terminal: null, pads: [], crumbles: [],
+      player: null, cp: null, solid: [], dog: null, secret: secretRoom ? secretRoom.info : null, cave: caveInfo,
+      vertical: !!tower, tower: tower, route: route, gravity: GS
     };
     var spawn = { x: TILE * 2.5, y: TILE * 7 };
 
     /** Pose (ou repose) tout ce qui vit dans le niveau : ennemis, pièces, bougies, pics, drapeaux, terminal. Les tableaux gardent leur identité. */
     function scan(first) {
       var gots = sim.bits.map(function (b) { return b.got; }); // une pièce prise ne revient jamais (sinon on mourrait exprès pour en récolter)
-      ["enemies", "bits", "candles", "items", "spikes", "checkpoints", "shurikens"].forEach(function (key) { sim[key].length = 0; });
+      ["enemies", "bits", "candles", "items", "spikes", "checkpoints", "shurikens", "pads", "crumbles"].forEach(function (key) { sim[key].length = 0; });
       sim.terminal = null; sim.stats.bitsTotal = 0; sim.stats.kills = 0;
     for (var ty = 0; ty < R; ty++) {
       if (first) sim.solid.push([]);
       for (var tx = 0; tx < cols; tx++) {
         var ch = rows[ty].charAt(tx), cx = tx * TILE + TILE / 2, by = (ty + 1) * TILE;
-        if (first) sim.solid[ty].push(ch === "#" || ch === "=");
+        if (first) sim.solid[ty].push(ch === "#" || ch === "=" || ch === "~");
         if (ch === "S") spawn = { x: cx, y: by };
         else if (ch === "e" || ch === "E") sim.enemies.push({ type: ch === "E" ? "tough" : "walker", x: cx, y: by, w: 22, h: 28, vx: 0, vy: 0, dir: -1, hp: ch === "E" ? 2 : 1, hurt: 0, alive: true, tx: tx });
         else if (ch === "h") sim.enemies.push({ type: "hopper", x: cx, y: by, w: 22, h: 24, vx: 0, vy: 0, dir: -1, hp: 1, hurt: 0, alive: true, hopT: 0.5 + (tx % 3) * 0.3, onG: false });
@@ -252,9 +278,12 @@
         else if (ch === "c") sim.candles.push({ x: cx, y: by, alive: true });
         else if (ch === "^") sim.spikes.push({ l: tx * TILE + 5, r: tx * TILE + TILE - 5, t: ty * TILE + 16, b: by });
         else if (ch === "C") sim.checkpoints.push({ x: cx, y: by, on: false });
+        else if (ch === "J") sim.pads.push({ x: cx, y: by, l: tx * TILE + 3, r: tx * TILE + TILE - 3, t: by - 12, b: by });
+        else if (ch === "~") sim.crumbles.push({ tx: tx, ty: ty, state: 0, t: 0 });
         else if (ch === "T") sim.terminal = { l: tx * TILE - 8, r: tx * TILE + TILE + 8, t: ty * TILE - TILE, b: by, x: cx, y: by };
       }
     }
+      sim.crumbles.forEach(function (c) { sim.solid[c.ty][c.tx] = true; }); // les plateformes qui s'effritent reviennent quand tout recommence
       gots.forEach(function (g, i) { if (g && sim.bits[i]) sim.bits[i].got = true; });
     }
     scan(true);
@@ -382,7 +411,7 @@
         p.vy = -CFG.doubleJumpV; p.jumps = 2; p.cut = false; emit("djump", p.x, p.y);
       }
       if (!inp.jump && p.vy < 0 && !p.cut) { p.vy *= CFG.jumpCut; p.cut = true; }
-      p.vy = Math.min(CFG.maxFall, p.vy + (p.vy > 0 ? CFG.fallGravity : CFG.gravity) * dt);
+      p.vy = Math.min(CFG.maxFall, p.vy + (p.vy > 0 ? CFG.fallGravity : CFG.gravity) * GS * dt);
 
       var wasGround = p.onGround;
       var r = move(p, p.vx * dt, p.vy * dt);
@@ -390,6 +419,28 @@
       p.onGround = r.landed;
       if (r.landed) { p.jumps = 0; if (!wasGround) emit("land", p.x, p.y); }
       p.x = clamp(p.x, p.w / 2, sim.w - p.w / 2);
+
+      // --- plateformes qui s'effritent : elles tombent un instant après qu'on s'y est posé, puis reviennent ---
+      if (r.landed && sim.crumbles.length) {
+        var cx0 = Math.floor((p.x - p.w / 2) / TILE), cx1 = Math.floor((p.x + p.w / 2 - 0.001) / TILE), cty = Math.floor((p.y + 1) / TILE);
+        sim.crumbles.forEach(function (cr) { if (cr.state === 0 && cr.ty === cty && cr.tx >= cx0 && cr.tx <= cx1) { cr.state = 1; cr.t = CFG.crumbleDelay; emit("crumble", cr.tx * TILE + TILE / 2, cr.ty * TILE); } });
+      }
+      for (i = 0; i < sim.crumbles.length; i++) {
+        var cb = sim.crumbles[i];
+        if (cb.state === 1) { cb.t -= dt; if (cb.t <= 0) { cb.state = 2; cb.t = CFG.crumbleBack; sim.solid[cb.ty][cb.tx] = false; emit("crumbled", cb.tx * TILE + TILE / 2, cb.ty * TILE); } }
+        else if (cb.state === 2) {
+          cb.t -= dt;
+          if (cb.t <= 0 && !overlap(rectOf(p), { l: cb.tx * TILE, r: (cb.tx + 1) * TILE, t: cb.ty * TILE, b: (cb.ty + 1) * TILE })) { cb.state = 0; sim.solid[cb.ty][cb.tx] = true; }
+        }
+      }
+      // --- ressorts : on repart très haut (la hauteur du bond ne dépend pas de la gravité du monde) ---
+      for (i = 0; i < sim.pads.length; i++) {
+        var pd = sim.pads[i];
+        if (p.vy >= 0 && p.y <= pd.b + 6 && overlap(rectOf(p), pd)) {
+          p.vy = -Math.sqrt(2 * CFG.gravity * GS * CFG.padHeight); p.onGround = false; p.jumps = 1; p.cut = true; p.coyote = 0;
+          emit("pad", pd.x, pd.y);
+        }
+      }
 
       // --- attaque au corps à corps (épée / fouet) ---
       if (attackPressed && p.swingCd <= 0) { p.swing = CFG.swingTime; p.swingCd = CFG.swingCooldown; p.swingHit = {}; emit("swing", p.x, p.y - 20); }
@@ -538,9 +589,11 @@
       }
       for (i = 0; i < sim.checkpoints.length; i++) {
         var ck = sim.checkpoints[i];
-        if (!ck.on && p.x > ck.x && !(sim.secret && sim.secret.inRoom)) { ck.on = true; sim.cp = { x: ck.x, y: ck.y }; emit("checkpoint", ck.x, ck.y); }
+        var passed = sim.vertical ? (Math.abs(p.x - ck.x) < 26 && Math.abs(p.y - ck.y) < 10) : p.x > ck.x; // une tour : on allume le drapeau de son étage en passant près de lui
+        if (!ck.on && passed && !(sim.secret && sim.secret.inRoom)) { ck.on = true; sim.cp = { x: ck.x, y: ck.y }; emit("checkpoint", ck.x, ck.y); }
       }
       var sec = sim.secret;
+      if (sec && sec.warp && !sec.inRoom && overlap(pr, sec.warp)) { sec.inRoom = true; sec.visits++; teleport(sec.spawn); emit("secret", p.x, p.y); } // tour : le petit portail doré mène à la salle secrète
       if (sec && sec.inRoom && overlap(pr, sec.exit)) { // le tuyau : retour dans le niveau, devant le dernier trou
         sec.inRoom = false; teleport(sec.out); emit("secret-out", p.x, p.y);
       }
@@ -556,7 +609,15 @@
       var n = Math.max(1, Math.ceil(dt / (1 / 120))), h = dt / n;
       for (var i = 0; i < n; i++) stepOnce(input || {}, h);
     };
-    sim.progress = function () { var sc = sim.secret; return clamp((sc && sc.inRoom ? sc.gapL : p.x) / (sc ? sc.levelW : sim.w), 0, 1); };
+    var spawnY = spawn.y, lastProg = 0;
+    sim.progress = function () {
+      var sc = sim.secret;
+      if (sim.vertical) { // une tour se mesure en hauteur
+        if (!(sc && sc.inRoom) && sim.terminal) lastProg = clamp((spawnY - p.y) / Math.max(1, spawnY - sim.terminal.y), 0, 1);
+        return lastProg;
+      }
+      return clamp((sc && sc.inRoom ? sc.gapL : p.x) / (sc ? sc.levelW : sim.w), 0, 1);
+    };
     sim.nearestThreat = function () {
       var best = Infinity;
       if (sim.secret && sim.secret.inRoom) return best;
@@ -900,7 +961,7 @@
       var dir = 1, ahead = p.x + dir * (p.w / 2 + 6);
       var wall = solidAt(ahead, p.y - 10) || solidAt(ahead, p.y - 36) && false;
       var floorAhead = solidAt(p.x + dir * 22, p.y + 4), floorHere = solidAt(p.x, p.y + 4);
-      var spikeAhead = sim.spikes.some(function (s) { return s.l - p.x > 0 && s.l - p.x < 52 && Math.abs(s.b - p.y) < 40; });
+      var spikeAhead = sim.spikes.some(function (s) { return (s.l - p.x) * dir > 0 && Math.abs(s.l - p.x) < 52 && Math.abs(s.b - p.y) < 40; });
       var enemyNear = null;
       sim.enemies.forEach(function (e) {
         if (!e.alive) return;
@@ -922,7 +983,7 @@
       }
       if (candleNear) inp.attack = sim.time % 0.5 < 0.25;
       if (p.onGround) jumpHold = 0;
-      if (needJump && p.onGround) { inp.jump = true; jumpHold = 0.34; }
+      if (needJump && p.onGround) { inp.jump = !sim._lastJump; jumpHold = 0.34 / (sim.gravity || 1); } // (on relâche d'abord : sans nouvel appui, atterrir juste devant une marche ne ferait rien)
       else if (jumpHold > 0) { inp.jump = true; jumpHold -= dt; }
       // double saut : on le déclenche près du sommet si un mur ou un vide bloque encore
       if (!p.onGround && ab.doubleJump && p.jumps < 2 && p.vy > -60 && (wall || !solidAt(p.x + dir * 30, p.y + 20)) ) { inp.jump = !sim._lastJump; }

@@ -60,9 +60,15 @@ extra_javascript:
   - javascripts/settings.js
   - javascripts/fx.js
   - javascripts/sprites-run.js
+  - javascripts/sprites-worlds.js
+  - javascripts/sprites-space.js
   - javascripts/logo.js
   - javascripts/playsim.js
+  - javascripts/sim-tower.js
+  - javascripts/sim-space.js
+  - javascripts/sim-snake.js
   - javascripts/play.js
+  - javascripts/play-arcade.js
   - javascripts/puzzle.js
   - javascripts/langs.js
   - javascripts/engine.js
@@ -79,3 +85,6 @@ extra_javascript:
   - javascripts/level8.js
   - javascripts/level9.js
   - javascripts/level10.js
+  - javascripts/worlds.js
+  - javascripts/world-python.js
+  - javascripts/world-js.js

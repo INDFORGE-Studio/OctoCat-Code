@@ -769,13 +769,19 @@
     k.shake = function (n) { if (!window.OctoSettings || window.OctoSettings.get("shake")) rawShake.call(k, n); };
     window.OctoSprites.registerAll(k);
     if (window.OctoSprites.registerRun) window.OctoSprites.registerRun(k);
-    // apparences : « octo » et « laita » deviennent « octo-sN » / « laita-sN » selon le tour (N = 0 à 3), lu au moment où l'objet est créé
-    var rawSprite = k.sprite, skinMemo = null;
-    document.addEventListener("octo:progress", function () { skinMemo = null; });
+    if (window.OctoSprites.registerWorlds) window.OctoSprites.registerWorlds(k); // décors des mondes 2 (Python) et 3 (JavaScript)
+    if (window.OctoSprites.registerSpace) window.OctoSprites.registerSpace(k); // sprites de l'invasion de l'espace et du serpent
+    // apparences : « octo » et « laita » deviennent « octo-sN » / « laita-sN » selon le tour (N = 0 à 4), lu au moment où l'objet est créé ;
+    // le monde en cours (un langage = un monde) change le décor : « sky » devient « sky-w1 » (Python) ou « sky-w2 » (JavaScript)
+    var rawSprite = k.sprite, skinMemo = null, worldMemo = null, worldNames = window.OctoSprites.worldSprites || {};
+    document.addEventListener("octo:progress", function () { skinMemo = null; worldMemo = null; });
     k.sprite = function (name, opt) {
       if (name === "octo" || name === "laita") {
         if (skinMemo === null) skinMemo = window.OctoProgress ? window.OctoProgress.skin() : 0;
         if (skinMemo) name = name + "-s" + skinMemo;
+      } else if (worldNames[name]) {
+        if (worldMemo === null) worldMemo = window.OctoProgress && window.OctoProgress.world ? window.OctoProgress.world() : 0;
+        if (worldMemo > 0) name = name + "-w" + worldMemo;
       }
       return rawSprite.call(k, name, opt);
     };
@@ -874,21 +880,33 @@
       leave();
       cur.name = "run" + def.id; cur.def = null;
       ui.hide();
+      var world = window.OctoWorlds && P.world ? P.world() : 0; // un langage = un monde : le trajet (et son titre) change avec lui
+      if (music().setWorld) music().setWorld(world); // et la musique : tonalité, tempo et timbre du monde
       music().setMood(0); music().setBattle(false);
       applyFx();
-      cur.ctrl = window.OctoPlay.createRun(k, helpers, def, { finish: function () { goTo("level" + def.id, { skip: true }); } });
+      cur.ctrl = window.OctoPlay.createRun(k, helpers, world ? window.OctoWorlds.apply(def, world) : def, { finish: function () { goTo("level" + def.id, { skip: true }); } });
       canvas.focus();
+    }
+
+    /** Le niveau avec le titre de son monde (briefing et éditeur) : « Le Marais des Chaînes » en Python, « La Nébuleuse des Chaînes » en JavaScript… */
+    function titled(def) {
+      var wt = window.OctoWorlds && P.world ? window.OctoWorlds.title(def.id, P.world()) : null;
+      if (!wt) return def;
+      var c = Object.assign({}, def, { title: wt }), lore = window.OctoWorlds.lore(def.id, P.world());
+      if (def.briefing) c.briefing = Object.assign({}, def.briefing, { title: wt }, lore ? { lore: lore } : {}); // l'histoire change avec le monde, la leçon reste la même
+      return c;
     }
 
     function enter(name, def, isLevel) {
       leave();
       cur.name = name; cur.def = def; cur.ctrl = null;
+      if (music().setWorld) music().setWorld(P.world ? P.world() : 0);
       music().setMood(isLevel && def.mood != null ? def.mood : 0);
       music().setBattle(isLevel && !!def.combat); // combat : musique épique, seulement pour les niveaux qui le demandent
       var ctx = { go: goTo, host: host, name: name, reserve: isLevel ? 0.4 : 0 };
       applyFx();
       cur.ctrl = def.scene(k, helpers, ctx);
-      if (isLevel) ui.showLevel(window.OctoLangs ? window.OctoLangs.apply(def, P.lang()) : def); else { ui.hide(); canvas.focus(); }
+      if (isLevel) { var shown = window.OctoLangs ? window.OctoLangs.apply(def, P.lang()) : def; ui.showLevel(titled(shown)); } else { ui.hide(); canvas.focus(); }
     }
 
     Object.keys(scenes).forEach(function (name) { k.scene(name, function () { enter(name, scenes[name], false); }); });

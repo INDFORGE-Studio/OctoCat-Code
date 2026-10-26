@@ -132,12 +132,13 @@
   };
   var O = Object.assign({}, O_BASE);
   /* Apparences : 0 = d'origine ; après chaque tour de 10 niveaux : 1 Ninja (bleu, bandeau rouge), 2 Princesse (ex-Roi : or, couronne, cape rouge),
-   * 3 Cosmos (indigo étoilé, auréole, cape magenta). Seules les couleurs et les accessoires changent ; les animations sont les mêmes. */
+   * 3 Cosmos (indigo étoilé, auréole, cape magenta), 4 OctoBot (robot d'acier, secret). Seules les couleurs et les accessoires changent ; les animations sont les mêmes. */
   var O_SKINS = [
     {},
     { P: "#2f6fdb", L: "#86b6ff", D: "#2250ad", DD: "#183c86", K: "#0a1030", pink: "#ffd166" },
     { P: "#e3a008", L: "#ffd966", D: "#b8790a", DD: "#8a5806", K: "#3a2203", pink: "#ff9f80" },
-    { P: "#2b2f86", L: "#6a72e0", D: "#1c1f5c", DD: "#12143f", K: "#070824", pink: "#39c5cf" }
+    { P: "#2b2f86", L: "#6a72e0", D: "#1c1f5c", DD: "#12143f", K: "#070824", pink: "#39c5cf" },
+    { P: "#8e9ab0", L: "#e3e9f4", D: "#58637a", DD: "#3a4358", K: "#080c16", pink: "#4be3ff" } // 4 : OctoBot, le robot (secret : finir le jeu sans la magie des torches)
   ];
   var skinNow = 0;
 
@@ -158,12 +159,25 @@
     }
   }
 
+  /** Visage du robot : une visière sombre avec deux yeux-LED (ouverts, clignent, « ^ ^ » de joie, croix quand il a mal). */
+  function robotFace(b, o, cy, look) {
+    var i2, kind = o.eyes;
+    b.rect(4, cy - 4, 16, 6, O.K); b.rect(4, cy - 4, 16, 1, O.DD); b.rect(4, cy + 1, 16, 1, O.DD);
+    [8.5, 15.5].forEach(function (ex) {
+      var x = Math.round(ex);
+      if (kind === "open") { b.rect(x - 2, cy - 3, 4, 4, "#4be3ff"); b.rect(x - 1 + Math.round(look - 0.5), cy - 2, 2, 2, "#ffffff"); b.set(x - 2, cy - 3, "#b8f6ff"); }
+      else if (kind === "blink") b.rect(x - 2, cy - 1, 4, 1, "#4be3ff");
+      else if (kind === "happy") { b.set(x - 2, cy, "#4be3ff"); b.set(x - 1, cy - 1, "#4be3ff"); b.set(x, cy - 1, "#4be3ff"); b.set(x + 1, cy, "#4be3ff"); b.set(x - 1, cy - 2, "#b8f6ff"); }
+      else if (kind === "dead") { for (i2 = -1; i2 <= 1; i2++) { b.set(x + i2, cy - 1 + i2, "#ff5d73"); b.set(x + i2, cy - 1 - i2, "#ff5d73"); } }
+    });
+  }
+
   function octoBuf(o) {
     var b = new Buf(24, 24), dy = o.dy || 0, cx = 12, cy = 10 + dy, i, s, t;
     var top = cy + 5, bottom = 23.6;
 
     // cape (derrière tout) : rouge pour le Roi, magenta étoilé pour le Cosmos
-    if (skinNow >= 2) {
+    if (skinNow === 2 || skinNow === 3) {
       var cape = skinNow === 2 ? "#c62a35" : "#8e2de2", capeD = skinNow === 2 ? "#8f1d28" : "#5a189a";
       b.poly([[7, top - 1], [0.5, bottom - 1], [7.5, bottom - 3]], cape); b.poly([[17, top - 1], [23.5, bottom - 1], [16.5, bottom - 3]], cape);
       b.line(7, top, 1.5, bottom - 2, capeD); b.line(17, top, 22.5, bottom - 2, capeD);
@@ -179,7 +193,10 @@
         t = s / 26;
         var x = bx + (o.lean || 0) * t + (o.spread || 0) * (i - 1.5) * t + (o.sway || 1) * Math.sin(ph + t * 3.2) * t;
         var y = top + (yEnd - top) * t;
-        b.ellipse(x, y, 1.75 - 1.0 * t, 1.75 - 1.0 * t, i % 2 ? O.D : O.P);
+        var tc = i % 2 ? O.D : O.P;
+        if (skinNow === 4 && s % 7 >= 5) tc = O.DD; // tentacules articulés : des anneaux sombres tous les 7 pas
+        b.ellipse(x, y, 1.75 - 1.0 * t, 1.75 - 1.0 * t, tc);
+        if (skinNow === 4 && s % 7 === 1) b.set(x - 0.5, y - 0.5, O.L);
         if (s === 14 && i % 2 === 0) b.set(x, y, O.pink); // ventouse
         if (s === 20 && i % 2 === 1) b.set(x, y, O.pink);
       }
@@ -202,11 +219,17 @@
 
     // yeux
     var look = o.look == null ? 0.5 : o.look;
-    eye(b, 8.5, cy - 0.5, o.eyes, look);
-    eye(b, 15.5, cy - 0.5, o.eyes, look);
+    if (skinNow === 4) robotFace(b, o, cy, look);
+    else { eye(b, 8.5, cy - 0.5, o.eyes, look); eye(b, 15.5, cy - 0.5, o.eyes, look); }
 
     // accessoires selon l'apparence
-    if (skinNow === 1) { // ninja : bandeau rouge noué à gauche, plaque d'argent
+    if (skinNow === 4) { // robot : plaques rivetées, antenne à ampoule qui clignote, capteurs aux oreilles
+      [[4.5, cy - 4], [19.5, cy - 4], [4.5, cy + 3.5], [19.5, cy + 3.5]].forEach(function (q) { b.set(q[0], q[1], O.L); });
+      b.line(12, cy - 7, 12, cy - 9.5 + dy * 0, O.DD);
+      b.set(12, cy - 10, Math.floor((o.phase || 0) * 1.3) % 2 ? "#ff5d73" : "#4be3ff"); b.set(12, cy - 11, "#ffffff");
+      b.set(4, 2 + dy, O.pink); b.set(20, 2 + dy, O.pink);
+      b.line(12, cy - 6.5, 12, cy - 5, O.DD);
+    } else if (skinNow === 1) { // ninja : bandeau rouge noué à gauche, plaque d'argent
       for (i = 3; i <= 21; i++) for (s = cy - 6; s <= cy - 5; s++) if (b.get(i, s)) b.set(i, s, "#e5383b");
       b.line(4, cy - 5, 0.5, cy - 2, "#e5383b"); b.line(4, cy - 6, 1, cy - 8.5, "#c1121f");
       b.rect(11, cy - 6, 2, 2, "#e9ecef"); b.set(11, cy - 5, "#6c757d");
@@ -720,7 +743,7 @@
    * ================================================================== */
 
   function registerAll(k) {
-    [0, 1, 2, 3].forEach(function (skin) { // une planche par apparence ; le moteur choisit selon le tour (voir « octo-sN »)
+    [0, 1, 2, 3, 4].forEach(function (skin) { // une planche par apparence ; le moteur choisit selon le tour (voir « octo-sN »)
       k.loadSprite(skin ? "octo-s" + skin : "octo", sheet(octoFrames(skin), 24, 24), {
         sliceX: 10,
         anims: {
@@ -776,5 +799,9 @@
     k.loadSprite("vignette", vignetteSprite());
   }
 
-  window.OctoSprites = { registerAll: registerAll, palette: C, Buf: Buf, single: single, sheet: sheet, seeded: seeded };
+  window.OctoSprites = {
+    registerAll: registerAll, palette: C, Buf: Buf, single: single, sheet: sheet, seeded: seeded,
+    // constructeurs réutilisés par les autres mondes (sprites-worlds.js) : même dessin, autres couleurs
+    builders: { octoFrames: octoFrames, bushBuf: bushBuf, tuftBuf: tuftBuf, mushroomBuf: mushroomBuf, flowerBuf: flowerBuf, rockBuf: rockBuf, signBuf: signBuf, torchBuf: torchBuf, glitchBuf: glitchBuf, portalBuf: portalBuf, cloudBuf: cloudBuf, BAYER: BAYER }
+  };
 })();

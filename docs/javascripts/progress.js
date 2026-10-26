@@ -23,24 +23,31 @@
 
   // `?skin=N` dans l'adresse force l'apparence (démonstration) ; lu une seule fois au chargement, car le jeu nettoie ensuite l'adresse
   var FORCED_SKIN = (function () {
-    try { var m = /[?&]skin=([0-3])\b/.exec(window.location.search); return m ? parseInt(m[1], 10) : -1; } catch { return -1; }
+    try { var m = /[?&]skin=([0-4])\b/.exec(window.location.search); return m ? parseInt(m[1], 10) : -1; } catch { return -1; }
   })();
-  var LAPS = 3;// la fin du jeu : les 10 niveaux terminés 3 fois (un autre langage à chaque tour)
-  var LANG_LIST = ["Python", "JavaScript", "Pseudo-code"];
+  // `?world=N` (0 pseudo-code, 1 Python, 2 JavaScript) force le monde et le langage (démonstration) ; lu une seule fois, comme `?skin=N`
+  var FORCED_WORLD = (function () {
+    try { var m = /[?&]world=([0-2])\b/.exec(window.location.search); return m ? parseInt(m[1], 10) : -1; } catch { return -1; }
+  })();
+  var MAX_SKIN = 4; // 0 à 3 : une apparence par tour (et au choix dès 500 pièces) ; 4 : OctoBot, le robot, secret (finir le jeu sans jamais utiliser la magie des torches)
+  var LAPS = 3;// la fin du jeu : les 10 niveaux terminés 3 fois (un autre langage, donc un autre monde, à chaque tour)
+  // Du plus doux au plus technique : le tour 1 est toujours en pseudo-code (monde de départ) ; ensuite on choisit Python ou JavaScript, et le dernier tour est l'autre.
+  var LANG_LIST = ["Pseudo-code", "Python", "JavaScript"];
 
   var ACHIEVEMENTS = {
     first_compile: { icon: "⚡", title: "Premier Compile", desc: "Ton tout premier code qui marche !" },
     flawless: { icon: "💎", title: "Sans faute", desc: "Réussir un niveau du premier coup, sans erreur." },
     curious: { icon: "💡", title: "Curieux", desc: "Demander un coup de pouce (le bouton 💡 Indice)." },
-    polyglot: { icon: "🌐", title: "Polyglotte", desc: "Essayer un autre langage (Python, JavaScript, pseudo-code)." },
+    polyglot: { icon: "🌐", title: "Polyglotte", desc: "Découvrir un nouveau langage et son monde (pseudo-code, Python, JavaScript)." },
     lap1: { icon: "🥋", title: "Tour 1", desc: "Terminer les 10 niveaux une première fois." },
     lap2: { icon: "👑", title: "Tour 2", desc: "Terminer les 10 niveaux une deuxième fois." },
     lap3: { icon: "🌌", title: "Légende du code", desc: "Terminer les 10 niveaux trois fois : le jeu est fini !" },
-    magic: { icon: "🪄", title: "Magicien", desc: "Éteindre les deux torches du portail… avec la magie." }
+    magic: { icon: "🪄", title: "Magicien", desc: "Éteindre les deux torches du portail… avec la magie." },
+    robot: { icon: "🤖", title: "Robot d'acier", desc: "Finir le jeu sans jamais utiliser la magie des torches : OctoBot et Laita Turbo sont à toi !" }
   };
 
   function defaults() {
-    return { version: 1, unlocked: 1, completed: {}, language: null, achievements: {}, fails: {}, coins: 0, earned: 0, skinPick: -1, banked: {}, paid: {}, laps: 0, lapLang: "Python", pendingLap: false, creditsPending: false, finished: false };
+    return { version: 1, unlocked: 1, completed: {}, language: null, achievements: {}, fails: {}, coins: 0, earned: 0, skinPick: -1, robotSkin: false, robotSeen: false, magicUsed: 0, banked: {}, paid: {}, laps: 0, lapLang: "Pseudo-code", langsDone: [], pendingLap: false, creditsPending: false, finished: false };
   }
 
   // Repli en mémoire si localStorage est indisponible (navigation privée, etc.).
@@ -50,8 +57,12 @@
     try {
       var raw = window.localStorage.getItem(KEY);
       if (!raw) return memory ? clone(memory) : defaults();
-      var parsed = JSON.parse(raw);
-      return Object.assign(defaults(), parsed);
+      var parsed = JSON.parse(raw), st = Object.assign(defaults(), parsed);
+      if (!Array.isArray(parsed.langsDone)) { // ancienne sauvegarde (avant les mondes) : le tour 1 se jouait en Python
+        st.langsDone = st.laps >= 1 ? ["Python"] : [];
+        if (st.laps === 0 && st.lapLang === "Python") st.lapLang = "Pseudo-code";
+      }
+      return st;
     } catch {
       return memory ? clone(memory) : defaults();
     }
@@ -101,11 +112,23 @@
 
     /** Au-delà de 499 pièces gagnées, on peut choisir son apparence (bouton de l'accueil). */
     SKIN_COINS: 500,
-    canPickSkin: function () { return Progress.earned() >= Progress.SKIN_COINS; },
-    /** Choisit l'apparence (0 à 3) ; refusé tant que le score est trop bas. Renvoie true si c'est pris en compte. */
+    canPickSkin: function () { return Progress.earned() >= Progress.SKIN_COINS || Progress.robotUnlocked(); },
+    /** OctoBot (le robot) est débloqué en finissant le jeu sans jamais avoir utilisé la magie des torches. */
+    robotUnlocked: function () { return !!read().robotSkin; },
+    /** Le robot vient d'être gagné et le joueur ne l'a pas encore vu (l'accueil le lui présente une fois). */
+    robotNew: function () { var s = read(); return !!s.robotSkin && !s.robotSeen; },
+    robotSeen: function () { var s = read(); s.robotSeen = true; write(s); },
+    /** Les apparences qu'on peut choisir : 0 à 3 dès 500 pièces, 4 (le robot) si on l'a gagné. */
+    skinChoices: function () {
+      var out = [], i;
+      if (Progress.earned() >= Progress.SKIN_COINS) for (i = 0; i <= 3; i++) out.push(i);
+      if (Progress.robotUnlocked()) out.push(4);
+      return out;
+    },
+    /** Choisit l'apparence (0 à 4) ; -1 = celle du tour. Refusé si elle n'est pas débloquée. Renvoie true si c'est pris en compte. */
     pickSkin: function (n) {
       n = Math.floor(n);
-      if (!Progress.canPickSkin() || !(n >= 0 && n <= LAPS)) return false;
+      if (n !== -1 && Progress.skinChoices().indexOf(n) < 0) return false;
       var s = read(); s.skinPick = n; write(s);
       return true;
     },
@@ -129,6 +152,7 @@
     complete: function (id, opts) {
       var s = read(), magic = !!(opts && opts.magic);
       var flawless = !magic && !(s.fails[id] > 0);
+      if (magic) s.magicUsed = (Math.floor(s.magicUsed) || 0) + 1; // la magie compte pour toute la partie : sans elle, le jeu fini donne OctoBot
       var gained = [];
       if (!(magic && s.completed[id])) s.completed[id] = magic ? { at: Date.now(), flawless: false, magic: true } : { at: Date.now(), flawless: flawless }; // la magie ne remplace pas une vraie réussite
       delete s.paid[id]; // au prochain passage, les indices sont à repayer
@@ -142,7 +166,11 @@
       gained.lap = null;
       if (id === LEVELS.length && s.laps < LAPS && LEVELS.every(function (lv) { return s.completed[lv.id]; })) {
         s.laps += 1; grant("lap" + s.laps);
-        if (s.laps >= LAPS) { s.finished = true; s.creditsPending = true; gained.lap = "end"; }
+        if (Array.isArray(s.langsDone) && s.langsDone.indexOf(s.lapLang) < 0) s.langsDone.push(s.lapLang);
+        if (s.laps >= LAPS) {
+          s.finished = true; s.creditsPending = true; gained.lap = "end";
+          if (!s.magicUsed && !s.robotSkin) { s.robotSkin = true; s.robotSeen = false; grant("robot"); gained.robot = true; }
+        }
         else { s.pendingLap = true; s.skinPick = -1; s.completed = {}; s.unlocked = 1; s.fails = {}; s.paid = {}; s.banked = {}; gained.lap = "lap"; }
       }
       write(s);
@@ -157,17 +185,35 @@
     skin: function () {
       if (FORCED_SKIN >= 0) return FORCED_SKIN;
       var pick = Math.floor(read().skinPick);
-      return pick >= 0 && pick <= LAPS && Progress.canPickSkin() ? pick : Progress.laps();
+      return pick >= 0 && pick <= MAX_SKIN && Progress.skinChoices().indexOf(pick) >= 0 ? pick : Progress.laps();
     },
-    lang: function () { var l = read().lapLang; return LANG_LIST.indexOf(l) >= 0 ? l : "Python"; },
+    lang: function () {
+      if (FORCED_WORLD >= 0) return LANG_LIST[FORCED_WORLD];
+      var l = read().lapLang; return LANG_LIST.indexOf(l) >= 0 ? l : "Pseudo-code";
+    },
+    /** Le monde en cours (0 = GitHubia / pseudo-code, 1 = Python, 2 = JavaScript) : un langage = un monde. */
+    world: function () { return LANG_LIST.indexOf(Progress.lang()); },
+    worldOf: function (lang) { return LANG_LIST.indexOf(lang); },
     pendingLap: function () { return !!read().pendingLap; },
     creditsPending: function () { return !!read().creditsPending; },
-    /** Début d'un nouveau tour avec le langage choisi. */
+    /** Les langages (donc les mondes) encore à découvrir : ceux qu'on n'a pas encore joués. Au tour 2 on a le choix, au tour 3 il n'en reste qu'un. */
+    nextLangs: function () {
+      var s = read(), used = (Array.isArray(s.langsDone) ? s.langsDone : []).concat([s.lapLang]);
+      return LANG_LIST.filter(function (l) { return used.indexOf(l) < 0; });
+    },
+    /** Début d'un nouveau tour avec le langage choisi (parmi ceux qu'on n'a pas encore joués). */
     startLap: function (lang) {
-      var s = read();
-      s.lapLang = LANG_LIST.indexOf(lang) >= 0 ? lang : "Python"; s.pendingLap = false;
+      var s = read(), opts = Progress.nextLangs();
+      s.lapLang = opts.indexOf(lang) >= 0 ? lang : (opts[0] || "Python"); s.pendingLap = false;
       write(s);
-      if (s.lapLang !== "Python") Progress.grant("polyglot");
+      Progress.grant("polyglot");
+    },
+    /** Jeu fini : on peut rejouer n'importe lequel des trois mondes (bouton MONDE de l'accueil). Refusé tant que le jeu n'est pas fini. */
+    pickWorld: function (lang) {
+      var s = read();
+      if (!s.finished || LANG_LIST.indexOf(lang) < 0) return false;
+      s.lapLang = lang; write(s);
+      return true;
     },
     finishCredits: function () { var s = read(); s.creditsPending = false; write(s); },
 
@@ -211,6 +257,8 @@
       var lp = Math.floor(Number(o.laps));
       if (lp >= 0) s.laps = Math.min(LAPS, lp);
       if (LANG_LIST.indexOf(o.lapLang) >= 0) s.lapLang = o.lapLang;
+      if (Array.isArray(o.langsDone)) o.langsDone.forEach(function (l) { if (LANG_LIST.indexOf(l) >= 0 && s.langsDone.indexOf(l) < 0) s.langsDone.push(l); });
+      else if (s.laps >= 1) s.langsDone = ["Python"];
       s.pendingLap = o.pendingLap === true; s.creditsPending = o.creditsPending === true; s.finished = o.finished === true || s.laps >= LAPS;
       if (o.achievements && typeof o.achievements === "object") Object.keys(o.achievements).forEach(function (key) {
         if (ACHIEVEMENTS[key]) s.achievements[key] = Number(o.achievements[key]) || 1;
@@ -224,7 +272,10 @@
       var ea = Math.floor(Number(o.earned));
       if (ea > 0) s.earned = Math.min(ea, 99999);
       var pk = Math.floor(Number(o.skinPick));
-      if (pk >= 0 && pk <= LAPS) s.skinPick = pk;
+      if (pk >= 0 && pk <= MAX_SKIN) s.skinPick = pk;
+      s.robotSkin = o.robotSkin === true; s.robotSeen = o.robotSeen === true;
+      var mu = Math.floor(Number(o.magicUsed));
+      if (mu > 0) s.magicUsed = Math.min(mu, 99);
       if (o.banked && typeof o.banked === "object") Object.keys(o.banked).forEach(function (id) {
         var i = parseInt(id, 10), v = Math.floor(Number(o.banked[id]));
         if (i >= 1 && i <= max && v > 0) s.banked[i] = Math.min(v, 999);

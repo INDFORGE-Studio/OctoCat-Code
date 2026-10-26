@@ -104,7 +104,7 @@
       sc.laita(octo, OCTO_X); // Laita attend, assise devant l'OctoCat
 
       // HUD (la police par défaut de KAPLAY n'a pas les accents : texte en capitales sans accents)
-      k.add([k.text("FORET DES SYNTAXES - NIVEAU 1", { size: 11, font: "monospace" }), k.pos(10, 8), k.color(rgb("#e6edf3")), k.fixed(), k.z(31)]);
+      k.add([k.text(window.OctoWorlds ? window.OctoWorlds.header(1, "FORET DES SYNTAXES - NIVEAU 1") : "FORET DES SYNTAXES - NIVEAU 1", { size: 11, font: "monospace" }), k.pos(10, 8), k.color(rgb("#e6edf3")), k.fixed(), k.z(31)]);
       var speedTxt = k.add([k.text("v_speed = ???", { size: 14, font: "monospace" }), k.pos(10, 24), k.color(rgb("#d29922")), k.fixed(), k.z(31)]);
       var banner = k.add([k.text("", { size: 18, font: "monospace" }), k.pos(sc.viewW / 2, 70), k.anchor("center"),
         k.color(rgb("#ffffff")), k.opacity(0), k.fixed(), k.z(32)]);
