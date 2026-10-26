@@ -134,7 +134,7 @@
               octo.play("run");
               return h.tween(1.1, function (e) { octo.pos.x = OCTO_X + (PORTAL_X - 60 - OCTO_X) * e; }, function (p) { return p; });
             })
-            .then(function () { octo.play("success"); sc.portal.play("opening"); k.shake(4); return h.wait(0.35); })
+            .then(function () { octo.play("success"); sc.portal.play("opening"); if (window.OctoMusic) window.OctoMusic.sfx("portal-open"); k.shake(4); return h.wait(0.35); })
             .then(function () {
               sc.setPortal(true);
               banner.text = "ACCES AUTORISE"; banner.opacity = 1;
@@ -142,6 +142,7 @@
               return h.wait(0.5);
             })
             .then(function () {
+              if (window.OctoMusic) window.OctoMusic.sfx("portal");
               octo.play("run");
               return h.tween(0.7, function (e) {
                 octo.pos.x = PORTAL_X - 60 + 60 * e; octo.opacity = 1 - e;

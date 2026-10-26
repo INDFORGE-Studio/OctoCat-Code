@@ -131,11 +131,13 @@
         h.tween(dur, function (e) { octo.pos.x = x0 + dist * e; }, function (p) { return p; })
           .then(function () {
             octo.play("success");
+            if (window.OctoMusic) window.OctoMusic.sfx("portal-open");
             sc.burst(PORTAL_X, sc.GROUND_Y - 60, ["#58a6ff", "#39c5cf", "#3fb950", "#bc8cff"], 26);
             k.shake(4);
             return h.wait(0.25);
           })
           .then(function () {
+            if (window.OctoMusic) window.OctoMusic.sfx("portal");
             octo.play("run");
             return h.tween(0.6, function (e) {
               octo.pos.x = PORTAL_X - 55 + 55 * e;

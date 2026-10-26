@@ -261,6 +261,7 @@
           return h.wait(0.5);
         })
         .then(function () {
+          sfx("portal");
           o.play("run");
           return h.tween(0.7, function (e) { o.pos.x = PORTAL_X - 60 + 60 * e; o.opacity = 1 - e; var s = S * (1 - 0.6 * e); o.scale = k.vec2(s, s); });
         })
