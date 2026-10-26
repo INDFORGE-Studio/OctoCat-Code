@@ -27,7 +27,7 @@
   function hit(ax, ay, aw, ah, bx, by, bw, bh) { return Math.abs(ax - bx) < (aw + bw) / 2 && Math.abs(ay - by) < (ah + bh) / 2; }
 
   function createInvaders(def, viewW, viewH) {
-    var W = viewW || 600, H = viewH || 337, hpMax = def.hpMax || 5, shieldN = def.shields == null ? 3 : def.shields;
+    var W = viewW || 600, H = viewH || 337, hpMax = def.hpMax || 5, shieldN = def.shields == null ? 0 : def.shields;
     var yMin = H - 96, yMax = H - 26, dangerY = H - 118;
     var waves = (def.waves || []).map(function (w, i) { return { spec: w, idx: i, state: "wait", t: 0 }; });
     var sim = {
@@ -36,7 +36,7 @@
       stats: { deaths: 0, kills: 0, bits: 0, bitsTotal: 0 }, coinsGot: {}, terminal: { x: W / 2, y: H / 2 }, boss: null, breach: 0
     };
     waves.forEach(function (w) { sim.stats.bitsTotal += w.spec.coins || 0; });
-    var p = sim.player = { x: W / 2, y: yMax - 8, hp: hpMax, hpMax: hpMax, inv: 0, star: 0, power: 0, cd: 0, facing: 1, tilt: 0 };
+    var p = sim.player = { x: W / 2, y: yMax - 8, hp: hpMax, hpMax: hpMax, inv: 0, star: 0, power: 0, cd: 0, facing: 1, tilt: 0, shield: 0 }; // shield : coups que le bouclier du cœur peut encore encaisser (2 au plus)
     var prev = { attack: false, dog: false };
     function emit(t, x, y, extra) { sim.events.push({ t: t, x: x, y: y, extra: extra }); }
     var rnd = (function (seed) { var s = seed; return function () { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; })(1234 + (def.id || 1) * 77);
@@ -95,6 +95,7 @@
 
     function hurtPlayer(n) {
       if (p.inv > 0 || p.star > 0 || sim.relax) return false;
+      if (p.shield > 0) { p.shield--; p.inv = 0.4; emit(p.shield > 0 ? "pshield-hit" : "pshield-break", p.x, p.y - 10); return true; } // le bouclier encaisse à la place des cœurs
       p.hp -= n || 1; p.inv = CFG.invTime; emit("hurt", p.x, p.y - 10);
       if (p.hp <= 0) { sim.stats.deaths++; emit("die", p.x, p.y); restartLevel(); }
       return true;
@@ -103,7 +104,7 @@
       waves.forEach(function (w) { w.state = "wait"; w.t = 0; });
       sim.enemies = []; sim.bullets = []; sim.bombs = []; sim.items = []; sim.ufo = null; sim.formation = null; sim.boss = null; sim.freeze = 0; sim.victory = 0;
       sim.stats.kills = 0; buildShields();
-      p.x = W / 2; p.y = yMax - 8; p.hp = hpMax; p.inv = 1.5; p.star = 0; p.power = 0; p.cd = 0;
+      p.x = W / 2; p.y = yMax - 8; p.hp = hpMax; p.inv = 1.5; p.star = 0; p.power = 0; p.cd = 0; p.shield = 0;
       d.x = p.x - 34; d.y = p.y + 2; d.cd = 0; sim.ufoT = def.ufoEvery || 22; sim.gap = 1.4;
       emit("restart", p.x, p.y);
     }
@@ -123,7 +124,7 @@
     function pickup(it) {
       it.got = true;
       if (it.kind === "power") { p.power = CFG.powerTime; emit("power", it.x, it.y); }
-      else if (p.hp >= hpMax) { p.star = CFG.starTime; emit("star", it.x, it.y); }
+      else if (p.hp >= hpMax) { p.shield = 2; emit("pshield", it.x, it.y); } // cœur à pleine vie : un bouclier apparaît (2 bombes suffisent à le casser), pas d'invincibilité
       else { p.hp = Math.min(hpMax, p.hp + 2); emit("heart", it.x, it.y); }
     }
     function dropBomb(x, y, aim, vyBase) {
@@ -246,7 +247,7 @@
         }
         if (!gone && sim.ufo && sim.ufo.alive && hit(b.x, b.y, 9, 12, sim.ufo.x, sim.ufo.y, 28, 14)) {
           sim.ufo.hp -= 1; sim.ufo.flash = 0.12; gone = true;
-          if (sim.ufo.hp <= 0) { sim.items.push({ x: sim.ufo.x, y: sim.ufo.y, vy: 60, kind: p.hp < hpMax ? "heart" : "power", got: false }); emit("kill", sim.ufo.x, sim.ufo.y); sim.ufo = null; }
+          if (sim.ufo.hp <= 0) { sim.items.push({ x: sim.ufo.x, y: sim.ufo.y, vy: 60, kind: "heart", got: false }); emit("kill", sim.ufo.x, sim.ufo.y); sim.ufo = null; }
           else emit("hit", b.x, b.y);
         }
         if (gone) sim.bullets.splice(i, 1);

@@ -13,7 +13,7 @@
 
   var SFX = {
     laser: "laser", kill: "kill", hit: "hit", hurt: "hurt", bit: "bit", heart: "heart", star: "star", power: "power", bark: "bark", scare: "scare",
-    wave: "wave", clear: "finish", finish: "finish", boom: "boom", bomb: "bomb", ufo: "ufo", bump: "hurt", self: "hurt", die: "hurt", shield: "crate-hit", breach: "hurt"
+    wave: "wave", clear: "finish", finish: "finish", boom: "boom", bomb: "bomb", ufo: "ufo", bump: "hurt", self: "hurt", die: "hurt", shield: "crate-hit", pshield: "power", "pshield-hit": "crate-hit", "pshield-break": "crate", breach: "hurt"
   };
 
   /**
@@ -93,6 +93,8 @@
       else if (ev.t === "restart") say("TOUT RECOMMENCE", "#f85149");
       else if (ev.t === "heart") say("+ VIE", "#ff9aa0");
       else if (ev.t === "star") say("INVINCIBLE !", "#ffffff");
+      else if (ev.t === "pshield") say("BOUCLIER !", "#7ee0ff");
+      else if (ev.t === "pshield-break") say("BOUCLIER CASSE", "#ff9aa0");
       else if (ev.t === "power") say("TIR EN EVENTAIL !", "#ffd54a");
       if (mode.event) mode.event(ev);
     }
@@ -197,6 +199,8 @@
         var flame = k.add([k.rect(6, 10), k.pos(0, 0), k.anchor("top"), k.color(rgb("#ffb347")), k.z(8.9)]);
         var flame2 = k.add([k.rect(3, 6), k.pos(0, 0), k.anchor("top"), k.color(rgb("#fff4c2")), k.z(8.95)]);
         var aura = k.add([k.sprite("glow"), k.pos(0, 0), k.anchor("center"), k.scale(1.8), k.color(rgb("#ffffff")), k.opacity(0), k.z(8.8)]);
+        var bubbleSh = k.add([k.sprite("glow"), k.pos(0, 0), k.anchor("center"), k.scale(2.3), k.color(rgb("#7ee0ff")), k.opacity(0), k.z(9.4)]); // le bouclier du cœur
+        var ringSh = k.add([k.circle(17), k.pos(0, 0), k.anchor("center"), k.color(rgb("#7ee0ff")), k.opacity(0), k.outline(2, rgb("#ffffff")), k.z(9.5)]);
         var podDog = k.add([k.sprite("laita", { anim: "idle" }), k.pos(0, 0), k.anchor("center"), k.scale(0.95), k.z(8.7)]);
         var bubble = k.add([k.sprite("bubble"), k.pos(0, 0), k.anchor("center"), k.scale(1.7), k.z(8.8)]);
         var podFlame = k.add([k.rect(4, 6), k.pos(0, 0), k.anchor("top"), k.color(rgb("#9af0ff")), k.z(8.6)]);
@@ -223,6 +227,11 @@
             if (rainbow) { aura.color = rgb(K.rainbowHex(t * 1.7, 0.8)); aura.opacity = 0.42 + 0.12 * Math.sin(t * 14); ship.color = rgb(K.rainbowHex(t * 1.7 + 0.3, 0.35)); }
             else { aura.opacity = p.power > 0 ? 0.25 : 0; aura.color = rgb("#ffd54a"); ship.color = rgb("#ffffff"); }
             aura.pos.x = p.x; aura.pos.y = p.y - 4;
+            // bouclier : une bulle bleue autour de la fusée ; rouge-rose et clignotante quand il ne lui reste qu'un coup
+            var sOn = p.shield > 0;
+            bubbleSh.pos.x = p.x; bubbleSh.pos.y = p.y - 4; ringSh.pos.x = p.x; ringSh.pos.y = p.y - 4;
+            bubbleSh.opacity = sOn ? 0.5 + 0.1 * Math.sin(t * 9) : 0; ringSh.opacity = sOn ? (p.shield > 1 || Math.floor(t * 8) % 2 ? 0.3 : 0.08) : 0;
+            bubbleSh.color = rgb(p.shield > 1 ? "#7ee0ff" : "#ff9aa0");
             var dg = sim.dog;
             podDog.pos.x = dg.x; podDog.pos.y = dg.y - 2; bubble.pos.x = dg.x; bubble.pos.y = dg.y - 1; podFlame.pos.x = dg.x; podFlame.pos.y = dg.y + 7; podFlame.height = 4 + 3 * Math.abs(Math.sin(t * 30));
             // les envahisseurs
@@ -280,6 +289,7 @@
               case "breach": say("ILS SONT TROP BAS !", "#f85149"); break;
               case "ufo": pop(ev.x < 0 ? 30 : VW2 - 30, 34, "SOUCOUPE !", "#ff6ac1", 9); break;
               case "shield": burst(ev.x, ev.y, ["#7ee0ff", "#ffffff"], 3, 0.4); break;
+              case "pshield": case "pshield-hit": case "pshield-break": burst(ev.x, ev.y, ["#7ee0ff", "#ffffff"], ev.t === "pshield-break" ? 14 : 8, 0.7); break;
               case "heart": case "star": case "power": burst(ev.x, ev.y, ["#ffffff", "#ffd54a", "#ff9aa0"], 14, 0.9); break;
               default: break;
             }

@@ -220,6 +220,23 @@ test("physique : un ressort propulse très haut, une plateforme qui s'effrite to
 
 /* ---------- monde 2 : l'invasion ---------- */
 
+test("invasion : plus de bunkers ; un cœur à pleine vie donne un bouclier de 2 coups (pas d'invincibilité), un cœur normal soigne", () => {
+  const r = W.data(2).runs[2], sim = S.createInvaders(r, 600, 337), p = sim.player;
+  assert.equal(sim.shields.length, 0, "aucun bunker");
+  sim.items.push({ x: p.x, y: p.y - 6, vy: 0, kind: "heart", got: false });
+  run(sim, idle, 0.1);
+  assert.equal(p.shield, 2, "bouclier");
+  assert.equal(p.star, 0, "pas d'invincibilité");
+  for (let i = 0; i < 2; i++) { sim.bombs.push({ x: p.x, y: p.y - 6, vx: 0, vy: 1 }); p.inv = 0; run(sim, idle, 0.05); }
+  assert.equal(p.shield, 0, "2 bombes cassent le bouclier");
+  assert.equal(p.hp, 5, "aucun cœur perdu");
+  sim.bombs.push({ x: p.x, y: p.y - 6, vx: 0, vy: 1 }); p.inv = 0; run(sim, idle, 0.05);
+  assert.equal(p.hp, 4, "ensuite un cœur part");
+  sim.items.push({ x: p.x, y: p.y - 6, vy: 0, kind: "heart", got: false }); run(sim, idle, 0.1);
+  assert.equal(p.hp, 5, "un cœur soigne quand on est blessé");
+});
+
+
 test("invasion : le robot finit les 3 niveaux avec toutes les pièces ; le gardien du niveau 10 se bat et explose", () => {
   for (const id of ARENA_LEVELS) {
     const r = W.data(2).runs[id], sim = S.createInvaders(r, 600, 337);
