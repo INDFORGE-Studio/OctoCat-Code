@@ -19,13 +19,13 @@ test("fréquences : le la 440 et l'octave", () => {
   assert.ok(Math.abs(T.midiToHz(81) - 880) < 1e-9);
 });
 
-test("tempo : 100 BPM au calme, légère hausse en alerte, 148 BPM en combat", () => {
+test("tempo : 100 BPM au calme, légère hausse en alerte, 140 BPM en combat (monde 0)", () => {
   assert.equal(T.bpmFor(0, 0), 100);
   assert.equal(T.bpmFor(1, 0), 112);
-  assert.equal(T.bpmFor(0, 1), 148);
+  assert.equal(T.bpmFor(0, 1), 140);
   assert.ok(T.bpmFor(0.6, 0) > T.bpmFor(0.2, 0));
   assert.equal(T.bpmFor(-3, -1), 100);
-  assert.equal(T.bpmFor(9, 9), 160);
+  assert.equal(T.bpmFor(9, 9), 152);
 });
 
 test("ornements : calme = pentatonique claire seulement ; l'alerte ajoute la couleur mineure", () => {
