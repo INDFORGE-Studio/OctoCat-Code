@@ -95,14 +95,17 @@
         });
         if (!clear) return;
         for (c = sl; c < sl + 3; c++) put(c, pl.ty, "#");
-        put(sl, pl.ty - 1, "o"); put(sl + 2, pl.ty - 1, "o");
-        var wc = sl + 1;
-        warp = { l: wc * TILE - 6, r: (wc + 1) * TILE + 6, t: (pl.ty - 2) * TILE, b: pl.ty * TILE, out: { x: (side < 0 ? pl.l + 0.5 : pl.r + 0.5) * TILE, y: pl.ty * TILE } };
+        // le portail est au BOUT de la petite plateforme (côté opposé au vide d'où l'on saute), les deux pièces sont avant lui : aucune pièce « derrière » le portail
+        var wc = side < 0 ? sl : sl + 2;
+        put(side < 0 ? sl + 1 : sl, pl.ty - 1, "o"); put(side < 0 ? sl + 2 : sl + 1, pl.ty - 1, "o");
+        warp = { l: wc * TILE - 4, r: (wc + 1) * TILE + 4, t: (pl.ty - 2) * TILE, b: pl.ty * TILE, out: { x: (side < 0 ? pl.l + 0.5 : pl.r + 0.5) * TILE, y: pl.ty * TILE } };
       });
     });
-    if (secrets.length && !warp) { // pas de place en hauteur : le portail doré est tout au bout du sol, à droite, derrière une rangée de pièces
-      [13, 14, 15].forEach(function (cc) { put(cc, floorRow - 1, "o"); });
-      warp = { l: 16 * TILE - 6, r: 17 * TILE + 6, t: (floorRow - 2) * TILE, b: floorRow * TILE, out: { x: 11.5 * TILE, y: floorRow * TILE } };
+    if (secrets.length && !warp) { // pas de place en hauteur : le portail doré est sur le sol de départ, tout à gauche (derrière le départ), les pièces sont avant la 1re marche
+      // (jamais à droite de la 1re marche : cette poche sous la 2e plateforme est un cul-de-sac, on ne peut pas en remonter)
+      var c0 = Math.max(2, placed[1].l - 5);
+      [0, 1, 2].forEach(function (d) { put(c0 + d, floorRow - 1, "o"); });
+      warp = { l: -4, r: TILE + 4, t: (floorRow - 2) * TILE, b: floorRow * TILE, out: { x: 2.5 * TILE, y: floorRow * TILE } };
     }
 
     var grid = rows.map(function (row) { return row.join(""); });
