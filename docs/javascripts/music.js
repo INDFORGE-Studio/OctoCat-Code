@@ -5,8 +5,8 @@
  *   1. CALME (par défaut) : joyeux et doux, un air par monde (voir plus bas), sans grosse caisse ni charleston continus.
  *   2. ALERTE (curseur « tension » 0..1) : petit changement pour éveiller l'attention, sans casser l'ambiance :
  *      tempo un peu plus vif, pouls de cœur, bourdon grave, « ping » aigu, couleur modale (sol mineur) sur la 3e mesure.
- *   3. COMBAT (setBattle) : épique et intense. Ré mineur, ~148 BPM, grosse caisse et caisse claire, basse
- *      en croches, cuivres, mélodie héroïque. Réservé aux affrontements.
+ *   3. COMBAT (setBattle) : énergique et héroïque, mais rond. Un air par monde (battleEighth, choisis à l'écoute par le PO) : pizzicato héroïque en ré mineur (140 BPM),
+ *      chant du temple en sol mineur (124 BPM), pouls spatial en mi mineur (138 BPM) ; tambours ronds, motif héroïque, ni grosse caisse écrasante ni charleston continu.
  * Trois MONDES, trois airs calmes (setWorld, choisis à l'écoute par le PO) : GitHubia en ré majeur (ukulélé du matin : accords grattés, basse douce, sifflement),
  * la Tour du Serpent de Python en sol majeur (kalimba de bambou sur un bourdon, tambour sourd, pluie légère), la Galaxie JavaScript en mi majeur
  * (vibraphone cosmique, basse qui marche, balais). Le combat reste épique dans les trois, transposé dans la tonalité du monde.
@@ -45,17 +45,17 @@
 
   /* ---------- les mondes : tonalité, tempo, timbre, mélodie ---------- */
   // Le calme de chaque monde a son propre style (choisi par le PO à l'écoute, atelier de sons) : un air doux sans grosse caisse ni charleston.
-  // `fightAdd` garde le tempo de combat d'avant (108 + 48 = 156 BPM dans le monde 1, 116 + 48 = 164 dans le 2) : le combat reste épique.
-  var BASE_BPM = 100, FIGHT_ADD = 48, WORLD = 0, TIMBRE = "bell", STYLE = "uke";
+  // `fightAdd` : le combat monte au tempo choisi (140 / 124 / 138 BPM : base + fightAdd).
+  var BASE_BPM = 100, FIGHT_ADD = 40, WORLD = 0, TIMBRE = "bell", STYLE = "uke";
   var PROFILES = [
     null, // monde 0 : les valeurs ci-dessus (ré majeur, ukulélé du matin, glockenspiel pour la victoire)
-    { root: 55, bpm: 80, fightAdd: 76, timbre: "marimba", style: "kalimba" }, // monde 1 : sol majeur, kalimba de bambou
-    { root: 52, bpm: 86, fightAdd: 78, timbre: "chip", style: "vibe" }        // monde 2 : mi majeur, vibraphone cosmique
+    { root: 55, bpm: 80, fightAdd: 44, timbre: "marimba", style: "kalimba" }, // monde 1 : sol majeur, kalimba de bambou
+    { root: 52, bpm: 86, fightAdd: 52, timbre: "chip", style: "vibe" }        // monde 2 : mi majeur, vibraphone cosmique
   ];
 
   function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
   function midiToHz(m) { return 440 * Math.pow(2, (m - 69) / 12); }
-  /** Tempo : 100 BPM au calme dans le monde 0 (80 / 86 dans les autres), jusqu'à +12 en alerte ; le combat remonte au tempo épique du monde (148 / 156 / 164). */
+  /** Tempo : 100 BPM au calme dans le monde 0 (80 / 86 dans les autres), jusqu'à +12 en alerte ; le combat monte à 140 / 124 / 138 BPM. */
   function bpmFor(tension, fight) {
     return BASE_BPM + 12 * clamp(tension, 0, 1) + FIGHT_ADD * clamp(fight || 0, 0, 1);
   }
@@ -81,7 +81,7 @@
   /* ---------- moteur audio ---------- */
 
   // out = volume général (musique + effets) ; master = musique seule (♪ OFF la coupe) ; sfx = effets sonores (indépendants de la musique)
-  var ctx = null, out, sfx, master, analyser, padCalm, padFight, padAlert, drumBus, arpBus, noiseBuf, calmIn, verbIn;
+  var ctx = null, out, sfx, master, analyser, padCalm, padFight, padAlert, drumBus, arpBus, noiseBuf, calmIn, battleIn, verbIn, BUS;
   var CALM_GAIN = 2.2; // les instruments doux sont écrits bas : ce gain les met au niveau du reste
   var running = false, muted = false, timer = null;
   var base = 0, spike = 0, tension = 0, fight = 0, battle = false;
@@ -122,6 +122,8 @@
 
     // musique calme : tout passe par calmIn (qui suit le fondu padCalm quand le combat arrive) ; un peu de réverbération partagée, sauf sur appareil modeste
     calmIn = ctx.createGain(); calmIn.gain.value = CALM_GAIN; calmIn.connect(padCalm);
+    battleIn = ctx.createGain(); battleIn.gain.value = CALM_GAIN; battleIn.connect(padFight); // la musique de combat suit le fondu padFight
+    BUS = calmIn;
     if (!lite) {
       var cv = ctx.createConvolver(), wg = ctx.createGain(), len = Math.floor(ctx.sampleRate * 2.2), ir = ctx.createBuffer(2, len, ctx.sampleRate), c, j, st, ch;
       for (c = 0; c < 2; c++) {
@@ -212,21 +214,21 @@
     g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + (atk || 0.005)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(g);
     if (lp) { fl = ctx.createBiquadFilter(); fl.type = "lowpass"; fl.frequency.value = lp; g.connect(fl); last = fl; }
-    route(last, dest || calmIn, wet);
+    route(last, dest || BUS, wet);
     o.start(t); o.stop(t + dur + 0.05);
   }
   function brush(t, dur, vol, hz, wet) { // souffle de balais : le bruit monte puis retombe
     var s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
     s.buffer = noiseBuf; f.type = "bandpass"; f.frequency.value = hz; f.Q.value = 0.7;
     g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + dur * 0.4); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    s.connect(f); f.connect(g); route(g, calmIn, wet);
+    s.connect(f); f.connect(g); route(g, BUS, wet);
     s.start(t, rnd() * 0.5); s.stop(t + dur + 0.02);
   }
   function thump(t, vol) { // tambour sourd
     var o = ctx.createOscillator(), g = ctx.createGain();
     o.frequency.setValueAtTime(120, t); o.frequency.exponentialRampToValueAtTime(60, t + 0.14);
     g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
-    o.connect(g); route(g, calmIn, 0.05); o.start(t); o.stop(t + 0.3);
+    o.connect(g); route(g, BUS, 0.05); o.start(t); o.stop(t + 0.3);
   }
   function wood(t, vol) { osc("sine", 780, t, 0.05, vol, 0.001, 0.15); }
   function kalimba(midi, t, vol) {
@@ -239,7 +241,7 @@
     o.frequency.value = f;
     g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + 2.2);
     tr.gain.value = 0.75; lfo.frequency.value = 4.6; lg.gain.value = 0.25; lfo.connect(lg); lg.connect(tr.gain);
-    o.connect(g); g.connect(tr); route(tr, calmIn, 0.45);
+    o.connect(g); g.connect(tr); route(tr, BUS, 0.45);
     o.start(t); o.stop(t + 2.3); lfo.start(t); lfo.stop(t + 2.3);
     osc("sine", f * 4, t, 0.35, vol * 0.12, 0.002, 0.3);
   }
@@ -252,11 +254,11 @@
     for (i = 0; i < len; i++) { j = i % N; d[i] = line[j]; line[j] = 0.997 * 0.5 * (line[j] + line[(j + 1) % N]); }
     ksCache[midi] = buf; return buf;
   }
-  function pluck(midi, t, vol) {
+  function pluck(midi, t, vol, dec) {
     var s = ctx.createBufferSource(), g = ctx.createGain(), f = ctx.createBiquadFilter();
     s.buffer = pluckBuf(midi); f.type = "lowpass"; f.frequency.value = 2600;
-    g.gain.setValueAtTime(vol * 2, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.1);
-    s.connect(f); f.connect(g); route(g, calmIn, 0.4); s.start(t); s.stop(t + s.buffer.duration);
+    g.gain.setValueAtTime(vol * 2, t); g.gain.exponentialRampToValueAtTime(0.0001, t + (dec || 1.1));
+    s.connect(f); f.connect(g); route(g, BUS, 0.4); s.start(t); s.stop(t + s.buffer.duration);
   }
   function whistle(midi, t, dur, vol) { // sifflement : sinus avec vibrato, un souffle léger
     var f = midiToHz(midi), o = ctx.createOscillator(), o2 = ctx.createOscillator(), g = ctx.createGain(), g2 = ctx.createGain(), lfo = ctx.createOscillator(), lg = ctx.createGain();
@@ -269,21 +271,93 @@
     });
     o.connect(g); o2.connect(g2); g2.connect(g);
     nz.buffer = noiseBuf; nf.type = "bandpass"; nf.frequency.value = f * 2; nf.Q.value = 2; nz.connect(nf); nf.connect(ng);
-    route(g, calmIn, 0.45); route(ng, calmIn, 0.45);
+    route(g, BUS, 0.45); route(ng, BUS, 0.45);
     o.start(t); o2.start(t); lfo.start(t); nz.start(t, rnd() * 0.5);
     o.stop(end); o2.stop(end); lfo.stop(end); nz.stop(end);
   }
-  function softPad(notes, t, dur, vol, lp) { // nappe : triangles légèrement désaccordés, très filtrés
+  function softPad(notes, t, dur, vol, lp, type) { // nappe : triangles légèrement désaccordés, très filtrés
     notes.forEach(function (m) {
       (lite ? [0] : [-6, 6]).forEach(function (dt) {
         var o = ctx.createOscillator(), g = ctx.createGain(), fl = ctx.createBiquadFilter();
-        o.type = "triangle"; o.frequency.value = midiToHz(m); o.detune.value = dt;
+        o.type = type || "triangle"; o.frequency.value = midiToHz(m); o.detune.value = dt;
         g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol * (lite ? 1.6 : 1), t + dur * 0.4); g.gain.linearRampToValueAtTime(0.0001, t + dur * 1.05);
         fl.type = "lowpass"; fl.frequency.value = lp;
-        o.connect(g); g.connect(fl); route(fl, calmIn, 0.5);
+        o.connect(g); g.connect(fl); route(fl, BUS, 0.5);
         o.start(t); o.stop(t + dur * 1.1);
       });
     });
+  }
+
+  /* ---------- combat : énergique mais rond, un air par monde (choisis à l'écoute par le PO) ---------- */
+  var CHM = { i: [0, 3, 7], iv: [5, 8, 12], V: [7, 11, 14], VI: [8, 12, 15], VII: [10, 14, 17] };
+  var PB = ["i", "VI", "iv", "V", "i", "VI", "VII", "V"];
+  var MOTIF = [ // motif héroïque : [huitième, hauteur au-dessus de la tonique, durée en huitièmes], un peu différent à chaque mesure
+    [[0, 7, 3], [3, 5, 1], [4, 7, 4]], [[0, 8, 3], [3, 10, 1], [4, 12, 4]], [[0, 12, 3], [3, 10, 1], [4, 8, 4]], [[0, 7, 2], [2, 11, 2], [4, 14, 4]],
+    [[0, 12, 3], [3, 10, 1], [4, 12, 4]], [[0, 15, 3], [3, 12, 1], [4, 8, 4]], [[0, 10, 2], [2, 14, 2], [4, 17, 4]], [[0, 14, 3], [3, 11, 1], [4, 7, 4]]
+  ];
+  var BATTLE = { 0: { root: 62 }, 1: { root: 55 }, 2: { root: 52 } };
+  function drum(t, vol, f0, f1, dec) { // tambour rond : sinus qui descend + petit souffle grave
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dec * 0.5);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dec);
+    o.connect(g); route(g, BUS, 0.15); o.start(t); o.stop(t + dec + 0.05);
+    noiseHit(t, 0.04, vol * 0.25, "lowpass", 600, 0.1);
+  }
+  function noiseHit(t, dur, vol, type, hz, wet) {
+    var s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    s.buffer = noiseBuf; f.type = type; f.frequency.value = hz;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(f); f.connect(g); route(g, BUS, wet); s.start(t, rnd() * 0.5); s.stop(t + dur + 0.02);
+  }
+  function snare(t, vol) { noiseHit(t, 0.14, vol, "bandpass", 1800, 0.2); osc("sine", 190, t, 0.1, vol * 0.5, 0.002, 0.1); }
+  function horn(midi, t, dur, vol) { // cor : deux scies très filtrées dont le filtre s'ouvre, attaque lente
+    var f = midiToHz(midi);
+    (lite ? [0] : [-7, 7]).forEach(function (dt) {
+      var o = ctx.createOscillator(), g = ctx.createGain(), fl = ctx.createBiquadFilter();
+      o.type = "sawtooth"; o.frequency.value = f; o.detune.value = dt;
+      fl.type = "lowpass"; fl.frequency.setValueAtTime(500, t); fl.frequency.linearRampToValueAtTime(1500, t + Math.min(0.25, dur * 0.5));
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.07); g.gain.setValueAtTime(vol, t + dur - 0.1); g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.12);
+      o.connect(fl); fl.connect(g); route(g, BUS, 0.35); o.start(t); o.stop(t + dur + 0.2);
+    });
+  }
+  function softSynth(midi, t, dur, vol, lp) {
+    var f = midiToHz(midi);
+    osc("triangle", f, t, dur, vol, 0.012, 0.35, lp);
+    osc("sine", f * 2, t, dur * 0.6, vol * 0.35, 0.012, 0.3);
+  }
+  function motifAt(b, i, t, e, R, shift, vol, synth) {
+    MOTIF[b].forEach(function (n) {
+      if (n[0] !== i) return;
+      if (synth) softSynth(R + n[1] + shift, t, n[2] * e, vol, 1500); else horn(R + n[1] + shift, t, n[2] * e, vol);
+    });
+  }
+
+  /** Un huitième de la musique de combat du monde : pizzicato héroïque (0), chant du temple (1), pouls spatial (2). */
+  function battleEighth(world, b, i, t, e) {
+    var c = CHM[PB[b]], R = BATTLE[world].root, k, j;
+    if (world === 0) { // cordes pincées étouffées, grosse caisse ronde, caisse claire feutrée, motif aux cors
+      var seq = [0, 0, 1, 0, 2, 0, 1, 2];
+      pluck(R - 12 + c[seq[i]] + (i % 4 === 2 ? 12 : 0), t, 0.1, 0.35);
+      if (i === 0 || i === 4) drum(t, i === 0 ? 0.22 : 0.2, 110, 50, 0.25); else if (i === 3) drum(t, 0.1, 110, 55, 0.2);
+      if (i === 2) snare(t, 0.07); else if (i === 6) snare(t, 0.08);
+      if (i === 0) softPad([R - 12 + c[0], R - 12 + c[2]], t, e * 8, 0.012, 700, "sawtooth");
+      motifAt(b, i, t, e, R, -12, 0.04, false);
+    } else if (world === 1) { // voix tenues, taïkos, cordes pincées, cloches
+      var seq1 = [0, 1, 2, 1, 0, 1, 2, 1];
+      if (i === 0) softPad([R + c[0], R + c[1], R + c[2], R + c[0] + 12], t, e * 8, 0.016, 800, "sawtooth");
+      if (i === 0) drum(t, 0.26, 90, 44, 0.45); else if (i === 4) drum(t, 0.24, 90, 44, 0.4); else if (i === 2 || i === 6) drum(t, 0.1, 120, 70, 0.18);
+      pluck(R - 12 + c[seq1[i]], t, 0.07, 0.5);
+      if (i === 0) vibe(R + 24 + c[0], t, 0.04); else if (i === 4) vibe(R + 24 + c[2], t, 0.04);
+      motifAt(b, i, t, e, R, -12, 0.04, false);
+    } else { // basse de synthé qui pulse, grosse caisse ronde, arpège filtré, motif au synthé
+      var tones = [c[0], c[1], c[2], c[0] + 12], seq2 = [0, 1, 2, 3, 2, 1, 2, 3, 0, 1, 2, 3, 2, 1, 3, 2];
+      osc("triangle", midiToHz(R - 12 + c[0]), t, e * 0.9, i % 2 ? 0.08 : 0.12, 0.008, 0, 520);
+      if (i % 2 === 0) drum(t, 0.16, 100, 48, 0.2);
+      for (k = 0; k < (lite ? 1 : 2); k++) { j = i * 2 + k; softSynth(R + 12 + tones[seq2[j]], t + k * e / 2, e * 0.9, 0.03, 1400); }
+      if (i % 2 === 1) brush(t, e, 0.008, 5000, 0.1);
+      if (i === 0) softPad([R + c[0], R + c[1], R + c[2]], t, e * 8, 0.014, 800);
+      motifAt(b, i, t, e, R, 0, 0.05, true);
+    }
   }
 
   /** Un huitième de la musique calme du monde : `b` = mesure (0..7), `i` = huitième (0..7), `e` = durée d'un huitième. Le hasard (ornements) change à chaque tour. */
@@ -395,11 +469,6 @@
       out.connect(bus);
       o.start(t); o.stop(t + dur + 0.3);
     }
-    if (battle || fight > 0.02) {
-      chordFor(true, 0, bar).forEach(function (semi, i) {
-        (lite ? [0] : [-6, 6]).forEach(function (d) { note(ROOT + semi + (i === 0 ? -12 : 0), "sawtooth", padFight, lite ? 0.06 : 0.04, 1100, d); });
-      });
-    }
     if (!battle && tension > 0.05) { // bourdon grave : ré + la
       note(ROOT - 12, "sawtooth", padAlert, 0.05, 240, 0);
       note(ROOT - 5, "sawtooth", padAlert, 0.035, 240, 3);
@@ -417,35 +486,11 @@
     if (tension > 0.4 && (pos === 2 || pos === 10)) tone("triangle", bassHz * 2, t, stepDur * 1.2, 0.07 * tension, master, 0.004, 800);
   }
 
-  /** Musique de combat : épique et intense. */
-  function battleStep(s, t, stepDur, bar, pos) {
-    var chord = chordFor(true, 0, bar), bassHz = midiToHz(ROOT + chord[0] - 12);
-
-    // mélodie héroïque (scie + carré, écho)
-    var m = melodyAt(true, bar, pos);
-    if (m) {
-      var hz = midiToHz(ROOT + 12 + m[1]), dur = stepDur * m[2] * 1.05;
-      tone("sawtooth", hz, t, dur, 0.07, arpBus, 0.01, 3400);
-      if (!lite) tone("square", hz * 0.5, t, dur, 0.035, arpBus, 0.01, 1800);
-    }
-    // basse en croches, octave sur le contretemps
-    if (pos % 2 === 0) tone("sawtooth", bassHz * (pos % 8 === 6 ? 2 : 1), t, stepDur * 1.7, 0.17, master, 0.004, 520);
-    // cuivres : accords martelés sur le 1 et le « et » du 2
-    if (pos === 0 || pos === 6 || (pos === 10 && bar % 2 === 1)) {
-      chord.slice(0, 3).forEach(function (semi) { tone("sawtooth", midiToHz(ROOT + semi), t, stepDur * 3.2, 0.05, master, 0.012, 1900); });
-    }
-    // batterie
-    if (pos % 4 === 0 || pos === 10) kick(t, 0.75, true);
-    if (pos === 4 || pos === 12) { noise(t, 0.16, 0.16, "bandpass", 1900, drumBus); tone("triangle", 190, t, 0.1, 0.08, drumBus, 0.002); }
-    if (bar === 3 && pos >= 12) noise(t, 0.08, 0.12, "bandpass", 2200, drumBus); // roulement de fin de boucle
-    if (pos % 2 === 0) noise(t, 0.035, pos % 4 === 2 ? 0.07 : 0.045, "highpass", 7500, drumBus);
-    if (pos === 0 && bar === 0) noise(t, 0.9, 0.09, "highpass", 5500, drumBus); // cymbale au début de chaque boucle
-  }
-
   function scheduleStep(s, t, stepDur) {
     var bar = Math.floor(s / 16) % 4, pos = s % 16;
     if (pos === 0) pad(t, stepDur * 16, bar);
-    if (battle) battleStep(s, t, stepDur, bar, pos); else calmStep(s, t, stepDur, bar, pos);
+    if (battle) { BUS = battleIn; if (pos % 2 === 0) battleEighth(WORLD, Math.floor(s / 16) % 8, pos >> 1, t, stepDur * 2); }
+    else { BUS = calmIn; calmStep(s, t, stepDur, bar, pos); }
   }
 
   function tick() {
@@ -498,7 +543,7 @@
       if (w === WORLD) return;
       WORLD = w;
       var pr = PROFILES[w];
-      ROOT = pr ? pr.root : 50; BASE_BPM = pr ? pr.bpm : 100; FIGHT_ADD = pr ? pr.fightAdd : 48; TIMBRE = pr ? pr.timbre : "bell"; STYLE = pr ? pr.style : "uke";
+      ROOT = pr ? pr.root : 50; BASE_BPM = pr ? pr.bpm : 100; FIGHT_ADD = pr ? pr.fightAdd : 40; TIMBRE = pr ? pr.timbre : "bell"; STYLE = pr ? pr.style : "uke";
     },
     world: function () { return WORLD; },
     /** Tension 0..1 : 0 = calme joyeux ; plus haut = alerte (changement léger). Le combat passe par setBattle. */
@@ -511,9 +556,7 @@
       if (!running || !ctx) return;
       var t = ctx.currentTime;
       if (on) { // choc d'entrée : cymbale + grosse caisse
-        noise(t, 1.2, 0.2, "highpass", 4500, drumBus);
-        kick(t, 0.9, true);
-        tone("sawtooth", midiToHz(ROOT - 12), t, 0.8, 0.2, master, 0.005, 500);
+        BUS = battleIn; drum(t, 0.34, 90, 40, 0.6); brush(t, 1, 0.04, 5000, 0.3); BUS = calmIn;
       } else {
         tone("triangle", midiToHz(ROOT + 24), t, 1, 0.08, arpBus, 0.01);
       }
