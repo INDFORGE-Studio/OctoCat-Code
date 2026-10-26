@@ -353,9 +353,9 @@
       emit(fell ? "fall" : "die", p.x, p.y);
       // une chute coûte un cœur et ramène au dernier drapeau ; à 0 cœur (chute ou coups), tout recommence au début du niveau
       if (fell && !sim.relax) p.hp -= 1;
-      if (!fell || p.hp <= 0) {
-        if (!fell || p.hp <= 0) { restartLevel(); return; }
-      }
+      if (sim.vertical && p.hp <= 0) p.hp = CFG.hpMax; // une tour : à 0 cœur on repart du dernier drapeau (sinon les drapeaux ne serviraient à rien), cœurs pleins
+      else if (!fell || p.hp <= 0) { restartLevel(); return; }
+      sim.dog.x = sim.cp.x - 46; sim.dog.y = sim.cp.y; sim.dog.state = "follow"; sim.dog.vx = 0;
       p.x = sim.cp.x; p.y = sim.cp.y; p.vx = 0; p.vy = 0; p.inv = 1.5; p.swing = 0;
     }
     function hurtPlayer(fromX, amount) {

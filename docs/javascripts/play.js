@@ -266,6 +266,9 @@
       bitObjs.forEach(function (b) { gone(b.o); }); bitObjs.length = 0;
       candleObjs.forEach(function (c) { gone(c.o); }); candleObjs.length = 0;
       cpObjs.forEach(function (c) { gone(c.pole); gone(c.flag); }); cpObjs.length = 0;
+      // (la simulation reconstruit ses ressorts et ses plateformes qui s'effritent : les anciens objets suivraient des états périmés, et les plateformes ne disparaîtraient plus)
+      padObjs.forEach(function (q) { gone(q.o); }); padObjs.length = 0;
+      crumbObjs.forEach(function (q) { gone(q.o); }); crumbObjs.length = 0;
       k.destroyAll("octo-item");
       crateObjs.forEach(function (o) { gone(o); }); crateObjs.clear();
       if (!brawl) buildPlatformDynamics();
