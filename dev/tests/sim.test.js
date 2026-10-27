@@ -51,7 +51,8 @@ test("double saut : seulement avec la capacité", () => {
     }
     return y0 - min;
   };
-  assert.ok(apex({ doubleJump: true }) > apex({}) + 40);
+  assert.ok(apex({ doubleJump: true }) > apex({ doubleJump: false }) + 40);
+  assert.ok(apex({}) > apex({ doubleJump: false }) + 40, "permis par défaut dans tous les niveaux");
 });
 
 test("saut : en gardant la touche appuyée on saute de nouveau à chaque retour au sol (pas besoin de relâcher)", () => {
@@ -171,7 +172,7 @@ test("niveaux : chacun des 10 parcours est faisable (un bot le termine)", () => 
 test("niveaux : le double saut est indispensable là où il est annoncé", () => {
   for (const id of [4, 8]) {
     const run_ = engine.levels[id].run;
-    const sim = S.createPlatform(S.buildCourse(run_.course), { shuriken: true }); // sans double saut
+    const sim = S.createPlatform(S.buildCourse(run_.course), { shuriken: true, doubleJump: false }); // sans double saut
     const r = S.simulate(sim, S.platformBot, 90);
     assert.equal(r.finished, false, `niveau ${id} : faisable sans double saut, la capacité ne sert à rien`);
   }

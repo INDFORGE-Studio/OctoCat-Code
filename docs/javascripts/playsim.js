@@ -245,13 +245,14 @@
   }
 
   function createPlatform(rows, abilities) {
-    var ab = abilities || {}, caveInfo = rows.cave || null, GS = ab.gravity || 1; // GS : gravité (0,55 = lunaire)
+    // Le double saut est toujours permis (plus aucun niveau ne peut l'oublier) ; seul `doubleJump: false` le retire (tests).
+    var ab = Object.assign({ doubleJump: true }, abilities || {}), caveInfo = rows.cave || null, GS = ab.gravity || 1; // GS : gravité (0,55 = lunaire)
     var tower = rows.tower || null, route = rows.route || null;
     var secretRoom = addSecretRoom(rows);
     if (secretRoom) rows = secretRoom.rows;
     var cols = rows[0].length, R = rows.length;
     var sim = {
-      mode: "platform", w: cols * TILE, h: R * TILE, abilities: ab, time: 0, finished: false,
+      mode: "platform", w: cols * TILE, h: R * TILE, abilities: ab, botDouble: !!(abilities && abilities.doubleJump), time: 0, finished: false,
       events: [], stats: { bits: 0, bitsTotal: 0, deaths: 0, kills: 0 },
       enemies: [], bits: [], candles: [], items: [], spikes: [], checkpoints: [], shurikens: [], terminal: null, pads: [], crumbles: [],
       player: null, cp: null, solid: [], dog: null, secret: secretRoom ? secretRoom.info : null, cave: caveInfo,
@@ -992,7 +993,7 @@
       if (needJump && p.onGround) { inp.jump = !sim._lastJump; jumpHold = 0.34 / (sim.gravity || 1); } // (on relâche d'abord : sans nouvel appui, atterrir juste devant une marche ne ferait rien)
       else if (jumpHold > 0) { inp.jump = true; jumpHold -= dt; }
       // double saut : on le déclenche près du sommet si un mur ou un vide bloque encore
-      if (!p.onGround && ab.doubleJump && p.jumps < 2 && p.vy > -60 && (wall || !solidAt(p.x + dir * 30, p.y + 20)) ) { inp.jump = !sim._lastJump; }
+      if (!p.onGround && sim.botDouble && p.jumps < 2 && p.vy > -60 && (wall || !solidAt(p.x + dir * 30, p.y + 20)) ) { inp.jump = !sim._lastJump; }
       sim._lastJump = inp.jump;
       return inp;
     };

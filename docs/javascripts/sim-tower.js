@@ -159,7 +159,7 @@
       if (wantJump) { inp.jump = !sim._lastJump; jumpHold = 0.36; }
       else if (jumpHold > 0 && !p.onGround) { inp.jump = true; jumpHold -= dt; }
       // double saut : en retombant près du niveau de la cible, tant qu'on n'est pas au-dessus d'elle
-      if (!p.onGround && ab.doubleJump && p.jumps < 2 && p.vy > 0 && near > 4 && p.y > tyy - 48) inp.jump = !sim._lastJump; // (en retombant juste sous le niveau de la plateforme visée, pas encore au-dessus d'elle)
+      if (!p.onGround && sim.botDouble && p.jumps < 2 && p.vy > 0 && near > 4 && p.y > tyy - 48) inp.jump = !sim._lastJump; // (en retombant juste sous le niveau de la plateforme visée, pas encore au-dessus d'elle)
       sim._lastJump = inp.jump;
       return inp;
     };
