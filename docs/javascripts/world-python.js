@@ -4,7 +4,7 @@
  * du pied des racines (niveau 1) jusqu'au sommet, sous les étoiles (niveau 10).
  *   - les trajets « plateformes » sont des tours en zigzag (sim-tower.js) : on grimpe de plateforme en plateforme, le ciel s'éclaircit puis s'étoile ;
  *   - le Double Dragon est remplacé par LE SERPENT D'OCTO (sim-snake.js) : un jeu d'arcade où les tentacules d'OctoCat s'allongent à chaque pièce.
- * Mêmes capacités que dans GitHubia (fouet, shuriken, double saut) + le double saut aux niveaux où le sol s'effrite (5 et 7), sinon injouable ; mêmes pièces (15 / 5 / 12 / 10 / 6 / 8 / 4 + 28 par salle secrète).
+ * Mêmes capacités que dans GitHubia (fouet, shuriken, double saut) + le double saut aux niveaux où le sol s'effrite (5, 7 et 9), sinon injouable ; mêmes pièces (15 / 5 / 12 / 10 / 6 / 8 / 4 + 28 par salle secrète).
  */
 (function () {
   "use strict";
@@ -66,7 +66,7 @@
       P(4, { gap: 2, cp: true, fly: [2], gapBit: true }), P(4, { crumble: true }), P(4, { gap: 2, en: [1, 2], bits: [0] }), P(4, { crumble: true, gapBit: true }), P(4, { gap: 2, cp: true, tough: [2], fly: [1] }),
       P(4, { crumble: true }), P(4, { gap: 2, dash: [1], gapBit: true }), P(4, { fly: [1] }), P(4, { gap: 2, hop: [2], cp: true }), P(4, { crumble: true, bits: [1] }), P(7, { end: 4 })
     ] } },
-    9: { theme: "py9", abilities: { whip: true, shuriken: true }, tower: { platforms: [
+    9: { theme: "py9", abilities: { whip: true, shuriken: true, doubleJump: true }, tower: { platforms: [
       P(0), P(5, { candles: [1, 3] }), P(4, { fly: [1], hop: [2] }), P(4, { en: [1, 2], cp: true, bits: [3] }), P(4, { crumble: true, dash: [1] }), P(4, { tough: [1], candles: [3] }), P(5, { fly: [1], secret: true }),
       P(4, { cp: true, dash: [1, 3] }), P(4, { crumble: true, hop: [2] }), P(4, { fly: [1], en: [3] }), P(4, { candles: [1], gapBit: true }), P(4, { cp: true, tough: [1], hop: [3] }), P(4, { crumble: true, fly: [1] }),
       P(4, { dash: [1, 2], candles: [3] }), P(4, { hop: [1], bits: [2] }), P(4, { cp: true, en: [1], fly: [3] }), P(4, { crumble: true }), P(7, { end: 4 })
