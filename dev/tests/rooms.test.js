@@ -1,4 +1,5 @@
 // Les 21 salles secrètes (7 niveaux × 3 mondes) : toutes différentes, 28 pièces chacune, toutes atteignables, départ et sortie sur le sol.
+// Ici : une analyse rapide en cases (garde-fou). La preuve avec la vraie physique du jeu est `node dev/rooms-reach.mjs` (2-3 min).
 import test from "node:test";
 import assert from "node:assert/strict";
 import { loadGame } from "./loader.mjs";
@@ -9,8 +10,9 @@ const T = 32, DT = 1 / 60;
 const PLATFORM_LEVELS = [1, 3, 4, 5, 7, 8, 9];
 const KEYS = [0, 1, 2].flatMap((w) => PLATFORM_LEVELS.map((id) => O.key(w, id)));
 
-/** Analyse d'une salle : les « places » où l'on peut se tenir debout et ce qu'on peut atteindre d'un saut (portées prudentes ; la Lune, monde 2, saute deux fois plus haut). */
-function analyse(rows, lunar) {
+/** Analyse d'une salle : les « places » où l'on peut se tenir debout (le joueur fait 34 px : 2 cases libres) et ce qu'on peut atteindre d'un saut
+ *  (portées prudentes ; la Lune, monde 2, saute deux fois plus haut). `single` : sans double saut (niveaux 1 et 3 : on ne le connaît pas encore). */
+function analyse(rows, lunar, single) {
   const R = rows.length, Wd = rows[0].length;
   const at = (c, y) => (y >= R ? " " : y < 0 ? "#" : rows[R - 1 - y].charAt(c));
   const solid = (c, y) => at(c, y) === "#" || at(c, y) === "~";
@@ -20,23 +22,32 @@ function analyse(rows, lunar) {
   const can = (a, b) => {
     const dx = Math.abs(b.c - a.c), dy = b.y - a.y;
     if (a.pad) return dy <= 7 && dx <= 5;
-    if (lunar) return dy <= 4 ? dx <= 6 : dy <= 6 ? dx <= 4 : dy <= 8 && dx <= 2;
+    if (lunar) return dy <= 4 ? dx <= 6 : !single && (dy <= 6 ? dx <= 4 : dy <= 8 && dx <= 2);
     if (dy < 0) return dx <= Math.min(6, 3 - dy);
+    if (single) return dy <= 2 && dx <= 3;
     return dy <= 2 ? dx <= 3 : dy <= 3 ? dx <= 2 : dy <= 4 && dx <= 1;
   };
   const start = spots.find((s) => s.c === 2 && s.y === 2);
   const seen = new Set([start]), queue = [start];
   while (queue.length) { const a = queue.shift(); for (const b of spots) if (!seen.has(b) && can(a, b)) { seen.add(b); queue.push(b); } }
   const reach = [...seen];
-  const takes = (coin) => reach.some((s) => {
-    const dx = Math.abs(coin.c - s.c), dy = coin.y - s.y;
-    if (s.pad) return dy <= 7 && dx <= 4 && dy >= -3;
-    const up = lunar ? 8 : 4;
-    return dy >= -3 && ((dx <= 1 && dy <= up) || (dx <= 2 && dy <= up - 1));
-  });
+  const takes = (coin) => {
+    if (![coin.y - 1, coin.y].some((fy) => fy >= 0 && free(coin.c, fy) && free(coin.c, fy + 1))) return false; // il faut de la place pour le corps (2 cases) : pas de pièce au fond d'un couloir d'1 case
+    return reach.some((s) => {
+      const dx = Math.abs(coin.c - s.c), dy = coin.y - s.y;
+      if (s.pad) return dy <= 7 && dx <= 4 && dy >= -3;
+      const up = single ? (lunar ? 5 : 3) : (lunar ? 8 : 4);
+      if (single) return dy >= -3 && ((dx <= 2 && dy <= up) || (dx <= 3 && dy <= up - 2)); // d'un seul saut avec de l'élan (mesuré avec le vrai simulateur : dev/rooms-reach.mjs)
+      return dy >= -3 && ((dx <= 1 && dy <= up) || (dx <= 2 && dy <= up - 1));
+    });
+  };
   const coins = [];
   for (let c = 0; c < Wd; c++) for (let y = 0; y < R; y++) if (at(c, y) === "o") coins.push({ c, y });
-  return { R, Wd, coins, reach, takes, exit: reach.some((s) => s.c === Wd - 2 && s.y === 2) };
+  const exitSpot = reach.find((s) => s.c === Wd - 2 && s.y === 2);
+  // pièges : des places atteignables d'où l'on ne peut plus jamais rejoindre le tuyau (parcours à l'envers depuis la sortie)
+  const ok = new Set(exitSpot ? [exitSpot] : []), todo = [...ok];
+  while (todo.length) { const b = todo.pop(); for (const a of reach) if (!ok.has(a) && can(a, b)) { ok.add(a); todo.push(a); } }
+  return { R, Wd, coins, reach, takes, exit: !!exitSpot, traps: reach.filter((s) => !ok.has(s)).map((s) => s.c + "," + s.y) };
 }
 
 test("salles secrètes : 21 salles, une par niveau à trous de chaque monde", () => {
@@ -79,6 +90,20 @@ test("salles secrètes : toutes les pièces et la sortie sont atteignables à pi
     if (!a.exit) bad.push(`salle ${k} : sortie hors de portée`);
     const lost = a.coins.filter((c) => !a.takes(c));
     if (lost.length) bad.push(`salle ${k} ${d.name} : pièces hors de portée en (colonne,hauteur) ${lost.map((c) => c.c + "," + c.y).join(" ")}`);
+  }
+  assert.deepEqual(bad, []);
+});
+
+test("salles secrètes : d'un seul saut on ressort toujours (aucun piège), et aux niveaux 1 et 3 on prend toutes les pièces", () => {
+  const bad = [];
+  for (const k of KEYS) {
+    const d = O.build(k, 10), a = analyse(d.rows, k >= 200, true);
+    if (!a.exit) bad.push(`salle ${k} ${d.name} : sortie hors de portée sans double saut`);
+    if (a.traps.length) bad.push(`salle ${k} ${d.name} : on reste coincé sans double saut en (colonne,hauteur) ${a.traps.slice(0, 5).join(" ")}`);
+    if (k % 100 === 1 || k % 100 === 3) {
+      const lost = a.coins.filter((c) => !a.takes(c));
+      if (lost.length) bad.push(`salle ${k} ${d.name} : pièces qui demandent le double saut ${lost.map((c) => c.c + "," + c.y).join(" ")}`);
+    }
   }
   assert.deepEqual(bad, []);
 });
