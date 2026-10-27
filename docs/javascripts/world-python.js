@@ -4,7 +4,7 @@
  * du pied des racines (niveau 1) jusqu'au sommet, sous les étoiles (niveau 10).
  *   - les trajets « plateformes » sont des tours en zigzag (sim-tower.js) : on grimpe de plateforme en plateforme, le ciel s'éclaircit puis s'étoile ;
  *   - le Double Dragon est remplacé par LE SERPENT D'OCTO (sim-snake.js) : un jeu d'arcade où les tentacules d'OctoCat s'allongent à chaque pièce.
- * Mêmes capacités que dans GitHubia (fouet, shuriken, double saut), mêmes pièces (15 / 5 / 12 / 10 / 6 / 8 / 4 + 28 par salle secrète).
+ * Mêmes capacités que dans GitHubia (fouet, shuriken, double saut) + le double saut aux niveaux où le sol s'effrite (5 et 7), sinon injouable ; mêmes pièces (15 / 5 / 12 / 10 / 6 / 8 / 4 + 28 par salle secrète).
  */
 (function () {
   "use strict";
@@ -53,11 +53,11 @@
       P(4, { gap: 2, cp: true, fly: [2], bits: [3] }), P(4, { hop: [2] }), P(4, { gap: 2, gapBit: true }), P(5, { en: [1, 3], cp: true }), P(4, { gap: 2, fly: [1], gapBit: true }), P(4, { dash: [2] }),
       P(4, { gap: 2, bits: [1] }), P(4, { cp: true }), P(4, { gap: 2, gapBit: true }), P(7, { end: 4 })
     ] } },
-    5: { theme: "py5", abilities: {}, tower: { platforms: [
+    5: { theme: "py5", abilities: { doubleJump: true }, tower: { platforms: [
       P(0), P(5, { bits: [2] }), P(4, { crumble: true, bits: [1] }), P(4, { crumble: true, gapBit: true }), P(4, { cp: true, en: [1] }), P(4, { crumble: true, gapBit: true, secret: true }), P(4, { crumble: true, bits: [1] }),
       P(5, { cp: true, hop: [2] }), P(4, { crumble: true, gapBit: true }), P(4, { crumble: true, bits: [2] }), P(4, { en: [1], cp: true }), P(4, { crumble: true, gapBit: true }), P(4, { crumble: true, bits: [1] }), P(7, { end: 4 })
     ] } },
-    7: { theme: "py7", abilities: { whip: true }, tower: { platforms: [
+    7: { theme: "py7", abilities: { whip: true, doubleJump: true }, tower: { platforms: [
       P(0), P(5, { candles: [2] }), P(4, { candles: [1], bits: [3] }), P(4, { en: [2], cp: true }), P(4, { crumble: true, gapBit: true }), P(4, { dash: [2], candles: [1] }), P(5, { candles: [2], secret: true }),
       P(4, { cp: true, fly: [2] }), P(4, { crumble: true, bits: [1] }), P(4, { tough: [1], candles: [0] }), P(4, { en: [1], gapBit: true, bits: [3] }), P(4, { cp: true, dash: [2], bits: [1] }), P(4, { crumble: true, gapBit: true }), P(4, { fly: [1], candles: [3] }), P(4, { crumble: true, bits: [2] }), P(7, { end: 4 })
     ] } },

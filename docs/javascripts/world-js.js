@@ -62,7 +62,7 @@
       { t: "up", n: 3 }, { t: "flat", n: 5, bits: [1, 2, 3] }, { t: "gap", n: 5 },
       { t: "flat", n: 4, bits: [1], cp: 0 }, { t: "end", n: 9 }
     ] },
-    5: { theme: "sp5", abilities: { gravity: LOW }, course: [
+    5: { theme: "sp5", abilities: { gravity: LOW, doubleJump: true }, course: [
       { t: "flat", n: 9 }, { t: "flat", n: 5, hop: [2], bits: [3, 4] },
       { t: "float", at: 1, w: 3, h: 2, crumble: true, bits: false }, { t: "gap", n: 4 },
       { t: "flat", n: 4, bits: [1, 2] },
