@@ -5,7 +5,7 @@ import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 
 const JS = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../docs/javascripts");
-const ORDER = ["progress.js", "playsim.js", "sim-tower.js", "sim-space.js", "sim-snake.js", "puzzle.js", "langs.js", "engine.js", ...Array.from({ length: 10 }, (_, i) => `level${i + 1}.js`), "worlds.js", "world-python.js", "world-js.js"];
+const ORDER = ["progress.js", "secret-rooms.js", "playsim.js", "sim-tower.js", "sim-space.js", "sim-snake.js", "puzzle.js", "langs.js", "engine.js", ...Array.from({ length: 10 }, (_, i) => `level${i + 1}.js`), "worlds.js", "world-python.js", "world-js.js"];
 
 export function loadGame() {
   const ctx = {

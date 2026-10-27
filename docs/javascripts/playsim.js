@@ -179,6 +179,22 @@
    * ==================================================================== */
 
   /**
+   * La salle elle-même : celle de la clé du niveau (`rows.roomKey`, voir secret-rooms.js : 21 salles toutes différentes) ou, sans clé, la petite grotte d'origine.
+   * Renvoie { name, W, rows (du haut vers le bas), theme }. Le départ est à la colonne 2,5 et le tuyau de sortie à W - 1,5, toujours sur le sol de base.
+   */
+  function roomShape(rows, R) {
+    var O = window.OctoRooms, d = O && rows.roomKey != null && O.has(rows.roomKey) ? O.build(rows.roomKey, R) : null;
+    if (d) return d;
+    var W = 26, hs = [], room = [], out = [], i, r, put2 = function (ci, ri, ch) { if (ri >= 0 && ri < R) room[ri][ci] = ch; };
+    for (i = 0; i < W; i++) hs.push(i < 11 ? 2 : i < 15 ? 3 : i < 19 ? 4 : i < 23 ? 3 : 2); // sol, puis une petite colline à franchir
+    for (r = 0; r < R; r++) { room.push([]); for (i = 0; i < W; i++) room[r].push(R - r <= hs[i] ? "#" : " "); }
+    [3, 5, 7, 9].forEach(function (ci) { put2(ci, R - hs[ci] - 1, "o"); });
+    for (i = 11; i < 23; i++) { put2(i, R - hs[i] - 1, "o"); put2(i, R - hs[i] - 2, "o"); } // une rangée sur la colline, une en l'air (en sautant)
+    for (r = 0; r < R; r++) out.push(room[r].join(""));
+    return { name: null, W: W, rows: out, theme: null };
+  }
+
+  /**
    * Salle secrète : un des trous du parcours (jamais le dernier, sauf s'il n'y en a qu'un) mène, au lieu de coûter un cœur,
    * à une petite salle pleine de pièces, collée à droite de la grille derrière un mur (la caméra ne la montre pas depuis le niveau).
    * On en ressort par un tuyau, juste devant le dernier trou du niveau. Renvoie { rows, info } ou null si le parcours n'a aucun trou.
@@ -208,40 +224,30 @@
       for (r = 0; r < R; r++) if (rows[r].charAt(c) === "#") break;
       if (r < R && r > 0 && rows[r - 1].charAt(c) !== "^") out = { x: (c + 0.5) * TILE, y: r * TILE };
     }
-    var SEP = 3, W = 26, hs = [], room = [], put2 = function (ci, ri, ch) { if (ri >= 0 && ri < R) room[ri][ci] = ch; };
-    for (i = 0; i < W; i++) hs.push(i < 11 ? 2 : i < 15 ? 3 : i < 19 ? 4 : i < 23 ? 3 : 2); // sol, puis une petite colline à franchir
-    for (r = 0; r < R; r++) { room.push([]); for (i = 0; i < W; i++) room[r].push(R - r <= hs[i] ? "#" : " "); }
-    [3, 5, 7, 9].forEach(function (ci) { put2(ci, R - hs[ci] - 1, "o"); });
-    for (i = 11; i < 23; i++) { put2(i, R - hs[i] - 1, "o"); put2(i, R - hs[i] - 2, "o"); } // une rangée sur la colline, une en l'air (en sautant)
-    var r0 = cols + SEP;
+    var SEP = 3, shape = roomShape(rows, R), W = shape.W, r0 = cols + SEP;
     var info = {
       gapL: pick.c0 * TILE, gapR: (pick.c1 + 1) * TILE, gapTop: gapTop, levelW: cols * TILE, curtainR: (cols + SEP - 1) * TILE, roomL: r0 * TILE,
-      spawn: { x: (r0 + 2.5) * TILE, y: (R - 2) * TILE }, out: out || { x: TILE * 2.5, y: TILE * 7 }, inRoom: false, visits: 0
+      spawn: { x: (r0 + 2.5) * TILE, y: (R - 2) * TILE }, out: out || { x: TILE * 2.5, y: TILE * 7 }, inRoom: false, visits: 0, name: shape.name, theme: shape.theme, full: false
     };
-    var ex = (r0 + 24.5) * TILE;
+    var ex = (r0 + W - 1.5) * TILE;
     info.exit = { x: ex, y: (R - 2) * TILE, l: ex - 18, r: ex + 18, t: (R - 2) * TILE - 46, b: (R - 2) * TILE };
     var wall = ""; for (i = 0; i < SEP; i++) wall += "#";
-    return { rows: rows.map(function (row, ri) { return row + wall + room[ri].join(""); }), info: info };
+    return { rows: rows.map(function (row, ri) { return row + wall + shape.rows[ri]; }), info: info };
   }
 
   /** Salle secrète d'une tour : un trou de corniche qui ne fait pas tomber mais mène à la même grotte pleine de pièces (rows.warp = { l, r, t, b, out: { x, y } }, en pixels). */
   function addWarpRoom(rows) {
-    var R = rows.length, cols = rows[0].length, i, r, wp = rows.warp;
-    var SEP = 3, W = 26, hs = [], room = [], put2 = function (ci, ri, ch) { if (ri >= 0 && ri < R) room[ri][ci] = ch; };
-    for (i = 0; i < W; i++) hs.push(i < 11 ? 2 : i < 15 ? 3 : i < 19 ? 4 : i < 23 ? 3 : 2);
-    for (r = 0; r < R; r++) { room.push([]); for (i = 0; i < W; i++) room[r].push(R - r <= hs[i] ? "#" : " "); }
-    [3, 5, 7, 9].forEach(function (ci) { put2(ci, R - hs[ci] - 1, "o"); });
-    for (i = 11; i < 23; i++) { put2(i, R - hs[i] - 1, "o"); put2(i, R - hs[i] - 2, "o"); }
-    var r0 = cols + SEP;
+    var R = rows.length, cols = rows[0].length, i, wp = rows.warp;
+    var SEP = 3, shape = roomShape(rows, R), W = shape.W, r0 = cols + SEP;
     var info = {
       gapL: wp.l, gapR: wp.r, gapTop: wp.t, levelW: cols * TILE, curtainR: (cols + SEP - 1) * TILE, roomL: r0 * TILE,
-      spawn: { x: (r0 + 2.5) * TILE, y: (R - 2) * TILE }, out: wp.out, inRoom: false, visits: 0,
+      spawn: { x: (r0 + 2.5) * TILE, y: (R - 2) * TILE }, out: wp.out, inRoom: false, visits: 0, name: shape.name, theme: shape.theme, full: false,
       warp: { l: wp.l, r: wp.r, t: wp.t, b: wp.b }
     };
-    var ex = (r0 + 24.5) * TILE;
+    var ex = (r0 + W - 1.5) * TILE;
     info.exit = { x: ex, y: (R - 2) * TILE, l: ex - 18, r: ex + 18, t: (R - 2) * TILE - 46, b: (R - 2) * TILE };
     var wall = ""; for (i = 0; i < SEP; i++) wall += "#";
-    return { rows: rows.map(function (row, ri) { return row + wall + room[ri].join(""); }), info: info };
+    return { rows: rows.map(function (row, ri) { return row + wall + shape.rows[ri]; }), info: info };
   }
 
   function createPlatform(rows, abilities) {
@@ -583,7 +589,11 @@
       for (i = 0; i < sim.spikes.length; i++) if (p.star <= 0 && overlap(pr, sim.spikes[i])) { hurtPlayer(p.x, 1); p.vy = -260; }
       for (i = 0; i < sim.bits.length; i++) {
         var bt = sim.bits[i];
-        if (!bt.got && overlap(pr, { l: bt.x - 8, r: bt.x + 8, t: bt.y - 8, b: bt.y + 8 })) { bt.got = true; sim.stats.bits++; emit("bit", bt.x, bt.y); }
+        if (!bt.got && overlap(pr, { l: bt.x - 8, r: bt.x + 8, t: bt.y - 8, b: bt.y + 8 })) {
+          bt.got = true; sim.stats.bits++; emit("bit", bt.x, bt.y);
+          var rs = sim.secret; // salle secrète vidée de ses pièces : petit bravo (une seule fois)
+          if (rs && !rs.full && bt.x > rs.roomL && sim.bits.every(function (q) { return q.got || q.x <= rs.roomL; })) { rs.full = true; emit("secret-full", bt.x, bt.y); }
+        }
       }
       for (i = 0; i < sim.items.length; i++) {
         var it = sim.items[i];
@@ -595,7 +605,7 @@
         if (!ck.on && passed && !(sim.secret && sim.secret.inRoom)) { ck.on = true; sim.cp = { x: ck.x, y: ck.y }; emit("checkpoint", ck.x, ck.y); }
       }
       var sec = sim.secret;
-      if (sec && sec.warp && !sec.inRoom && overlap(pr, sec.warp)) { sec.inRoom = true; sec.visits++; teleport(sec.spawn); emit("secret", p.x, p.y); } // tour : le petit portail doré mène à la salle secrète
+      if (sec && sec.warp && !sec.inRoom && overlap(pr, sec.warp)) { sec.inRoom = true; sec.visits++; teleport(sec.spawn); emit("secret", p.x, p.y, sec.name); } // tour : le petit portail doré mène à la salle secrète
       if (sec && sec.inRoom && overlap(pr, sec.exit)) { // le tuyau : retour dans le niveau, devant le dernier trou
         sec.inRoom = false; teleport(sec.out); emit("secret-out", p.x, p.y);
       }
@@ -605,7 +615,7 @@
         else if ((sim.climbed || p.x > pocket) && p.onGround && p.y >= floorY - 1) { sim.climbed = false; teleport(sim.cp); emit("rescue", p.x, p.y); }
       }
       if (p.y > sim.h + 120) {
-        if (sec && !sec.inRoom && p.x > sec.gapL - 10 && p.x < sec.gapR + 10) { sec.inRoom = true; sec.visits++; teleport(sec.spawn); emit("secret", p.x, p.y); }
+        if (sec && !sec.inRoom && p.x > sec.gapL - 10 && p.x < sec.gapR + 10) { sec.inRoom = true; sec.visits++; teleport(sec.spawn); emit("secret", p.x, p.y, sec.name); }
         else respawn(true);
       }
       if (sim.terminal && !sim.finished && overlap(pr, sim.terminal)) { sim.finished = true; emit("finish", p.x, p.y); }
