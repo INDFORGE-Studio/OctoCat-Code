@@ -77,12 +77,12 @@
 
   room(1, "LE COEUR D'OR", 28, T("#2a0f1f", "#6a2144", "#ffc9a0", "#ff7aa8", "hearts", "#ff8fb4", "rise", ["#ff8fb4", "#ffd54a", "#ffffff"]), function (b) {
     b.ground(6, 7, 3).ground(8, 19, 4).ground(20, 21, 3);
-    b.art(11, 4, [".oo.oo.", "ooooooo", ".ooooo.", "..ooo..", "...o..."]);
+    b.art(11, 4, [".oo.oo.", "ooooooo", ".ooooo.", "..ooo.."]); // un cœur de 4 rangées : la rangée du haut est à 3 cases du sol, atteignable d'un seul saut (niveau 1 : le double saut n'est pas encore connu)
     b.row(8, 10, 4).row(18, 19, 4).coin(6, 3).coin(7, 3).coin(20, 3).coin(21, 3);
   });
 
   room(3, "LA FORET DE STALAGMITES", 32, T("#0b1b27", "#17424f", "#9fe9ff", "#39c5cf", "stalactites", "#1d5566", "fall", ["#9fe9ff", "#ffffff"]), function (b) {
-    [[5, 4], [9, 5], [13, 4], [17, 6], [21, 5], [25, 4], [28, 3]].forEach(function (s) {
+    [[5, 4], [9, 5], [13, 4], [17, 5], [21, 4], [25, 5], [28, 3]].forEach(function (s) { // jamais deux colonnes hautes (5) côte à côte : on ressort toujours d'une fosse d'un seul saut
       b.ground(s[0], s[0] + 1, s[1]);
       b.coin(s[0], s[1]).coin(s[0] + 1, s[1]).coin(s[0] + 0.5, s[1] + 2);
     });
@@ -111,7 +111,7 @@
   room(8, "LE LABYRINTHE EN ZIGZAG", 36, T("#0a1b14", "#17422f", "#8bf0a8", "#3fb950", "pillars", "#143a28", "drift", ["#7ee787", "#ffffff"]), function (b) {
     b.plat(4, 10, 4).plat(12, 18, 6).plat(20, 26, 4).plat(28, 32, 6);
     b.row(4, 10, 4, 2).row(12, 18, 6, 2).row(20, 26, 4, 2).row(28, 32, 6, 2);
-    b.row(5, 9, 2, 2).row(21, 25, 2, 2).col(11, 4, 6, 1).col(19, 4, 6, 1).col(27, 4, 6, 1);
+    b.col(11, 2, 6, 1).col(19, 2, 6, 1).col(27, 2, 6, 1).coin(33, 2); // pas de pièce sous les plateformes basses (1 case de haut : on n'y passe pas) : elles sont dans les puits entre les plateformes
   });
 
   room(9, "LA PYRAMIDE AU TRESOR", 34, T("#2d1e08", "#80531a", "#ffd88a", "#ffd54a", "pillars", "#5a3b0f", "fall", ["#ffd88a", "#ffffff"]), function (b) {
@@ -124,12 +124,12 @@
   /* ===== Monde 1 — La Tour du Serpent (Python) ===== */
 
   room(101, "LE SERPENT D'OR", 36, T("#06201a", "#0d4f3c", "#8affc7", "#3fe0a0", "bamboo", "#0f5a43", "drift", ["#c8ff7a", "#ffffff"]), function (b) {
-    b.curve(5, 28, function (c) { return 4 + 1.8 * Math.sin((c - 5) / 3.2); }, 1);
+    b.curve(5, 28, function (c) { return 3.4 + 1.6 * Math.sin((c - 5) / 3.2); }, 1);
     b.art(29, 3, ["ooo", "o.o", "ooo"]); // la tête
   });
 
   room(103, "LA CASCADE DE JADE", 34, T("#06232b", "#0c5a63", "#9ff0e8", "#2bd4c0", "waves", "#0f6e78", "fall", ["#bff7ff", "#ffffff"]), function (b) {
-    b.ground(7, 8, 3).ground(9, 10, 4).ground(11, 12, 5).ground(21, 22, 5).ground(23, 24, 4).ground(25, 26, 3);
+    b.ground(7, 8, 3).ground(9, 10, 4).ground(11, 12, 5).ground(13, 14, 3).ground(19, 20, 3).ground(21, 22, 5).ground(23, 24, 4).ground(25, 26, 3); // des marches des deux côtés de la vallée : on en ressort d'un seul saut
     [14, 16, 18].forEach(function (c) { b.col(c, 3, 6, 1); });
     b.row(9, 12, 5).row(21, 24, 5).row(11, 12, 7).row(21, 22, 7);
   });
@@ -147,13 +147,13 @@
   room(107, "L'ILE FLOTTANTE", 36, T("#102a4a", "#2f6fa8", "#c8f0ff", "#7ec8ff", "clouds", "#a8d4f0", "drift", ["#ffffff", "#ffe08a"]), function (b) {
     b.plat(4, 6, 4).plat(9, 11, 5).plat(14, 16, 6).plat(19, 21, 5).plat(24, 26, 4).plat(29, 31, 5);
     [[4, 6, 4], [9, 11, 5], [14, 16, 6], [19, 21, 5], [24, 26, 4], [29, 31, 5]].forEach(function (p) { b.row(p[0], p[1], p[2]); });
-    b.coin(7.5, 5).coin(12.5, 6).coin(17.5, 6).coin(22.5, 5).coin(27.5, 5).row(6, 30, 2, 3);
+    b.coin(7.5, 5).coin(12.5, 6).coin(17.5, 6).coin(22.5, 5).coin(27.5, 5).row(9, 21, 2, 3).row(27, 30, 2, 3).coin(7, 2).coin(23, 2);
   });
 
   room(108, "LE PONT DU TAMBOUR", 34, T("#1a0f06", "#573314", "#e9b97a", "#e3a14a", "lanterns", "#d98c3a", "fall", ["#ffd9a0", "#ffffff"]), function (b) {
     b.ground(4, 5, 3).ground(6, 7, 4).ground(26, 27, 4).ground(28, 29, 3);
-    b.plat(8, 25, 5, "~");
-    b.row(8, 25, 5).row(4, 7, 4).row(26, 29, 4).row(10, 22, 2, 4);
+    b.plat(8, 25, 4, "~"); // le tablier est à hauteur des marches : dessous, un simple creux (pas de tunnel fermé où l'on resterait coincé)
+    b.row(8, 25, 4).row(4, 7, 4).row(26, 29, 4).row(10, 22, 6, 4);
   });
 
   room(109, "LE CERCLE DE JADE", 34, T("#04201a", "#0a5a43", "#7affc9", "#3fe0a0", "rings", "#1c8a67", "rise", ["#7affc9", "#ffffff"]), function (b) {
@@ -165,7 +165,7 @@
   /* ===== Monde 2 — La Galaxie JavaScript (gravité lunaire : on monte deux fois plus haut) ===== */
 
   room(201, "LA GRANDE OURSE", 36, T("#03041a", "#161a52", "#c8d4ff", "#8fa4ff", "planet", "#4a5ad0", "twinkle", ["#ffffff", "#ffe08a", "#9fc4ff"]), function (b) {
-    var pts = [[5, 4], [9, 5], [13, 6], [17, 7], [21, 6], [26, 5], [31, 7]];
+    var pts = [[5, 4], [9, 5], [13, 6], [17, 6], [21, 6], [26, 5], [31, 6]];
     pts.forEach(function (p, i) {
       b.coin(p[0], p[1]).coin(p[0] + 1, p[1]).coin(p[0], p[1] + 1).coin(p[0] + 1, p[1] + 1);
       if (i) { var q = pts[i - 1]; b.coin((p[0] + q[0]) / 2 + 0.5, (p[1] + q[1]) / 2 + 0.5); }
