@@ -146,7 +146,9 @@
     var run = def.run, brawl = run.mode === "brawl", W = window.OctoWorlds, theme = (W && W.themes[run.theme]) || THEMES[run.theme] || THEMES.forest;
     var VW = k.width(), VH = k.height();
     var rgb = function (hex) { return k.Color.fromHex(hex); };
-    var sim = brawl ? Sim.createBrawl(run, VW) : Sim.createPlatform(run.tower ? Sim.buildTower(run.tower) : Sim.buildCourse(run.course), run.abilities || {});
+    var grid = brawl ? null : (run.tower ? Sim.buildTower(run.tower) : Sim.buildCourse(run.course));
+    if (grid && window.OctoRooms) grid.roomKey = window.OctoRooms.key(window.OctoProgress && window.OctoProgress.world ? window.OctoProgress.world() : 0, def.id); // chaque niveau de chaque monde a SA salle secrète (secret-rooms.js)
+    var sim = brawl ? Sim.createBrawl(run, VW) : Sim.createPlatform(grid, run.abilities || {});
     var vertical = !!sim.vertical; // une tour : on grimpe, le décor change avec l'altitude
     var ab = sim.abilities || {};
     var input = createInput(brawl);
@@ -205,7 +207,7 @@
     var cave = null, curtain = null, sparkT = 0, sparkGlow = null;
     if (!brawl && sim.secret) { // salle secrète : fond de grotte + rideau qui cache le niveau (seulement quand on y est), tuyau de sortie
       var scr = sim.secret, ex = scr.exit;
-      cave = k.add([k.rect(VW + 200, VH + 200), k.pos(-100, -100), k.color(rgb("#150f2a")), k.opacity(0), k.fixed(), k.z(4.6)]);
+      cave = k.add([k.rect(VW + 200, VH + 200), k.pos(-100, -100), k.color(rgb(scr.theme ? scr.theme.bg[0] : "#150f2a")), k.opacity(0), k.fixed(), k.z(4.6)]);
       curtain = k.add([k.rect(scr.curtainR + 400, sim.h + 600), k.pos(-400, -300), k.color(rgb("#150f2a")), k.opacity(0), k.z(20)]);
       k.add([k.rect(26, 34), k.pos(ex.x - 13, ex.y - 34), k.color(rgb("#2ea043")), k.z(5.8)]);
       k.add([k.rect(36, 10), k.pos(ex.x - 18, ex.y - 44), k.color(rgb("#3fb950")), k.z(5.9)]);
@@ -214,6 +216,130 @@
       sparkGlow = k.add([k.sprite("glow"), k.pos((scr.gapL + scr.gapR) / 2, scr.gapTop - 8), k.anchor("center"), k.scale((scr.gapR - scr.gapL) / 22, 1.4), k.color(rgb("#ffd54a")), k.opacity(0.26), k.z(5.7)]); // une lueur dorée au ras du trou secret
       if (scr.warp) k.add([k.sprite("warp", { anim: "spin" }), k.pos((scr.warp.l + scr.warp.r) / 2, scr.warp.b), k.anchor("bot"), k.scale(2), k.z(5.7)]); // tour : le portail doré de la salle secrète
     }
+    /**
+     * Décor d'une salle secrète (posé la 1re fois qu'on y entre) : fond en dégradé, un grand motif propre à la salle (cœurs, stalactites, aurore, engrenages, planète…)
+     * et des particules (étincelles qui montent, pétales qui tombent, lucioles, étoiles qui scintillent). Tout est invisible hors de la salle.
+     */
+    function buildRoomDecor(th) {
+      var items = [], N = 8, j, rnd = window.OctoSprites.seeded(900 + th.deco.length * 31 + th.pkind.length * 7 + th.bg[0].charCodeAt(2) * 3);
+      function col(hex) { var q = hexToRgb(hex); return k.rgb(q[0], q[1], q[2]); }
+      function mixHex(a, b, t) { var p1 = hexToRgb(a), p2 = hexToRgb(b); return k.rgb(Math.round(p1[0] + (p2[0] - p1[0]) * t), Math.round(p1[1] + (p2[1] - p1[1]) * t), Math.round(p1[2] + (p2[2] - p1[2]) * t)); }
+      /** o : objet ; bo : opacité de base ; fn(o, t, camx) : animation (facultative). */
+      function add(o, bo, fn) { items.push({ o: o, bo: bo, fn: fn }); return o; }
+      function wrapX(x, span) { return ((x % span) + span) % span - 60; }
+      var cols = th.decoCol.split(","), glowCol = col(th.glow), base = col(cols[0]);
+      for (j = 0; j < N; j++) add(k.add([k.rect(VW + 8, Math.ceil(VH / N) + 2), k.pos(-4, Math.floor(j * VH / N)), k.color(mixHex(th.bg[0], th.bg[1], j / (N - 1))), k.opacity(0), k.fixed(), k.z(4.61)]), 1);
+      switch (th.deco) {
+        case "hearts":
+          for (j = 0; j < 9; j++) (function (bx, by, sz, ph) {
+            add(k.add([k.text("<3", { size: sz, font: "monospace" }), k.pos(bx, by), k.anchor("center"), k.color(base), k.opacity(0), k.fixed(), k.z(4.7)]), 0.4, function (o, t, cx) { o.pos.x = wrapX(bx - cx * 0.15, VW + 120); o.pos.y = by + Math.sin(t * 1.4 + ph) * 8; });
+          })(rnd() * (VW + 120), 20 + rnd() * (VH - 70), 10 + Math.floor(rnd() * 3) * 5, rnd() * 6);
+          break;
+        case "stalactites":
+          for (j = 0; j < 11; j++) (function (bx, w, h) {
+            for (var q = 0; q < 3; q++) (function (qq) {
+              var ww = w * (1 - qq * 0.3);
+              add(k.add([k.rect(ww, h / 3 + 1), k.pos(0, qq * h / 3), k.color(base), k.opacity(0), k.fixed(), k.z(4.7)]), 0.7, function (o, t, cx) { o.pos.x = wrapX(bx - cx * 0.3, VW + 120) + (w - ww) / 2; });
+            })(q);
+          })(rnd() * (VW + 120), 14 + rnd() * 16, 36 + rnd() * 50);
+          break;
+        case "mountains":
+          for (j = 0; j < 5; j++) (function (bx, w, h) {
+            for (var q = 0; q < 6; q++) (function (qq) {
+              var ww = w * (1 - qq / 6.5), hh = h / 6;
+              add(k.add([k.rect(ww, hh + 1), k.pos(0, VH - h + qq * hh), k.color(base), k.opacity(0), k.fixed(), k.z(4.7)]), 0.85, function (o, t, cx) { o.pos.x = wrapX(bx - cx * 0.2, VW + 160) + (w - ww) / 2; });
+            })(q);
+          })(rnd() * (VW + 160), 90 + rnd() * 80, 60 + rnd() * 70);
+          break;
+        case "aurora":
+          for (j = 0; j < 6; j++) (function (idx) {
+            add(k.add([k.rect(VW + 8, 16), k.pos(-4, 20 + idx * 22), k.color(col(cols[idx % cols.length])), k.opacity(0), k.fixed(), k.z(4.7)]), 0.3, function (o, t) { o.pos.y = 20 + idx * 24 + Math.sin(t * 0.9 + idx) * 10; o.opacity = 0.2 + 0.1 * Math.sin(t * 1.3 + idx * 1.7); });
+          })(j);
+          break;
+        case "pillars":
+          for (j = 0; j < 8; j++) (function (bx, w) {
+            add(k.add([k.rect(w, VH), k.pos(0, 0), k.color(base), k.opacity(0), k.fixed(), k.z(4.7)]), 0.5, function (o, t, cx) { o.pos.x = wrapX(bx - cx * 0.25, VW + 120); });
+            add(k.add([k.rect(w + 8, 8), k.pos(0, 30), k.color(base), k.opacity(0), k.fixed(), k.z(4.71)]), 0.7, function (o, t, cx) { o.pos.x = wrapX(bx - cx * 0.25, VW + 120) - 4; });
+          })(rnd() * (VW + 120), 14 + rnd() * 14);
+          break;
+        case "crystals":
+          for (j = 0; j < 10; j++) (function (bx, by, sz, ph) {
+            add(k.add([k.rect(sz, sz), k.pos(bx, by), k.anchor("center"), k.rotate(45), k.color(base), k.opacity(0), k.fixed(), k.z(4.7)]), 0.45, function (o, t, cx) { o.pos.x = wrapX(bx - cx * 0.3, VW + 120); o.opacity = 0.3 + 0.2 * Math.sin(t * 2 + ph); });
+            add(k.add([k.sprite("glow"), k.pos(bx, by), k.anchor("center"), k.scale(sz / 12), k.color(glowCol), k.opacity(0), k.fixed(), k.z(4.68)]), 0.22, function (o, t, cx) { o.pos.x = wrapX(bx - cx * 0.3, VW + 120); });
+          })(rnd() * (VW + 120), 20 + rnd() * (VH - 60), 10 + rnd() * 22, rnd() * 6);
+          break;
+        case "lanterns":
+          for (j = 0; j < 7; j++) (function (bx, len, ph) {
+            add(k.add([k.rect(1, len), k.pos(0, 0), k.color(base), k.opacity(0), k.fixed(), k.z(4.7)]), 0.5, function (o, t, cx) { o.pos.x = wrapX(bx - cx * 0.25, VW + 120) + Math.sin(t * 1.1 + ph) * 3; });
+            add(k.add([k.rect(10, 13), k.pos(0, len), k.anchor("center"), k.color(base), k.opacity(0), k.fixed(), k.z(4.71)]), 0.9, function (o, t, cx) { o.pos.x = wrapX(bx - cx * 0.25, VW + 120) + Math.sin(t * 1.1 + ph) * 6; });
+            add(k.add([k.sprite("glow"), k.pos(0, len), k.anchor("center"), k.scale(1.4), k.color(glowCol), k.opacity(0), k.fixed(), k.z(4.69)]), 0.35, function (o, t, cx) { o.pos.x = wrapX(bx - cx * 0.25, VW + 120) + Math.sin(t * 1.1 + ph) * 6; o.opacity = 0.28 + 0.1 * Math.sin(t * 3 + ph); });
+          })(rnd() * (VW + 120), 24 + rnd() * 80, rnd() * 6);
+          break;
+        case "planet":
+          add(k.add([k.sprite("glow"), k.pos(VW * 0.74, VH * 0.34), k.anchor("center"), k.scale(Math.max(2.6, VH / 70)), k.color(base), k.opacity(0), k.fixed(), k.z(4.66)]), 0.65, function (o, t, cx) { o.pos.x = VW * 0.74 - cx * 0.03; });
+          add(k.add([k.rect(VW * 0.62, 3), k.pos(VW * 0.74, VH * 0.34), k.anchor("center"), k.rotate(-16), k.color(glowCol), k.opacity(0), k.fixed(), k.z(4.67)]), 0.5, function (o, t, cx) { o.pos.x = VW * 0.74 - cx * 0.03; });
+          for (j = 0; j < 40; j++) (function (bx, by, ph) {
+            add(k.add([k.rect(2, 2), k.pos(bx, by), k.color(rgb("#ffffff")), k.opacity(0), k.fixed(), k.z(4.65)]), 1, function (o, t) { o.opacity = 0.2 + 0.6 * Math.abs(Math.sin(t * 1.2 + ph)); });
+          })(rnd() * VW, rnd() * VH, rnd() * 6);
+          break;
+        case "gears":
+          for (j = 0; j < 5; j++) (function (bx, by, sz, sp) {
+            [0, 45].forEach(function (a0) {
+              add(k.add([k.rect(sz, sz), k.pos(bx, by), k.anchor("center"), k.rotate(a0), k.color(base), k.opacity(0), k.fixed(), k.z(4.7)]), 0.5, function (o, t, cx) { o.pos.x = wrapX(bx - cx * 0.2, VW + 160); o.angle = a0 + t * sp * 30; });
+            });
+          })(rnd() * (VW + 160), 30 + rnd() * (VH - 80), 40 + rnd() * 40, (rnd() < 0.5 ? -1 : 1) * (0.6 + rnd()));
+          break;
+        case "bamboo":
+          for (j = 0; j < 10; j++) (function (bx, w) {
+            add(k.add([k.rect(w, VH + 20), k.pos(0, -10), k.color(base), k.opacity(0), k.fixed(), k.z(4.7)]), 0.55, function (o, t, cx) { o.pos.x = wrapX(bx - cx * 0.3, VW + 120); });
+            for (var q = 0; q < Math.ceil(VH / 44); q++) (function (qy) {
+              add(k.add([k.rect(w + 3, 3), k.pos(0, qy * 44 + (Math.floor(bx) % 17)), k.color(glowCol), k.opacity(0), k.fixed(), k.z(4.71)]), 0.5, function (o, t, cx) { o.pos.x = wrapX(bx - cx * 0.3, VW + 120) - 1.5; });
+            })(q);
+          })(rnd() * (VW + 120), 5 + Math.floor(rnd() * 4));
+          break;
+        case "waves":
+          for (j = 0; j < 7; j++) (function (idx) {
+            add(k.add([k.rect(VW + 8, 12), k.pos(-4, 0), k.color(idx % 2 ? base : glowCol), k.opacity(0), k.fixed(), k.z(4.7)]), 0.22, function (o, t) { o.pos.y = VH * 0.35 + idx * (VH * 0.1) + Math.sin(t * 1.2 + idx * 0.9) * 8; });
+          })(j);
+          break;
+        case "clouds":
+          for (j = 0; j < 7; j++) (function (bx, by, sp, nm) {
+            add(k.add([k.sprite(nm), k.pos(bx, by), k.scale(2), k.color(base), k.opacity(0), k.fixed(), k.z(4.7)]), 0.6, function (o, t, cx) { o.pos.x = wrapX(bx - t * sp - cx * 0.1, VW + 200); });
+          })(rnd() * (VW + 200), 10 + rnd() * (VH - 50), 5 + rnd() * 10, j % 2 ? "cloud1" : "cloud0");
+          break;
+        case "rings":
+          for (j = 0; j < 5; j++) (function (idx) {
+            add(k.add([k.sprite("glow"), k.pos(VW * 0.5, VH * 0.45), k.anchor("center"), k.scale(1.2 + idx * 1.1), k.color(idx % 2 ? base : glowCol), k.opacity(0), k.fixed(), k.z(4.66)]), 0.2, function (o, t) { o.scale = k.vec2(1.2 + idx * 1.1 + Math.sin(t * 1.5 - idx * 0.7) * 0.25); });
+          })(j);
+          break;
+        default: // « stars » : un ciel d'étoiles de toutes les couleurs
+          for (j = 0; j < 60; j++) (function (bx, by, ph, c2) {
+            add(k.add([k.rect(2, 2), k.pos(bx, by), k.color(col(c2)), k.opacity(0), k.fixed(), k.z(4.65)]), 1, function (o, t) { o.opacity = 0.25 + 0.65 * Math.abs(Math.sin(t * 1.6 + ph)); });
+          })(rnd() * VW, rnd() * VH, rnd() * 6, ["#ffffff", "#ffd54a", "#ff9ac8", "#9fc4ff"][j % 4]);
+      }
+      // particules : étincelles qui montent, pétales qui tombent, lucioles, étoiles qui scintillent
+      for (j = 0; j < 36; j++) (function (idx) {
+        var bx = rnd() * VW, by = rnd() * VH, sp = 12 + rnd() * 34, ph = rnd() * 6, sz = rnd() < 0.25 ? 3 : 2;
+        add(k.add([k.rect(sz, sz), k.pos(bx, by), k.color(col(th.pcol[idx % th.pcol.length])), k.opacity(0), k.fixed(), k.z(4.95)]), 0.8, function (oo, t) {
+          if (th.pkind === "rise") { oo.pos.y = ((by - t * sp) % (VH + 10) + VH + 10) % (VH + 10) - 5; oo.pos.x = bx + Math.sin(t * 1.3 + ph) * 6; oo.opacity = 0.35 + 0.5 * Math.abs(Math.sin(t * 6 + ph)); }
+          else if (th.pkind === "fall") { oo.pos.y = (by + t * sp) % (VH + 10) - 5; oo.pos.x = bx + Math.sin(t * 1.1 + ph) * 12; oo.opacity = 0.7; }
+          else if (th.pkind === "twinkle") { oo.pos.x = bx; oo.pos.y = by; oo.opacity = 0.15 + 0.75 * Math.abs(Math.sin(t * 2 + ph)); }
+          else { oo.pos.x = bx + Math.sin(t * 0.5 + ph) * 36; oo.pos.y = by + Math.cos(t * 0.7 + ph * 1.3) * 22; oo.opacity = 0.2 + 0.7 * Math.abs(Math.sin(t * 1.6 + ph)); } // lucioles
+        });
+      })(j);
+      return {
+        update: function (on, t, cx) {
+          for (var q = 0; q < items.length; q++) {
+            var it = items[q];
+            if (!on) { it.o.opacity = 0; continue; }
+            it.o.opacity = it.bo;
+            if (it.fn) it.fn(it.o, t, cx);
+          }
+        }
+      };
+    }
+    var roomDecor = null, roomDecorOn = false;
+
     /** Mur de fond de la tour (briques sombres, on ne voit que ce qui est à l'écran) + fenêtres éclairées, lianes et lanternes suspendues. */
     function buildTowerWalls() {
       var cols = sim.tower.cols, rowsT = sim.tower.rows, inner = rgb(theme.wall || "#3a3358"), outer = rgb(theme.outer || "#241f3a"), rnd3 = window.OctoSprites.seeded(311 + def.id * 17);
@@ -284,7 +410,7 @@
       var wsfx = window.OctoProgress && window.OctoProgress.world && window.OctoProgress.world() > 0 ? "-w" + window.OctoProgress.world() : ""; // drawSprite ne passe pas par k.sprite : le monde en cours s'ajoute ici
       sim.crumbles.forEach(function (cr) { crumbAt[cr.tx + "," + cr.ty] = true; }); // les plateformes qui s'effritent sont des objets à part (elles tremblent puis tombent)
       // Le sol : une seule couche qui dessine les colonnes visibles (des centaines de tuiles = des centaines d'objets à parcourir à chaque image sinon)
-      var tileCols = [], tilePos = k.vec2(0, 0), tileOpt = { sprite: "", pos: tilePos, scale: k.vec2(2, 2), color: rgb(theme.tile) }; // (une seule table d'options réutilisée : aucune allocation par image)
+      var tileCols = [], tilePos = k.vec2(0, 0), baseTint = rgb(theme.tile), tileOpt = { sprite: "", pos: tilePos, scale: k.vec2(2, 2), color: baseTint }, roomC0 = sim.secret ? Math.floor(sim.secret.roomL / T) : colsN, roomTint = sim.secret && sim.secret.theme ? rgb(sim.secret.theme.tile) : null; // (une seule table d'options réutilisée : aucune allocation par image)
       for (tx = 0; tx < colsN; tx++) {
         var col = [];
         for (ty = 0; ty < rowsN; ty++) if (solid[ty][tx] && !crumbAt[tx + "," + ty]) col.push({ y: ty * T, name: ((ty === 0 || !solid[ty - 1][tx]) ? "grass" : "dirt") + ((tx + ty) % 3) + wsfx });
@@ -295,6 +421,7 @@
           var cx = k.camPos().x, half = k.width() / 2 + 48, c0 = Math.max(0, Math.floor((cx - half) / T)), c1 = Math.min(colsN - 1, Math.ceil((cx + half) / T));
           for (var c = c0; c <= c1; c++) {
             var col2 = tileCols[c];
+            tileOpt.color = roomTint && c >= roomC0 ? roomTint : baseTint; // chaque salle secrète a la couleur de sol de son décor
             for (var i = 0; i < col2.length; i++) { tileOpt.sprite = col2[i].name; tilePos.x = c * T; tilePos.y = col2[i].y; k.drawSprite(tileOpt); }
           }
         }
@@ -511,7 +638,8 @@
         case "heart": burst(ev.x, ev.y, ["#f85149", "#ffd6d6"], 8, 0.7); say("+ VIE", "#ff9aa0"); break;
         case "checkpoint": say("POINT DE CONTROLE", "#7ee787"); break;
         case "restart": resetWorldObjs(); snapCam(); say("TOUT RECOMMENCE", "#f85149"); break;
-        case "secret": snapCam(); say("SALLE SECRETE !", "#ffd54a"); burst(ev.x, ev.y - 40, ["#ffd54a", "#fff4c2", "#ffffff"], 20, 0.9); break;
+        case "secret": snapCam(); say(ev.extra || "SALLE SECRETE !", "#ffd54a"); if (ev.extra) pop(ev.x, ev.y - 64, "SALLE SECRETE !", "#fff4c2", 9); burst(ev.x, ev.y - 40, ["#ffd54a", "#fff4c2", "#ffffff"], 20, 0.9); break;
+        case "secret-full": say("SALLE COMPLETE !", "#7ee787"); burst(ev.x, ev.y - 10, ["#ff6a6a", "#ffd54a", "#7ee787", "#58a6ff", "#bc8cff", "#ffffff"], 40, 1.3); music().sfx("star"); k.shake(3); break;
         case "secret-out": snapCam(); say("DE RETOUR !", "#7ee787"); break;
         case "rescue": snapCam(); say("HOP ! ON REMONTE", "#7ee787"); burst(ev.x, ev.y - 20, ["#7ee787", "#ffffff", "#ffd54a"], 14, 0.8); break;
         case "wave": say("ATTENTION !", "#f85149"); k.shake(5); break;
@@ -761,6 +889,11 @@
       if (cave) {
         var inRoom = sim.secret.inRoom;
         cave.opacity = inRoom ? 1 : 0; curtain.opacity = inRoom ? 1 : 0;
+        if (sim.secret.theme) { // le décor propre à cette salle (créé à la 1re entrée)
+          if (inRoom && !roomDecor) roomDecor = buildRoomDecor(sim.secret.theme);
+          if (roomDecor && (inRoom || roomDecorOn)) roomDecor.update(inRoom, time, cam.x);
+          roomDecorOn = inRoom;
+        }
         sparkT -= dt; // un léger scintillement au-dessus du trou secret (pour les curieux)
         var gcx = (sim.secret.gapL + sim.secret.gapR) / 2, near = !inRoom && Math.abs(p.x - gcx) < 420;
         if (sparkGlow) sparkGlow.opacity = near ? 0.2 + 0.1 * Math.sin(time * 4) : 0;

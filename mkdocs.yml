@@ -63,6 +63,7 @@ extra_javascript:
   - javascripts/sprites-worlds.js
   - javascripts/sprites-space.js
   - javascripts/logo.js
+  - javascripts/secret-rooms.js
   - javascripts/playsim.js
   - javascripts/sim-tower.js
   - javascripts/sim-space.js

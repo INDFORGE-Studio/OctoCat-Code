@@ -39,7 +39,7 @@ for (const lvl of [1, 7]) {
   await page.waitForTimeout(900);
   await page.screenshot({ path: path.join(OUT, `secret-${lvl}-room.png`) });
   ok(`niveau ${lvl} : on tombe dans la salle secrète, sans perdre de cœur`, await sim((hp) => { const s = window.OctoPlay.current.sim; return s.secret.inRoom && s.stats.deaths === 0 && s.player.hp === hp; }, g.hp));
-  await page.keyboard.down("ArrowRight"); await page.waitForTimeout(1800); await page.keyboard.up("ArrowRight");
+  await page.keyboard.down("ArrowRight"); await page.keyboard.down("Space"); await page.waitForTimeout(2600); await page.keyboard.up("Space"); await page.keyboard.up("ArrowRight"); // (saut tenu : il saute de nouveau à chaque atterrissage ; chaque salle a son relief)
   await page.screenshot({ path: path.join(OUT, `secret-${lvl}-coins.png`) });
   ok(`niveau ${lvl} : pièces ramassées dans la salle`, await sim((b) => window.OctoPlay.current.sim.stats.bits > b, g.bits));
   await sim(() => { const s = window.OctoPlay.current.sim, e = s.secret.exit; s.player.x = e.x; s.player.y = e.y; });
