@@ -366,7 +366,7 @@
       var f = function (a, n) { return S.hintFor(a, n); };
       if (brawl) return f("left", 1) + "/" + f("right", 1) + "/" + f("up", 1) + "/" + f("down", 1) + ": BOUGER   " + f("jump", 1) + ": SAUTER   " + f("attack", 2) + ": FRAPPER   " + f("dog", 2) + ": LAITA" + (hasPower ? "   " + f("throw", 2) + ": SHURIKEN (ETOILE)" : "");
       return f("left", 1) + "/" + f("right", 1) + ": BOUGER   " + f("jump", 1) + "/" + f("up", 1) + ": SAUTER   " + f("attack", 2) + ": ATTAQUER   " + f("dog", 2) + ": LAITA" +
-        (ab.shuriken ? "   " + f("throw", 2) + ": SHURIKEN" : "") + (ab.doubleJump ? "   (DOUBLE SAUT)" : "");
+        (ab.shuriken ? "   " + f("throw", 2) + ": SHURIKEN" : "") + (ab.doubleJump !== false ? "   (DOUBLE SAUT)" : "");
     }
     var hint = k.add([k.text(" ", { size: 9, font: "monospace" }), k.pos(VW / 2, VH - 12), k.anchor("center"), k.color(rgb("#e6edf3")), k.opacity(0.9), k.fixed(), k.z(31)]);
     var hintVer = -1;

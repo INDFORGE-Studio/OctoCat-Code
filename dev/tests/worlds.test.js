@@ -35,6 +35,20 @@ test("mondes : chaque niveau a un trajet et un titre dans les deux nouveaux mond
   assert.equal(W.header(1, "X"), "X", "sans progression, le titre d'origine");
 });
 
+test("double saut : permis dans tous les trajets à plateformes des 3 mondes (jamais bloqué, quel que soit le niveau)", () => {
+  for (const w of [0, 1, 2]) {
+    for (const id of PLATFORM_LEVELS) {
+      const r = W.apply(engine.levels[id], w).run;
+      const g = r.tower ? S.buildTower(r.tower) : S.buildCourse(r.course);
+      const sim = S.createPlatform(g, r.abilities);
+      assert.equal(sim.abilities.doubleJump, true, `monde ${w} niveau ${id} : double saut`);
+      const apex = (s) => { run(s, idle, 0.5); const y0 = s.player.y; let min = y0; for (let t = 0; t < 1.6; t += DT) { s.step({ jump: t < 0.4 || (t > 0.45 && t < 1.0) }, DT); min = Math.min(min, s.player.y); } return y0 - min; };
+      const single = S.createPlatform(g, { ...r.abilities, doubleJump: false });
+      assert.ok(apex(sim) > apex(single) + 20, `monde ${w} niveau ${id} : le second saut doit monter plus haut`);
+    }
+  }
+});
+
 /* ---------- monde 1 : la tour ---------- */
 
 test("tour : montées de 2 rangées au plus, vides de 1 colonne (2 avec le double saut), même nombre de pièces que dans GitHubia", () => {
