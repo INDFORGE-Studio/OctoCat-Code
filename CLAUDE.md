@@ -20,6 +20,7 @@ sans jamais casser la boucle de gameplay :
 5. **Rien de superflu.** Pas de framework JS supplémentaire, pas de bundler, pas de dépendance non justifiée. Le site reste **statique** et déployable sur GitHub Pages.
 6. **Sécurité du sandbox.** Le code du joueur n'est **jamais** passé à `eval`, `Function` ou `innerHTML`. Toute évolution de l'interpréteur reste un parseur à liste blanche.
 7. **Langue** : contenu pédagogique, UI et messages d'erreur du jeu en **français** ; code, identifiants et commits en anglais ou français cohérent avec l'existant.
+8. **Sous-agents sobres.** Chaque sous-agent (`Agent`, `Workflow`) exécute ses **propres requêtes** et repart de zéro : il coûte cher. Le dépôt est petit : lire, chercher et vérifier **soi-même** (Read, Grep, Bash). N'en créer un que pour un travail large et indépendant, ou si le PO le demande ; jamais de fan-out ni de `Workflow` sans demande explicite. Pour une tâche simple (recherche, lecture, relecture mécanique), lui donner un **modèle moins coûteux** (`model: "haiku"` ou `"sonnet"`) ; garder le modèle principal pour la conception et les décisions. Même logique pour le reste : une seule exécution des longues vérifications (`dev/rooms-reach.mjs`, `npm run shot`), relancée seulement si le code concerné a changé.
 
 ## 3. Architecture (source de vérité)
 
