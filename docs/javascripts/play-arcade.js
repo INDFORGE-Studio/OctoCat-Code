@@ -41,7 +41,7 @@
     var toast = k.add([k.text("", { size: 14, font: "monospace" }), k.pos(VW / 2, VH * 0.46), k.anchor("center"), k.color(rgb("#ffffff")), k.opacity(0), k.fixed(), k.z(32)]);
     var hint = k.add([k.text(" ", { size: 9, font: "monospace" }), k.pos(VW / 2, VH - 12), k.anchor("center"), k.color(rgb("#e6edf3")), k.opacity(0.9), k.fixed(), k.z(31)]);
     var dogTxt = k.add([k.text("LAITA", { size: 9, font: "monospace" }), k.pos(10, VH - 38), k.color(rgb("#ffffff")), k.opacity(0.9), k.fixed(), k.z(31)]);
-    k.add([k.rect(60, 4), k.pos(10, VH - 27), k.color(rgb("#0d1117")), k.opacity(0.6), k.fixed(), k.z(31)]);
+    var dogBg = k.add([k.rect(60, 4), k.pos(10, VH - 27), k.color(rgb("#0d1117")), k.opacity(0.6), k.fixed(), k.z(31)]);
     var dogBar = k.add([k.rect(60, 4), k.pos(10, VH - 27), k.color(rgb("#7ee787")), k.fixed(), k.z(31.1)]);
     var starTxt = k.add([k.text("INVINCIBLE", { size: 9, font: "monospace" }), k.pos(10, 48), k.color(rgb("#ffffff")), k.opacity(0), k.fixed(), k.z(31)]);
     var starBar = k.add([k.rect(60, 4), k.pos(10, 59), k.color(rgb("#ffffff")), k.opacity(0), k.fixed(), k.z(31)]);
@@ -126,6 +126,9 @@
       hurtFlash = Math.max(0, hurtFlash - dt); flash.opacity = hurtFlash * 0.35;
       var dg = sim.dog, ready = dg.cd <= 0;
       dogBar.width = Math.max(1, 60 * (1 - Math.min(1, dg.cd / Sim.CFG.dogCooldown)));
+      // boutons tactiles à l'écran : la jauge de Laita monte au-dessus d'eux (sinon le bouton ◀ la recouvre)
+      var gy = pad.visible() ? Math.ceil(86 * VH / Math.max(1, k.canvas.clientHeight || VH)) : 0;
+      dogTxt.pos.y = VH - 38 - gy; dogBg.pos.y = VH - 27 - gy; dogBar.pos.y = VH - 27 - gy;
       dogBar.color = rgb(ready ? "#7ee787" : "#8b949e"); dogTxt.text = ready ? "LAITA PRETE" : "LAITA"; dogTxt.color = rgb(ready ? "#7ee787" : "#c9d1d9");
       var starOn = p.star > 0, powOn = p.power > 0;
       starTxt.opacity = starOn ? 1 : 0; starBar.opacity = starOn ? 1 : 0;

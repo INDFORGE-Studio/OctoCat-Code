@@ -470,7 +470,7 @@
     var powBar = k.add([k.rect(60, 4), k.pos(10, stateY + 29), k.color(rgb("#ffd54a")), k.opacity(0), k.fixed(), k.z(31)]);
     // jauge de Laita (en bas à gauche) : se remplit, puis « PRETE »
     var dogTxt = k.add([k.text("LAITA", { size: 9, font: "monospace" }), k.pos(10, VH - 38), k.color(rgb("#ffffff")), k.opacity(0.9), k.fixed(), k.z(31)]);
-    k.add([k.rect(60, 4), k.pos(10, VH - 27), k.color(rgb("#0d1117")), k.opacity(0.6), k.fixed(), k.z(31)]);
+    var dogBg = k.add([k.rect(60, 4), k.pos(10, VH - 27), k.color(rgb("#0d1117")), k.opacity(0.6), k.fixed(), k.z(31)]);
     var dogBar = k.add([k.rect(60, 4), k.pos(10, VH - 27), k.color(rgb("#7ee787")), k.fixed(), k.z(31.1)]);
 
     if (theme.wash) k.add([k.rect(VW + 100, VH + 100), k.pos(-50, -50), k.color(rgb(theme.wash[0])), k.opacity(theme.wash[1]), k.fixed(), k.z(28.2)]);
@@ -873,6 +873,9 @@
       dogShadow.pos.x = dg.x; dogShadow.pos.y = dg.y + 1;
       var dReady = dg.cd <= 0 && dg.state === "follow";
       dogBar.width = Math.max(1, 60 * (dg.state === "follow" ? 1 - Math.min(1, dg.cd / Sim.CFG.dogCooldown) : 0));
+      // boutons tactiles à l'écran : la jauge de Laita monte au-dessus d'eux (sinon le bouton ◀ la recouvre)
+      var gy = pad.visible() ? Math.ceil(86 * VH / Math.max(1, k.canvas.clientHeight || VH)) : 0;
+      dogTxt.pos.y = VH - 38 - gy; dogBg.pos.y = VH - 27 - gy; dogBar.pos.y = VH - 27 - gy;
       dogBar.color = rgb(dReady ? "#7ee787" : "#8b949e");
       dogTxt.text = dReady ? "LAITA PRETE" : "LAITA"; dogTxt.color = rgb(dReady ? "#7ee787" : "#c9d1d9");
 

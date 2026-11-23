@@ -4,7 +4,8 @@
 
 {% block site_meta %}
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  {#- Pas de « viewport-fit=cover » : sur iPhone, l'encoche et la barre d'accueil mordaient sur le jeu (compteur de pièces, cœurs, boutons) ; le jeu reste dans la zone sûre. -#}
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0d1117">
   <meta name="color-scheme" content="dark">
   <meta name="mobile-web-app-capable" content="yes">
