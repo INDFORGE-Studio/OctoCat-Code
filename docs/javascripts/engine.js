@@ -775,6 +775,7 @@
     if (window.OctoSprites.registerRun) window.OctoSprites.registerRun(k);
     if (window.OctoSprites.registerWorlds) window.OctoSprites.registerWorlds(k); // décors des mondes 2 (Python) et 3 (JavaScript)
     if (window.OctoSprites.registerSpace) window.OctoSprites.registerSpace(k); // sprites de l'invasion de l'espace et du serpent
+    if (window.OctoSprites.registerGrange) window.OctoSprites.registerGrange(k); // la grange et ses cadeaux (cadeau de Noël)
     // apparences : « octo » et « laita » deviennent « octo-sN » / « laita-sN » selon le tour (N = 0 à 4), lu au moment où l'objet est créé ;
     // le monde en cours (un langage = un monde) change le décor : « sky » devient « sky-w1 » (Python) ou « sky-w2 » (JavaScript)
     var rawSprite = k.sprite, skinMemo = null, worldMemo = null, worldNames = window.OctoSprites.worldSprites || {};

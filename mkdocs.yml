@@ -62,6 +62,7 @@ extra_javascript:
   - javascripts/sprites-run.js
   - javascripts/sprites-worlds.js
   - javascripts/sprites-space.js
+  - javascripts/sprites-grange.js
   - javascripts/logo.js
   - javascripts/secret-rooms.js
   - javascripts/playsim.js
@@ -75,6 +76,7 @@ extra_javascript:
   - javascripts/engine.js
   - javascripts/hub.js
   - javascripts/credits.js
+  - javascripts/grange.js
   - javascripts/notfound.js
   - javascripts/level1.js
   - javascripts/level2.js
