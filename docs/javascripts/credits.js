@@ -42,6 +42,8 @@
       ["name", "PIECES EN POCHE : " + P.coins()]);
     if (P.robotUnlocked()) out.push(["name", "COSTUME SECRET : OCTOBOT"], ["small", "FINI SANS LA MAGIE DES TORCHES !"]);
     out.push(["gap"],
+      ["head", "UN CADEAU DE NOEL POUR"], ["name", "LIAM"], ["name", "ELIAS"], ["name", "IZIA"],
+      ["small", "JOYEUX NOEL 2026 ! DE LA PART DE TON ONCLE"], ["gap"],
       ["head", "MERCI A TOI !"], ["name", "TU AS CODE JUSQU'AU BOUT"], ["small", "MAINTENANT, A TOI DE CREER TES PROPRES JEUX"], ["gap"], ["gap"]);
     return out;
   }
