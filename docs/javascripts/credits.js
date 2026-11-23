@@ -15,7 +15,7 @@
       ["title", "OCTOCAT-CODE"], ["sub", "APPRENDS A CODER EN T'AMUSANT"], ["gap"],
       ["head", "UN JEU DE"], ["name", "INDFORGE STUDIO"], ["gap"],
       ["head", "IDEE, DIRECTION ET TESTS"], ["name", "MARIUS_FR"], ["gap"],
-      ["head", "MERCI AUX BETA-TESTEURS"], ["name", "LIAM"], ["name", "ELIAS"], ["name", "IZIA"], ["name", "LA VRAIE LAITA"], ["name", "LA TEAM FISTILAND"], ["gap"],
+      ["head", "MERCI AUX BETA-TESTEURS"], ["name", "LIAM"], ["name", "ELIAS"], ["name", "IZIA"], ["name", "LA TEAM FISTILAND"], ["gap"],
       ["head", "CODE, PIXEL ART ET MUSIQUE"], ["name", "FABRIQUES PAR ORDINATEUR"], ["name", "AVEC CLAUDE, D'ANTHROPIC"],
       ["small", "AUCUNE IMAGE, AUCUN FICHIER DE SON :"], ["small", "TOUT EST DESSINE ET JOUE PAR DU CODE"], ["gap"],
       ["head", "LES HEROS"],
@@ -42,6 +42,13 @@
       ["name", "PIECES EN POCHE : " + P.coins()]);
     if (P.robotUnlocked()) out.push(["name", "COSTUME SECRET : OCTOBOT"], ["small", "FINI SANS LA MAGIE DES TORCHES !"]);
     out.push(["gap"],
+      ["head", "BONUS SECRET DEBLOQUE !"],
+      ["name", "LIAM - ELIAS - IZIA"],
+      ["small", "LES 3 HEROS DE LA FAMILLE"], ["small", "UNE PART DE CHACUN VIT DANS OCTOCAT"],
+      ["small", "NIVEAU DE SUPER-POUVOIR : MAXIMUM"],
+      ["small", "RECOMPENSE : DE GROS CALINS DE TONTON"],
+      ["small", "SANS OUBLIER LAITA, LEUR CHIENNE ADOREE"], ["small", "(ET UN GROS OS POUR ELLE !)"],
+      ["small", "JOYEUX NOEL 2026 !"], ["gap"],
       ["head", "MERCI A TOI !"], ["name", "TU AS CODE JUSQU'AU BOUT"], ["small", "MAINTENANT, A TOI DE CREER TES PROPRES JEUX"], ["gap"], ["gap"]);
     return out;
   }
