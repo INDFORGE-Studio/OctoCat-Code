@@ -53,7 +53,7 @@
       try { while (sz > 6 && k.formatText({ text: txt, size: sz, font: "monospace" }).width > VW - 12) sz--; } catch { /* mesure indisponible */ }
       hint.text = txt; hint.textSize = sz;
     }
-    function say(str, color) { toaster.say(str, color); }
+    function say(str, color, essential) { toaster.say(str, color, essential); }
     function pop(x, y, str, color, size) {
       var t = k.add([k.text(str, { size: size || 10, font: "monospace" }), k.pos(x, y), k.anchor("center"), k.color(rgb(color || "#ffffff")), k.opacity(1), k.z(16)]), age = 0;
       t.onUpdate(function () { age += k.dt(); t.pos.y -= 28 * k.dt(); t.opacity = Math.max(0, 1 - age / 0.9); if (age >= 0.9) t.destroy(); });
@@ -89,8 +89,8 @@
       var m = music();
       if (SFX[ev.t]) m.sfx(SFX[ev.t]);
       if (ev.t === "hurt") { hurtFlash = 0.35; k.shake(7); }
-      else if (ev.t === "die") { hurtFlash = 0.6; k.shake(10); say("K.O. !  TOUT RECOMMENCE", "#f85149"); }
-      else if (ev.t === "restart") say("TOUT RECOMMENCE", "#f85149");
+      else if (ev.t === "die") { hurtFlash = 0.6; k.shake(10); say("K.O. !  TOUT RECOMMENCE", "#f85149", true); }
+      else if (ev.t === "restart") say("TOUT RECOMMENCE", "#f85149", true);
       else if (ev.t === "heart") say("+ VIE", "#ff9aa0");
       else if (ev.t === "star") say("INVINCIBLE !", "#ffffff");
       else if (ev.t === "pshield") say("BOUCLIER !", "#7ee0ff");
@@ -289,7 +289,7 @@
               case "bark": ring(sim.player.x, sim.player.y, "#9af0ff", 22, 0.8); pop(ev.x, ev.y - 12, "OUAF !", "#ffffff", 10); say("LAITA FIGE TOUT LE MONDE !", "#9af0ff"); break;
               case "scare": pop(ev.x, ev.y, "!", "#ffd54a", 10); break;
               case "wave": say("VAGUE " + (ev.extra + 1) + " / " + run.waves.length, "#ff9aa0"); k.shake(4); break;
-              case "breach": say("ILS SONT TROP BAS !", "#f85149"); break;
+              case "breach": say("ILS SONT TROP BAS !", "#f85149", true); break;
               case "ufo": pop(ev.x < 0 ? 30 : VW2 - 30, 34, "SOUCOUPE !", "#ff6ac1", 9); break;
               case "shield": burst(ev.x, ev.y, ["#7ee0ff", "#ffffff"], 3, 0.4); break;
               case "pshield": case "pshield-hit": case "pshield-break": burst(ev.x, ev.y, ["#7ee0ff", "#ffffff"], ev.t === "pshield-break" ? 14 : 8, 0.7); break;
