@@ -43,10 +43,11 @@
     if (P.robotUnlocked()) out.push(["name", "COSTUME SECRET : OCTOBOT"], ["small", "FINI SANS LA MAGIE DES TORCHES !"]);
     out.push(["gap"],
       ["head", "BONUS SECRET DEBLOQUE !"],
-      ["name", "LIAM - ELIAS - IZIA"], ["name", "ET LAITA, LEUR CHIENNE"],
-      ["small", "EQUIPE : LES 4 HEROS DE LA FAMILLE"], ["small", "UNE PART DE CHACUN VIT DANS OCTOCAT"],
+      ["name", "LIAM - ELIAS - IZIA"],
+      ["small", "LES 3 HEROS DE LA FAMILLE"], ["small", "UNE PART DE CHACUN VIT DANS OCTOCAT"],
       ["small", "NIVEAU DE SUPER-POUVOIR : MAXIMUM"],
-      ["small", "RECOMPENSE : DE GROS CALINS DE TONTON"], ["small", "ET UN GROS OS POUR LAITA !"],
+      ["small", "RECOMPENSE : DE GROS CALINS DE TONTON"],
+      ["small", "SANS OUBLIER LAITA, LEUR CHIENNE ADOREE"], ["small", "(ET UN GROS OS POUR ELLE !)"],
       ["small", "JOYEUX NOEL 2026 !"], ["gap"],
       ["head", "MERCI A TOI !"], ["name", "TU AS CODE JUSQU'AU BOUT"], ["small", "MAINTENANT, A TOI DE CREER TES PROPRES JEUX"], ["gap"], ["gap"]);
     return out;
