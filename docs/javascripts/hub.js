@@ -86,10 +86,31 @@
       sc.follow(octo);
       // Laita attend devant sa niche (son nom sur une petite plaque), tournée vers l'OctoCat
       var KX = 352, LX = 288;
-      k.add([k.sprite("kennel"), k.pos(KX, BASE_Y + 1), k.anchor("bot"), k.scale(2.6), k.z(6.6)]);
-      var PY = BASE_Y - 53; // le nom est peint directement sur le pan du toit (lettres claires, ombre rouge sombre)
-      k.add([k.text("LAITA", { size: 10, font: "monospace" }), k.pos(KX + 1, PY + 1.5), k.anchor("center"), k.color(rgb("#5a1a22")), k.z(6.8)]);
-      k.add([k.text("LAITA", { size: 10, font: "monospace" }), k.pos(KX, PY), k.anchor("center"), k.color(rgb("#fff0c2")), k.z(6.9)]);
+      var KS = 2; // la niche est plus petite que « La Grange » (la maison) : 2 au lieu de 2,6
+      k.add([k.sprite("kennel"), k.pos(KX, BASE_Y + 1), k.anchor("bot"), k.scale(KS), k.z(6.6)]);
+      var PY = BASE_Y + 1 - 20 * KS; // le nom est peint directement sur le pan du toit (lettres claires, ombre rouge sombre)
+      k.add([k.text("LAITA", { size: 8, font: "monospace" }), k.pos(KX + 1, PY + 1.5), k.anchor("center"), k.color(rgb("#5a1a22")), k.z(6.8)]);
+      k.add([k.text("LAITA", { size: 8, font: "monospace" }), k.pos(KX, PY), k.anchor("center"), k.color(rgb("#fff0c2")), k.z(6.9)]);
+      // « La Grange » : la vieille grange retapée en belle maison de pierre de la famille (cadeau de Noël), au fond du jardin derrière le chemin de l'OctoCat ; on y entre en cliquant dessus ou avec le bouton « GRANGE »
+      var BX = 184, BS = 1.9, HOUSE_Y = BASE_Y - 6, left = false;
+      k.add([k.sprite("house"), k.pos(BX, HOUSE_Y), k.anchor("bot"), k.scale(BS), k.z(4.6)]);
+      var doorGlow = k.add([k.sprite("glow"), k.pos(BX, HOUSE_Y - 14 * BS), k.anchor("center"), k.scale(1.5), k.color(rgb("#ffb347")), k.opacity(0.22), k.z(4.55)]);
+      var smoke = [0, 1, 2, 3].map(function () { return k.add([k.circle(3), k.pos(BX, HOUSE_Y), k.anchor("center"), k.color(rgb("#e8ecf4")), k.opacity(0), k.z(4.65)]); }); // la fumée de la cheminée
+      var houseStar = k.add([k.rect(4, 4), k.pos(BX - 4 * BS, HOUSE_Y - 62 * BS), k.anchor("center"), k.rotate(45), k.color(rgb("#ffe08a")), k.opacity(0.9), k.z(4.7)]);
+      function goHouse() { if (left || entering || lapDialog || robotDlg) return; left = true; if (window.OctoMusic) window.OctoMusic.sfx("checkpoint"); ctx.go("grange"); }
+      var canvas = k.canvas;
+      function houseHit(e) {
+        var r = canvas.getBoundingClientRect(), p = k.toWorld(k.vec2((e.clientX - r.left) * k.width() / r.width, (e.clientY - r.top) * k.height() / r.height));
+        return Math.abs(p.x - BX) < 36 * BS && p.y > HOUSE_Y - 56 * BS && p.y < HOUSE_Y + 4;
+      }
+      if (window.OctoGrange) window.OctoGrange.housePoint = function () { // sert aux tests de navigateur (dev/grange-check.mjs)
+        var r = canvas.getBoundingClientRect(), f = r.width / k.width(), p = k.toScreen(k.vec2(BX, HOUSE_Y - 22 * BS));
+        return { x: r.left + p.x * f, y: r.top + p.y * f };
+      };
+      var overHouse = false;
+      function onHouseDown(e) { if (!(e.pointerType === "mouse" && e.button !== 0) && houseHit(e)) goHouse(); }
+      function onHouseMove(e) { if (e.pointerType !== "mouse") return; var now = houseHit(e); if (now !== overHouse) { overHouse = now; canvas.style.cursor = now ? "pointer" : ""; } }
+      canvas.addEventListener("pointerdown", onHouseDown); canvas.addEventListener("pointermove", onHouseMove);
       var laitaShadow = sc.shadow(LX, 0.6);
       var laita = k.add([k.sprite("laita", { anim: "sit" }), k.pos(LX, BASE_Y), k.anchor("bot"), k.scale(3), k.opacity(1), k.z(8.5)]);
       laita.flipX = true;
@@ -97,6 +118,13 @@
 
       sc.onFrame(function (t) {
         if (logo) logo.update(t);
+        doorGlow.opacity = 0.2 + 0.08 * Math.sin(t * 2.2); // la grange est allumée : on dirait qu'il s'y passe quelque chose
+        houseStar.opacity = 0.45 + 0.5 * Math.abs(Math.sin(t * 3.1)); houseStar.angle = 45 + Math.sin(t * 1.4) * 12;
+        smoke.forEach(function (sm, n) { // volutes qui montent de la cheminée et s'étalent
+          var ph = (t * 0.3 + n / 4) % 1;
+          sm.pos.x = BX + 20 * BS + Math.sin(ph * 6 + n) * 3 + ph * 14; sm.pos.y = HOUSE_Y - 56 * BS - ph * 34;
+          sm.radius = 2 + ph * 5; sm.opacity = (1 - ph) * 0.45;
+        });
         if (prompt.exists()) prompt.opacity = 0.8 + 0.2 * Math.abs(Math.sin(t * 2.6));
         if (coin.exists()) {
           coin.scale = k.vec2(Math.max(0.12, Math.abs(Math.cos(t * 3))) * icon / 10, icon / 10); // la pièce tourne sur elle-même
@@ -124,7 +152,7 @@
 
       var lapDialog = null;
       function enter() {
-        if (entering || lapDialog) return;
+        if (entering || lapDialog || left) return;
         entering = true;
         prompt.text = "[ ... ]"; promptShadow.text = "[ ... ]";
         octo.flipX = false;
@@ -300,7 +328,17 @@
           audioBox3.insertBefore(credBtn, audioBox3.firstChild);
         }
       }
-      return { reset: function () {}, destroy: function () { picker.remove(); if (skinBox) skinBox.remove(); if (worldBox) worldBox.remove(); if (credBtn) credBtn.remove(); if (lapDialog) lapDialog.remove(); if (robotDlg) robotDlg.remove(); } };
+      // la grange : même chose avec un bouton, en bas à droite (face au sélecteur de niveaux) : clavier, lecteur d'écran, petits écrans où l'on vise mal le décor
+      var grangeBox = null;
+      if (!CARD) {
+        grangeBox = document.createElement("div"); grangeBox.className = "octo-grange-corner";
+        var grangeBtn = document.createElement("button"); grangeBtn.type = "button"; grangeBtn.className = "octo-picker__toggle octo-grange-btn";
+        grangeBtn.textContent = "🏠 GRANGE";
+        grangeBtn.setAttribute("aria-label", "Entrer dans La Grange, chez Laïta");
+        grangeBtn.addEventListener("click", function () { grangeBtn.blur(); goHouse(); });
+        grangeBox.appendChild(grangeBtn); ctx.host.appendChild(grangeBox);
+      }
+      return { reset: function () {}, destroy: function () { canvas.removeEventListener("pointerdown", onHouseDown); canvas.removeEventListener("pointermove", onHouseMove); canvas.style.cursor = ""; if (grangeBox) grangeBox.remove(); picker.remove(); if (skinBox) skinBox.remove(); if (worldBox) worldBox.remove(); if (credBtn) credBtn.remove(); if (lapDialog) lapDialog.remove(); if (robotDlg) robotDlg.remove(); } };
     }
   });
 })();
