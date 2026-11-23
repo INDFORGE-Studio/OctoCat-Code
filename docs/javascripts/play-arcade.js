@@ -24,7 +24,7 @@
     var sim = cfg.sim, VW = k.width(), VH = k.height(), rgb = function (hex) { return k.Color.fromHex(hex); };
     var input = K.createInput(true), host = document.querySelector(".octo-hero") || document.body;
     var pad = K.createPad(host, input, true, !!cfg.throwBtn, cfg.pad);
-    var ended = false, destroyed = false, endT = 0, time = 0, mt = 0, hurtFlash = 0, toastT = 0, skipBtn = null, banked = false, hintVer = -1;
+    var ended = false, destroyed = false, endT = 0, time = 0, mt = 0, hurtFlash = 0, skipBtn = null, banked = false, hintVer = -1;
     k.camPos(VW / 2, VH / 2);
 
     /* ----- interface fixe ----- */
@@ -38,7 +38,7 @@
     var plate = k.add([k.rect(Math.min(VW - 20, 300), 62), k.pos(VW / 2, VH * 0.3 + 8), k.anchor("center"), k.color(rgb("#0d1117")), k.opacity(0.5), k.fixed(), k.z(31.8)]);
     var banner = k.add([k.text("NIVEAU " + def.id, { size: 22, font: "monospace" }), k.pos(VW / 2, VH * 0.3), k.anchor("center"), k.color(rgb("#ffffff")), k.opacity(1), k.fixed(), k.z(32)]);
     var sub = k.add([k.text(plain(def.title), { size: 11, font: "monospace" }), k.pos(VW / 2, VH * 0.3 + 22), k.anchor("center"), k.color(rgb("#ffe08a")), k.opacity(1), k.fixed(), k.z(32)]);
-    var toast = k.add([k.text("", { size: 14, font: "monospace" }), k.pos(VW / 2, VH * 0.46), k.anchor("center"), k.color(rgb("#ffffff")), k.opacity(0), k.fixed(), k.z(32)]);
+    var toaster = K.createToast(k, VW, VH, rgb);
     var hint = k.add([k.text(" ", { size: 9, font: "monospace" }), k.pos(VW / 2, VH - 12), k.anchor("center"), k.color(rgb("#e6edf3")), k.opacity(0.9), k.fixed(), k.z(31)]);
     var dogTxt = k.add([k.text("LAITA", { size: 9, font: "monospace" }), k.pos(10, VH - 38), k.color(rgb("#ffffff")), k.opacity(0.9), k.fixed(), k.z(31)]);
     var dogBg = k.add([k.rect(60, 4), k.pos(10, VH - 27), k.color(rgb("#0d1117")), k.opacity(0.6), k.fixed(), k.z(31)]);
@@ -53,7 +53,7 @@
       try { while (sz > 6 && k.formatText({ text: txt, size: sz, font: "monospace" }).width > VW - 12) sz--; } catch { /* mesure indisponible */ }
       hint.text = txt; hint.textSize = sz;
     }
-    function say(str, color) { toast.text = str; toast.color = rgb(color || "#ffffff"); toastT = 1.2; }
+    function say(str, color) { toaster.say(str, color); }
     function pop(x, y, str, color, size) {
       var t = k.add([k.text(str, { size: size || 10, font: "monospace" }), k.pos(x, y), k.anchor("center"), k.color(rgb(color || "#ffffff")), k.opacity(1), k.z(16)]), age = 0;
       t.onUpdate(function () { age += k.dt(); t.pos.y -= 28 * k.dt(); t.opacity = Math.max(0, 1 - age / 0.9); if (age >= 0.9) t.destroy(); });
@@ -81,7 +81,7 @@
       if (ended) return;
       ended = true; endT = 0;
       var gain = bankCoins();
-      say(gain ? "VICTOIRE !  +" + gain + " PIECES" : "VICTOIRE !", "#7ee787");
+      toaster.celebrate("VICTOIRE !", gain ? "+ " + gain + " PIECES" : "");
       music().sfx("finish");
       burst(VW / 2, VH / 2, ["#3fb950", "#39c5cf", "#ffffff", "#bc8cff", "#ffd54a"], 40, 1.4);
     }
@@ -112,7 +112,7 @@
         if (sim.finished) finishRun();
       } else {
         endT += dt;
-        if (endT > 1.1) { destroyed = true; bankCoins(); hooks.finish(); return; }
+        if (endT > 2.2) { destroyed = true; bankCoins(); hooks.finish(); return; }
       }
       mode.sync(dt, time);
       var p = sim.player;
@@ -122,7 +122,7 @@
       var introT = Math.max(0, 2.6 - time);
       banner.opacity = Math.min(1, introT); sub.opacity = Math.min(1, introT); plate.opacity = 0.5 * Math.min(1, introT);
       hint.opacity = (S && !S.get("hints")) || pad.visible() ? 0 : time < 9 ? 0.9 : Math.max(0, 0.9 - (time - 9) * 0.5);
-      toastT = Math.max(0, toastT - dt); toast.opacity = Math.min(1, toastT * 2);
+      toaster.update(dt);
       hurtFlash = Math.max(0, hurtFlash - dt); flash.opacity = hurtFlash * 0.35;
       var dg = sim.dog, ready = dg.cd <= 0;
       dogBar.width = Math.max(1, 60 * (1 - Math.min(1, dg.cd / Sim.CFG.dogCooldown)));
@@ -152,7 +152,7 @@
 
     var ctrl = {
       sim: sim, input: input, k: k,
-      skip: function () { if (!ended) { ended = true; endT = 0.6; } },
+      skip: function () { if (!ended) { ended = true; endT = 1.7; } },
       destroy: function () {
         destroyed = true; input.destroy(); pad.destroy();
         if (mode.destroy) mode.destroy();
