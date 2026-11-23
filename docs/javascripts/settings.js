@@ -1,6 +1,6 @@
 /* OctoCat-Code — Réglages du joueur (localStorage, aucun serveur).
  *
- *   OctoSettings.get(nom) / set(nom, valeur)   options : sfx, shake, hints, pad, relax, skipAlways
+ *   OctoSettings.get(nom) / set(nom, valeur)   options : sfx, shake, hints, quiet, pad, relax, skipAlways
  *   OctoSettings.lookup(code)                  action liée à une touche (« KeyX », « Space ») ou un bouton de souris (« Mouse0 »)
  *   OctoSettings.keys(action) / bind / unbind  touches personnalisées (jusqu'à 4 par action, clavier ou souris)
  *   OctoSettings.open() / close() / toggle()   menu ⚙ (Échap) ; isOpen() met la partie en pause
@@ -29,7 +29,7 @@
     left: ["ArrowLeft", "KeyA"], right: ["ArrowRight", "KeyD"], up: ["ArrowUp", "KeyW"], down: ["ArrowDown", "KeyS"],
     jump: ["Space"], attack: ["KeyX", "KeyJ", "Mouse0"], throw: ["KeyF", "KeyC", "KeyK"], dog: ["Mouse2", "KeyV"]
   };
-  var DEFAULT_OPTS = { sfx: true, shake: true, hints: true, pad: "auto", relax: false, skipAlways: false, hideCursor: true };
+  var DEFAULT_OPTS = { sfx: true, shake: true, hints: true, quiet: false, pad: "auto", relax: false, skipAlways: false, hideCursor: true };
   var PAD_MODES = ["auto", "on", "off"];
   var MAX_BINDS = 4;
   var BLOCKED = /^(Escape|Tab|F\d{1,2}|MetaLeft|MetaRight|OSLeft|OSRight|ContextMenu|PrintScreen)$/;
@@ -404,6 +404,7 @@
   }
 
   function renderGame() {
+    bodyEl.appendChild(toggleRow("quiet", "Annonces réduites à l'essentiel", "Plus de « POINT DE CONTROLE », « + VIE », « SALLE SECRETE »… : seuls restent les K.O., les chutes, les recommencements et la victoire."));
     bodyEl.appendChild(toggleRow("relax", "Mode détente", "Les ennemis et les pics ne te font plus de dégâts : tu te concentres sur le code."));
     bodyEl.appendChild(toggleRow("skipAlways", "« Passer le trajet » toujours visible", "Sinon il apparaît après quelques échecs."));
 

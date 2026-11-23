@@ -75,6 +75,16 @@ test("réglages : un stockage abîmé retombe sur les valeurs par défaut", () =
   assert.equal(broken.lookup("Space"), "jump");
 });
 
+test("réglages : annonces réduites à l'essentiel (quiet) : éteint par défaut, mémorisé, mauvais type ignoré", () => {
+  const { S } = load();
+  assert.equal(S.get("quiet"), false);
+  assert.equal(S.set("quiet", true), true);
+  assert.equal(S.get("quiet"), true);
+  assert.equal(S.set("quiet", "oui"), false);
+  const { S: bad } = load({ "octocat-code:settings:v1": '{"quiet":"oui"}' });
+  assert.equal(bad.get("quiet"), false);
+});
+
 test("réglages : options typées (set refuse les mauvais types) et texte d'aide sans accents", () => {
   const { S } = load();
   assert.equal(S.set("shake", false), true);

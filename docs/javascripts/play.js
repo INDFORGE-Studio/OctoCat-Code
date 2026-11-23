@@ -123,8 +123,9 @@
     for (i = 0; i < 8; i++) stars.push(k.add([k.rect(4, 4), k.pos(0, 0), k.anchor("center"), k.rotate(45), k.color(rgb(i % 2 ? "#ffe08a" : "#ffffff")), k.opacity(0), k.fixed(), k.z(Z + 0.2)]));
     function pop(a) { var t = Math.min(1, a / 0.25), c = t - 1; return 0.5 + 0.5 * (1 + 2.70158 * c * c * c + 1.70158 * c * c); } // arrive en rebondissant
     return {
-      say: function (str, color) {
+      say: function (str, color, essential) {
         if (bage < blife) return; // la grande bannière a la priorité
+        if (!essential && window.OctoSettings && window.OctoSettings.get("quiet")) return; // réglage « annonces essentielles »
         txt.text = str; txt.color = rgb(color || "#ffffff"); plate.outline.color = rgb(color || "#ffffff");
         plate.width = txt.width + 18; plate.height = txt.height + 10;
         age = 0; life = 1.3;
@@ -552,7 +553,7 @@
       var t = k.add([k.text(str, { size: size || 10, font: "monospace" }), k.pos(x, y), k.anchor("center"), k.color(rgb(color || "#ffffff")), k.opacity(1), k.z(16)]), age = 0;
       t.onUpdate(function () { age += k.dt(); t.pos.y -= 28 * k.dt(); t.opacity = Math.max(0, 1 - age / 0.9); if (age >= 0.9) t.destroy(); });
     }
-    function say(str, color) { toaster.say(str, color); }
+    function say(str, color, essential) { toaster.say(str, color, essential); }
 
     function burst(x, y, colors, n, power) {
       for (var j = 0; j < n; j++) {
@@ -675,15 +676,15 @@
         case "crumble": burst(ev.x, ev.y, ["#a8747c", "#d8c0ff"], 4, 0.4); break;
         case "crumbled": burst(ev.x, ev.y + 10, ["#a8747c", "#6a4757", "#d8c0ff"], 8, 0.5); break;
         case "hurt": hurtFlash = 0.35; k.shake(8); burst(ev.x, py - 10, ["#f85149", "#ffffff"], 10); break;
-        case "die": case "fall": hurtFlash = 0.6; k.shake(10); say(ev.t === "fall" ? "CHUTE !" : "K.O. !", "#f85149"); break;
+        case "die": case "fall": hurtFlash = 0.6; k.shake(10); say(ev.t === "fall" ? "CHUTE !" : "K.O. !", "#f85149", true); break;
         case "bit": burst(ev.x, ev.y, ["#e3b341", "#fff4c2"], 6, 0.6); break;
         case "heart": burst(ev.x, ev.y, ["#f85149", "#ffd6d6"], 8, 0.7); say("+ VIE", "#ff9aa0"); break;
         case "checkpoint": say("POINT DE CONTROLE", "#7ee787"); break;
-        case "restart": resetWorldObjs(); snapCam(); say("TOUT RECOMMENCE", "#f85149"); break;
+        case "restart": resetWorldObjs(); snapCam(); say("TOUT RECOMMENCE", "#f85149", true); break;
         case "secret": snapCam(); say(ev.extra || "SALLE SECRETE !", "#ffd54a"); if (ev.extra) pop(ev.x, ev.y - 64, "SALLE SECRETE !", "#fff4c2", 9); burst(ev.x, ev.y - 40, ["#ffd54a", "#fff4c2", "#ffffff"], 20, 0.9); break;
         case "secret-full": say("SALLE COMPLETE !", "#7ee787"); burst(ev.x, ev.y - 10, ["#ff6a6a", "#ffd54a", "#7ee787", "#58a6ff", "#bc8cff", "#ffffff"], 40, 1.3); music().sfx("star"); k.shake(3); break;
         case "secret-out": snapCam(); say("DE RETOUR !", "#7ee787"); break;
-        case "rescue": snapCam(); say("HOP ! ON REMONTE", "#7ee787"); burst(ev.x, ev.y - 20, ["#7ee787", "#ffffff", "#ffd54a"], 14, 0.8); break;
+        case "rescue": snapCam(); say("HOP ! ON REMONTE", "#7ee787", true); burst(ev.x, ev.y - 20, ["#7ee787", "#ffffff", "#ffd54a"], 14, 0.8); break;
         case "wave": say("ATTENTION !", "#f85149"); k.shake(5); break;
         case "star": say("INVINCIBLE !", "#ffffff"); burst(ev.x, ev.y, ["#ff6a6a", "#ffd54a", "#7ee787", "#58a6ff", "#bc8cff"], 26, 1.1); k.shake(3); break;
         case "power": say("SUPER SHURIKEN !", "#ffd54a"); burst(ev.x, ev.y, ["#ffd54a", "#fff4c2", "#ffffff"], 18, 0.9); break;
