@@ -377,6 +377,13 @@
     });
     row.appendChild(txt); row.appendChild(seg); bodyEl.appendChild(row);
 
+    var ios = /iPhone|iPod/.test(navigator.userAgent || ""), installed = (window.matchMedia && window.matchMedia("(display-mode: fullscreen), (display-mode: standalone)").matches) || navigator.standalone;
+    if (!document.fullscreenEnabled && ios && !installed) { // iPhone : pas de plein écran de page, mais le jeu installé sur l'écran d'accueil le remplace
+      var irow = el("div", "octo-set__row"), it = el("div", "octo-set__txt");
+      it.appendChild(el("strong", "", "Plein écran"));
+      it.appendChild(el("span", "octo-set__desc", "Sur iPhone : touche le bouton Partager de ton navigateur, puis « Sur l'écran d'accueil ». Le jeu s'ouvrira alors en plein écran."));
+      irow.appendChild(it); bodyEl.appendChild(irow);
+    }
     if (document.fullscreenEnabled) {
       var frow = el("div", "octo-set__row"), ft = el("div", "octo-set__txt");
       ft.appendChild(el("strong", "", "Plein écran"));

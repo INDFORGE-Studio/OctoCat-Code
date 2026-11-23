@@ -317,6 +317,12 @@ html:has(.octo-fs), body:has(.octo-fs) { overscroll-behavior: none; }
 .octo-pad__btn--hot { border-color: rgba(248, 81, 73, 0.8); }
 .octo-pad__btn.is-down { background: rgba(88, 166, 255, 0.55); }
 .octo-pad__btn--up, .octo-pad__btn--down { width: 52px; height: 52px; font-size: 18px; }
+/* petits téléphones en paysage (360–430 px de haut) : boutons un peu plus petits pour garder la scène visible (restent ≥ 44 px) */
+@media (max-height: 430px) {
+  .octo-pad__btn { width: 56px; height: 56px; }
+  .octo-pad__btn--round { width: 60px; height: 60px; }
+  .octo-pad__btn--up, .octo-pad__btn--down { width: 46px; height: 46px; }
+}
 .octo-skip {
   position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 6;
   padding: 0.6em 1em; border: 2px solid var(--octo-border, #30363d); border-radius: 4px;
@@ -346,12 +352,16 @@ html:has(.octo-fs), body:has(.octo-fs) { overscroll-behavior: none; }
 .octo-picker__row.is-locked { color: #6e7681; cursor: not-allowed; }
 
 /* Téléphone en portrait : invite à passer en paysage. */
-.octo-rotate { display: none; position: absolute; inset: 0; z-index: 20; background: #0d1117; color: #f0f6fc; text-align: center; flex-direction: column; align-items: center; justify-content: center; gap: 0.6em; padding: 24px; }
+.octo-rotate { display: none; font-size: clamp(14px, 2.6vmin, 30px); position: absolute; inset: 0; z-index: 20; background: #0d1117; color: #f0f6fc; text-align: center; flex-direction: column; align-items: center; justify-content: center; gap: 0.6em; padding: 24px; }
 .octo-rotate__icon { margin: 0; font-size: 4em; color: #ffe08a; animation: octo-spin 2.4s ease-in-out infinite; }
 .octo-rotate__text { margin: 0; font: 0.9em/1.4 var(--octo-pixel, monospace); }
 .octo-rotate__sub { margin: 0; color: #8b949e; font: 0.8em/1.4 system-ui, sans-serif; }
 @keyframes octo-spin { 0%, 20% { transform: rotate(0); } 70%, 100% { transform: rotate(-90deg); } }
-@media (orientation: portrait) and (max-width: 700px) and (pointer: coarse) { .octo-rotate { display: flex; } }
+.octo-rotate__stay { margin-top: 1.2em; min-height: 44px; padding: 0.6em 1.1em; border: 2px solid #30363d; border-radius: 4px; background: transparent; color: #8b949e; font: 0.7em/1.2 var(--octo-pixel, monospace); cursor: pointer; }
+.octo-rotate__stay:hover, .octo-rotate__stay:focus-visible { border-color: #ffe08a; color: #ffe08a; outline: none; }
+/* téléphones ET tablettes tenus en portrait (le jeu est composé en paysage) ; « Jouer quand même » ferme l'invite */
+@media (orientation: portrait) and (max-width: 1100px) and (pointer: coarse) { .octo-rotate { display: flex; } }
+.octo-rotate.is-off { display: none !important; }
 @media (prefers-reduced-motion: reduce) { .octo-rotate__icon { animation: none; } }
 
 /* Menu réglages ⚙ (touches, son, affichage, jeu). */

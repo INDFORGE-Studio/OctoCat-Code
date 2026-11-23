@@ -751,6 +751,10 @@
     rotate.appendChild(el("p", "octo-rotate__icon", "↻"));
     rotate.appendChild(el("p", "octo-rotate__text", "TOURNE TON APPAREIL"));
     rotate.appendChild(el("p", "octo-rotate__sub", "Le jeu se joue en mode paysage."));
+    var stay = el("button", "octo-rotate__stay", "Jouer quand même");
+    stay.type = "button";
+    stay.addEventListener("click", function () { rotate.classList.add("is-off"); });
+    rotate.appendChild(stay);
     host.appendChild(rotate);
 
     // Hauteur logique selon le format de la fenêtre : le monde (600 de large) tient toujours en entier.
@@ -794,14 +798,27 @@
     };
 
     // les navigateurs n'autorisent le son qu'après un geste : le premier clic ou la première touche lance la musique
+    // Sur iPhone / iPad (et Android), seul un geste RELÂCHÉ (touchend, pointerup, click) débloque le son : « pointerdown » seul ne suffit pas.
+    // On reste donc à l'écoute jusqu'à ce que le son sorte vraiment, et on se remet à l'écoute si le navigateur le recoupe (retour d'une autre appli).
+    var AUDIO_EVENTS = ["pointerdown", "pointerup", "touchend", "click", "keydown"], audioArmed = false;
     function unlockAudio(e) {
       if (e && e.target && e.target.closest && e.target.closest(".octo-audio")) return; // les commandes du son gèrent leur propre clic
-      music().unlock();
-      document.removeEventListener("pointerdown", unlockAudio);
-      document.removeEventListener("keydown", unlockAudio);
+      var m = music();
+      m.unlock();
+      if (m.ready && !m.ready()) return; // pas encore autorisé : le prochain geste réessaiera
+      AUDIO_EVENTS.forEach(function (ev) { document.removeEventListener(ev, unlockAudio, true); });
+      audioArmed = false;
     }
-    document.addEventListener("pointerdown", unlockAudio);
-    document.addEventListener("keydown", unlockAudio);
+    function armAudio() {
+      if (audioArmed) return;
+      audioArmed = true;
+      AUDIO_EVENTS.forEach(function (ev) { document.addEventListener(ev, unlockAudio, true); });
+    }
+    armAudio();
+    document.addEventListener("visibilitychange", function () {
+      var m = music(), s = m.state ? m.state().ctx : "none";
+      if (!document.hidden && s !== "none" && s !== "running") window.setTimeout(function () { if (m.ready && !m.ready()) armAudio(); }, 300);
+    });
 
     var P = window.OctoProgress, cur = { name: null, def: null, ctrl: null }, busy = false;
     var homeUrl = host.getAttribute("data-home"), forcedStart = host.getAttribute("data-start"); // page 404 : scène imposée, retour au jeu par une vraie adresse
@@ -926,11 +943,20 @@
     // le ferait quitter (écran noir puis retour à la fenêtre) ; le canvas garde alors son format et s'entoure de bandes (CSS).
     var timer = null;
     host.style.setProperty("--octo-aspect", (W / H).toFixed(4));
+    // Tactile : le clavier virtuel ou les barres du navigateur qui apparaissent changent la hauteur de la fenêtre. Ce n'est pas un vrai
+    // changement de format : pas de rechargement pendant la frappe (le code tapé serait perdu) et seuil large (seule une rotation compte).
+    var coarse = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
     function relayout() {
       if (document.fullscreenElement) return;
-      if (Math.abs(window.innerWidth / window.innerHeight / aspect - 1) > 0.06) window.location.reload();
+      var ae = document.activeElement;
+      if (ae && /^(TEXTAREA|INPUT|SELECT)$/.test(ae.tagName)) return; // le clavier est ouvert : on recompose à la fermeture (focusout)
+      if (Math.abs(window.innerWidth / window.innerHeight / aspect - 1) > (coarse ? 0.25 : 0.06)) window.location.reload();
     }
     window.addEventListener("resize", function () { window.clearTimeout(timer); timer = window.setTimeout(relayout, 400); });
+    window.addEventListener("orientationchange", function () { window.clearTimeout(timer); timer = window.setTimeout(relayout, 700); });
+    document.addEventListener("focusout", function () { window.clearTimeout(timer); timer = window.setTimeout(relayout, 600); });
+    // iPhone / iPad : le pincement à deux doigts (deux boutons tenus en même temps) ne doit jamais zoomer la page
+    document.addEventListener("gesturestart", function (e) { e.preventDefault(); });
     // Plein écran : la souris est cachée (même dans un niveau) ; un clic molette la montre ou la cache à nouveau.
     var root = document.documentElement, cursorToast = null;
     function toast(text) {

@@ -103,6 +103,8 @@
   function init() {
     var AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return false;
+    // iPhone / iPad : sans cela le commutateur « silencieux » coupe tout le son du jeu (le son web est traité comme une sonnerie)
+    try { if (nav.audioSession) nav.audioSession.type = "playback"; } catch { /* non pris en charge */ }
     ctx = new AC();
     out = ctx.createGain(); out.gain.value = 0;
     master = ctx.createGain(); master.gain.value = 0; // la musique démarre en fondu (begin)
@@ -536,7 +538,13 @@
 
   var Music = {
     /** À appeler depuis un geste utilisateur (politique d'autoplay des navigateurs). */
-    unlock: function () { begin(); },
+    unlock: function () {
+      begin();
+      if (!ctx) init(); // musique coupée : on prépare quand même l'audio pour les effets
+      if (ctx && ctx.state !== "running" && !document.hidden) { try { var r = ctx.resume(); if (r && r.catch) r.catch(function () {}); } catch { /* ignoré */ } }
+    },
+    /** Vrai quand le navigateur laisse réellement sortir du son (sur iPhone / iPad, seul un geste « relâché » le permet). */
+    ready: function () { return !!ctx && ctx.state === "running"; },
     /** Le monde en cours (0 GitHubia, 1 Python, 2 JavaScript) : change de tonalité, de tempo, de timbre et de mélodie ; le morceau repart de la mesure en cours. */
     setWorld: function (w) {
       w = w === 1 || w === 2 ? w : 0;
