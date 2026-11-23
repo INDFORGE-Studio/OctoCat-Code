@@ -42,13 +42,14 @@
       ["name", "PIECES EN POCHE : " + P.coins()]);
     if (P.robotUnlocked()) out.push(["name", "COSTUME SECRET : OCTOBOT"], ["small", "FINI SANS LA MAGIE DES TORCHES !"]);
     out.push(["gap"],
-      ["head", "BONUS SECRET DEBLOQUE !"],
+      ["head", "BONUS SECRET !"],
       ["name", "LIAM - ELIAS - IZIA"],
       ["small", "LES 3 HEROS DE LA FAMILLE"], ["small", "UNE PART DE CHACUN VIT DANS OCTOCAT"],
       ["small", "NIVEAU DE SUPER-POUVOIR : MAXIMUM"],
       ["small", "RECOMPENSE : DE GROS CALINS DE TONTON"],
       ["small", "SANS OUBLIER LAITA, LEUR CHIENNE ADOREE"], ["small", "(ET UN GROS OS POUR ELLE !)"],
-      ["small", "JOYEUX NOEL 2026 !"], ["gap"],
+      ["small", "JOYEUX NOEL 2026 !"],
+      ["small", "ET VA VISITER LA GRANGE, SUR L'ACCUEIL !"], ["gap"],
       ["head", "MERCI A TOI !"], ["name", "TU AS CODE JUSQU'AU BOUT"], ["small", "MAINTENANT, A TOI DE CREER TES PROPRES JEUX"], ["gap"], ["gap"]);
     return out;
   }
@@ -59,7 +60,7 @@
   };
 
   window.gameEngine.registerScene("credits", {
-    alt: "Le générique de fin défile sur un ciel étoilé pendant qu'OctoCat et Laita courent sous des feux d'artifice.",
+    alt: "Le générique de fin défile sur un ciel étoilé pendant qu'OctoCat et Laita courent sous des feux d'artifice, puis s'envolent en fusée.",
 
     scene: function (k, h, ctx) {
       var P = window.OctoProgress, M = window.OctoMusic, VW = k.width(), VH = k.height();
@@ -81,16 +82,22 @@
       for (var i = 0; i < 46; i++) stars.push({ o: k.add([k.rect(i % 7 === 0 ? 2 : 1, i % 7 === 0 ? 2 : 1), k.pos(k.rand(0, VW), k.rand(4, GY - 40)), k.color(rgb(i % 5 === 0 ? "#ffe08a" : "#ffffff")), k.opacity(0.7), k.fixed(), k.z(-4.5)]), p: k.rand(0, 6.28), sp: k.rand(1.2, 3.4) });
 
       function cull(o) { if (typeof k.offscreen === "function") o.use(k.offscreen({ hide: true, distance: 60 })); return o; }
-      var WORLD = Math.ceil(VW + 90 * CAM_V) + 200, tx; // le sol et le décor sont posés une fois sur toute la distance parcourue
+      // Le sol et le décor sont posés une fois sur TOUTE la distance que la caméra peut parcourir (texte au pas normal + la fin).
+      // Avant, la longueur était fixée à 90 s : le générique dure plus, et le sol s'arrêtait en plein défilement.
+      var textH = 0;
+      script(P).forEach(function (ln) { textH += ln[0] === "title" ? 110 : STYLE[ln[0]].h; });
+      var WORLD = Math.ceil(VW + ((textH + VH) / SPEED + 16) * CAM_V) + 300, tx;
+      var groundObjs = [], propObjs = []; // gardés pour couper le sol net au moment de l'envol final
       for (tx = 0; tx < WORLD; tx += 32) {
-        cull(k.add([k.sprite("grass" + (Math.floor(tx / 32) % 3)), k.pos(tx, GY), k.scale(2), k.color(rgb("#9a7ab0")), k.z(5)]));
-        for (var dy = 1; GY + dy * 32 < VH + 40; dy++) cull(k.add([k.sprite("dirt" + ((Math.floor(tx / 32) + dy) % 3)), k.pos(tx, GY + dy * 32), k.scale(2), k.color(rgb("#9a7ab0")), k.z(5)]));
+        groundObjs.push({ x: tx, os: [cull(k.add([k.sprite("grass" + (Math.floor(tx / 32) % 3)), k.pos(tx, GY), k.scale(2), k.color(rgb("#9a7ab0")), k.z(5)]))] });
+        for (var dy = 1; GY + dy * 32 < VH + 40; dy++) groundObjs[groundObjs.length - 1].os.push(cull(k.add([k.sprite("dirt" + ((Math.floor(tx / 32) + dy) % 3)), k.pos(tx, GY + dy * 32), k.scale(2), k.color(rgb("#9a7ab0")), k.z(5)])));
       }
       var PROPS = ["tree", "bush", "palm", "rock", "mushroom", "tuft0", "flower0", "tuft1", "torch"];
       for (tx = 150, i = 0; tx < WORLD; tx += k.rand(55, 120), i++) {
         var nm = PROPS[(i * 7 + 3) % PROPS.length];
-        k.add([k.sprite(nm), k.pos(tx, BASE + 1), k.anchor("bot"), k.scale(nm === "tree" || nm === "palm" ? 2.2 : 2.6), k.color(rgb("#c9b8e8")), k.z(3.5)]);
-        if (nm === "torch") torchFlame(tx, BASE + 1 - 49);
+        var pe = { x: tx, os: [k.add([k.sprite(nm), k.pos(tx, BASE + 1), k.anchor("bot"), k.scale(nm === "tree" || nm === "palm" ? 2.2 : 2.6), k.color(rgb("#c9b8e8")), k.z(3.5)])] };
+        if (nm === "torch") pe.os = pe.os.concat(torchFlame(tx, BASE + 1 - 49));
+        propObjs.push(pe);
       }
       // le sprite « torch » n'est que le bol sur son pied : la flamme est un objet à part (comme dans les trajets et devant le portail)
       function torchFlame(fx, fy) {
@@ -102,6 +109,7 @@
           outer.height = Math.round(20 * f); inner.height = Math.round(13 * g);
           gl.opacity = 0.22 + 0.1 * f;
         });
+        return [gl, outer, inner];
       }
 
       // ----- les héros : OctoCat et Laita courent côte à côte -----
@@ -110,6 +118,18 @@
       var aura = k.add([k.sprite("glow"), k.pos(0, BASE - 26), k.anchor("center"), k.scale(3.4), k.color(rgb("#8f7cff")), k.opacity(0.22), k.z(8.5)]); // un halo doux : la dernière apparence se détache du ciel sombre
       var octo = k.add([k.sprite("octo", { anim: "run" }), k.pos(0, BASE), k.anchor("bot"), k.scale(3), k.z(9)]);
       var dog = k.add([k.sprite("laita", { anim: "run" }), k.pos(0, BASE), k.anchor("bot"), k.scale(2.6), k.z(8.9)]);
+
+      // ----- l'envol final : le sol s'arrête net, une fusée se pose, OctoCat et Laita y montent et s'envolent vers les étoiles -----
+      // (la fusée et la bulle de verre de Laita sont les sprites de l'invasion de l'espace ; tout reste invisible jusqu'à la fin)
+      var SS = 3.6, KS = SS / 2.6, BOFF = Math.round(SS * 21); // échelle de la fusée (28×26) : un peu plus grande qu'OctoCat ; pilote et bulle gardent les proportions de l'arène
+      var ship = k.add([k.sprite("ship"), k.pos(0, -200), k.anchor("center"), k.scale(SS), k.opacity(0), k.z(8.8)]);
+      var pilot = k.add([k.sprite("octo", { anim: "idle" }), k.pos(0, -200), k.anchor("center"), k.scale(SS * 0.4), k.opacity(0), k.z(9.1)]);
+      var flame = k.add([k.rect(Math.round(14 * KS), 22), k.pos(0, -200), k.anchor("top"), k.color(rgb("#ffb347")), k.opacity(0), k.z(8.7)]);
+      var flame2 = k.add([k.rect(Math.round(7 * KS), 14), k.pos(0, -200), k.anchor("top"), k.color(rgb("#fff4c2")), k.opacity(0), k.z(8.75)]);
+      var podDog = k.add([k.sprite("laita", { anim: "idle" }), k.pos(0, -200), k.anchor("center"), k.scale(SS * 0.66), k.opacity(0), k.z(8.7)]);
+      var bubble = k.add([k.sprite("bubble"), k.pos(0, -200), k.anchor("center"), k.scale(SS * 1.15), k.opacity(0), k.z(8.8)]);
+      var podFlame = k.add([k.rect(Math.round(9 * KS), 12), k.pos(0, -200), k.anchor("top"), k.color(rgb("#9af0ff")), k.opacity(0), k.z(8.6)]);
+      var tk = { on: false, t: 0, endX: 0, shipX: 0, landY: BASE - Math.round(11.5 * SS), startOx: 0, startDx: 0, ran: false, landed: false, boarded: false, lifted: false, trail: 0 };
 
       // ----- texte qui monte (placé une fois, déplacé à chaque image) -----
       var band = k.add([k.rect(Math.min(VW - 16, 430), VH + 20), k.pos(VW / 2, VH / 2), k.anchor("center"), k.color(rgb("#07061a")), k.opacity(0.42), k.fixed(), k.z(29)]);
@@ -142,6 +162,65 @@
         }
       }
 
+      // nuage de poussière / étincelles posé dans le décor (coordonnées du monde, contrairement aux feux d'artifice qui sont fixés à l'écran)
+      function puff(x, yy, n, cols, spread, up, down) {
+        for (var j = 0; j < n; j++) sparks.push({ o: k.add([k.rect(4, 4), k.pos(x + k.rand(-spread, spread), yy), k.color(rgb(cols[j % cols.length])), k.opacity(1), k.z(8.5)]), vx: k.rand(-60, 60), vy: down - k.rand(0, up), life: k.rand(0.4, 0.9), t: 0 });
+      }
+      // chronologie de l'envol (secondes depuis « FIN ») : le sol s'arrête, les héros s'arrêtent, la fusée se pose, ils y montent, décollage
+      var T_STOP = 2.6, T_LAND0 = 2.8, T_LAND = 2.0, T_WALK0 = 5.1, T_WALK1 = 6.5, T_BOARD = 6.7, T_LIFT = 7.7, T_END = 11;
+      function takeoffBegin() {
+        tk.on = true; tk.t = 0;
+        var left = camX - VW / 2;
+        tk.endX = left + VW + 40; // le bord du sol entre à l'écran par la droite pendant que les héros courent
+        tk.shipX = tk.endX - Math.round(VW * 0.3);
+        groundObjs.forEach(function (g) { if (g.x >= tk.endX) g.os.forEach(function (o) { o.destroy(); }); });
+        propObjs.forEach(function (p) { if (p.x >= tk.endX - 30) p.os.forEach(function (o) { o.destroy(); }); });
+      }
+      function takeoffStep(dt, hero) { // met à jour la fusée ; renvoie les positions imposées aux héros pendant leur course vers elle (sinon null)
+        tk.t += dt;
+        var t = tk.t, sx = tk.shipX, sy = -200, out = null, ease;
+        if (t >= T_STOP && !tk.ran) { tk.ran = true; octo.play("success"); dog.play("sit"); if (M) M.sfx("ufo"); }
+        if (t >= T_WALK0 && !tk.walk) { tk.walk = true; octo.play("run"); dog.play("run"); tk.startOx = hero.ox; tk.startDx = hero.dx; }
+        if (tk.walk && !tk.boarded) {
+          ease = Math.min(1, (t - T_WALK0) / (T_WALK1 - T_WALK0)); ease = ease * ease * (3 - 2 * ease);
+          out = { ox: tk.startOx + (sx - 4 - tk.startOx) * ease, dx: tk.startDx + (sx - BOFF - tk.startDx) * ease };
+          if (t >= T_WALK1) { octo.play("idle"); dog.play("idle"); }
+        }
+        // descente de la fusée, flamme vers le bas qui raccourcit, puis atterrissage
+        var u = Math.max(0, Math.min(1, (t - T_LAND0) / T_LAND)), fl = 0;
+        if (t >= T_LAND0) {
+          sy = -90 + (tk.landY + 90) * (1 - (1 - u) * (1 - u)); fl = u < 1 ? (26 * (1 - u) + 6) * KS : 0;
+          if (u >= 1 && !tk.landed) { tk.landed = true; puff(sx, BASE, 16, ["#9a7ab0", "#c9b8e8", "#ffffff"], 40, 40, 0); if (M) M.sfx("boing"); }
+        }
+        // embarquement : les héros disparaissent, le pilote apparaît dans le cockpit et Laita dans sa bulle
+        if (t >= T_BOARD && !tk.boarded) {
+          tk.boarded = true; octo.hidden = true; dog.hidden = true; aura.hidden = true; octoShadow.hidden = true; dogShadow.hidden = true;
+          pilot.opacity = 1; podDog.opacity = 1; bubble.opacity = 1;
+          puff(sx - 20, BASE - 30, 22, ["#ffe08a", "#58d6ff", "#ffffff", "#ff7eb6"], 50, 80, 0);
+          firework(Math.max(40, Math.min(VW - 40, sx - (camX - VW / 2))), GY - 120, 30);
+          if (M) M.sfx("magic");
+        }
+        if (t >= T_LAND0) ship.opacity = 1;
+        // grondement avant le décollage, puis envol en diagonale (accélération), traînée de flammes
+        var lt = t - T_LIFT, bob = Math.sin(t * 6) * 3;
+        if (tk.boarded && t < T_LIFT) { sx += (k.rand(0, 1) - 0.5) * 2.4 * ((t - T_BOARD) / (T_LIFT - T_BOARD)); fl = (10 + 14 * ((t - T_BOARD) / (T_LIFT - T_BOARD))) * KS; }
+        if (lt > 0) {
+          if (!tk.lifted) { tk.lifted = true; puff(sx, BASE, 24, ["#ffb347", "#fff4c2", "#9a7ab0"], 50, 60, 0); if (M) { M.sfx("boom"); M.sfx("portal"); } }
+          sy = tk.landY - 0.5 * 190 * lt * lt; sx = sx + 46 * lt * lt; fl = (30 + 8 * Math.sin(t * 40)) * KS;
+          tk.trail -= dt; if (tk.trail <= 0) { tk.trail = 0.04; puff(sx, sy + 13 * SS, 2, ["#ffb347", "#fff4c2", "#c9b8e8"], 6, 0, 50); puff(sx - BOFF, sy + 15 * SS, 1, ["#9af0ff", "#ffffff"], 3, 0, 40); }
+        }
+        var gone = sy < -80 && lt > 0;
+        ship.pos.x = sx; ship.pos.y = sy; ship.opacity = gone || t < T_LAND0 ? 0 : 1;
+        pilot.pos.x = sx; pilot.pos.y = sy + 1.2 * SS; pilot.opacity = gone || !tk.boarded ? 0 : 1;
+        flame.pos.x = sx; flame.pos.y = sy + 10.5 * SS; flame.height = fl; flame.opacity = fl > 0 && !gone ? 1 : 0;
+        flame2.pos.x = sx; flame2.pos.y = sy + 10.5 * SS; flame2.height = fl * 0.6; flame2.opacity = flame.opacity;
+        var bx = sx - BOFF, by = sy + 2.3 * SS + (lt > 0 ? bob : 0);
+        podDog.pos.x = bx; podDog.pos.y = by - 2; bubble.pos.x = bx; bubble.pos.y = by;
+        podDog.opacity = bubble.opacity = gone || !tk.boarded ? 0 : 1;
+        podFlame.pos.x = bx; podFlame.pos.y = by + 9.2 * SS; podFlame.height = lt > 0 ? (8 + 5 * Math.abs(Math.sin(t * 30))) * KS : 0; podFlame.opacity = lt > 0 && !gone ? 1 : 0;
+        return out;
+      }
+
       var scroll = 0, camX = VW / 2, time = 0, phase = "in", phaseT = 0, jumpT = 2, jumpA = null, dogJumpA = null, skipped = false, posed = false;
       if (M) { M.setMood(0); M.setBattle(false); M.victory(); }
       function toEnd() { if (phase === "scroll" || phase === "in") { phase = "fin"; phaseT = 0; scroll = totalH + VH; } }
@@ -159,15 +238,17 @@
         } else if (phase === "fin") {
           var fa = Math.min(1, phaseT / 1.2);
           finTxt.opacity = fa; finSub.opacity = fa; finTxt.pos.y = VH / 2 - 8 + Math.sin(time * 4) * 2;
-          if (!posed) { posed = true; octo.play("success"); dog.play("sit"); if (M) M.sfx("bark"); }
-          if (phaseT > 5) { phase = "out"; phaseT = 0; }
+          if (!posed) { posed = true; takeoffBegin(); }
+          if (tk.t > T_END) { phase = "out"; phaseT = 0; }
         } else if (phase === "out") {
           fade.opacity = Math.min(1, phaseT / 1.2);
           if (phaseT >= 1.4 && !skipped) { skipped = true; P.finishCredits(); ctx.go("hub"); return; }
         }
 
         // caméra et parallaxe : le monde défile vers la gauche
-        camX += CAM_V * (phase === "fin" || phase === "out" ? 0.4 : 1) * (fast ? 2 : 1) * dt;
+        // fin : la caméra continue d'abord (le bord du sol entre à l'écran), puis ralentit presque jusqu'à l'arrêt pour la fusée
+        var camF = phase === "fin" || phase === "out" ? Math.max(0.05, tk.t < 1.6 ? 1 : 1 - (tk.t - 1.6) / 1.2) : (fast ? 2 : 1);
+        camX += CAM_V * camF * dt;
         k.camPos(camX, VH / 2);
         skyL(camX); landL(camX);
         stars.forEach(function (s) { s.o.opacity = 0.35 + 0.5 * Math.abs(Math.sin(time * s.sp + s.p)); });
@@ -185,12 +266,13 @@
 
         // héros : ils courent à gauche de l'écran, sautent de temps en temps, puis posent à la fin
         var fin = phase === "fin" || phase === "out";
-        var ox = camX - VW / 2 + heroX + (fin ? 18 : 0), dx2 = ox - (fin ? 70 : 62);
+        var ox = camX - VW / 2 + heroX, dx2 = ox - 62;
         jumpT -= dt;
         if (!fin && jumpT <= 0) { jumpT = k.rand(3.2, 5); jumpA = 0; dogJumpA = -0.25; }
         var oy = 0, dyy = 0;
         if (jumpA !== null) { jumpA += dt; var u = jumpA / 0.72; if (u >= 1) jumpA = null; else oy = -Math.sin(u * Math.PI) * 34; }
         if (dogJumpA !== null) { dogJumpA += dt; if (dogJumpA > 0) { var v = dogJumpA / 0.6; if (v >= 1) dogJumpA = null; else dyy = -Math.sin(v * Math.PI) * 24; } }
+        if (tk.on) { var ov = takeoffStep(dt, { ox: ox, dx: dx2 }); if (ov) { ox = ov.ox; dx2 = ov.dx; } }
         octo.pos.x = ox; octo.pos.y = BASE + oy; dog.pos.x = dx2; dog.pos.y = BASE + dyy;
         octo.flipX = false; dog.flipX = false;
         aura.pos.x = ox + 4; aura.pos.y = BASE - 28 + oy * 0.6; aura.opacity = 0.18 + 0.06 * Math.sin(time * 3);
@@ -201,7 +283,7 @@
         fireT -= dt;
         if (fireT <= 0 && phase !== "in") {
           fireT = fin ? k.rand(0.2, 0.5) : k.rand(0.6, 1.4);
-          firework(camX - VW / 2 + k.rand(20, VW - 20), k.rand(20, GY - 70) - 0, fin ? 34 : 24);
+          firework(k.rand(20, VW - 20), k.rand(20, GY - 70), fin ? 34 : 24); // les étincelles sont fixées à l'écran : coordonnées d'écran (avant, elles partaient hors champ dès que la caméra avançait)
           if (M && Math.random() < 0.4) M.sfx(Math.random() < 0.5 ? "bit" : "checkpoint");
         }
         shootT -= dt;
