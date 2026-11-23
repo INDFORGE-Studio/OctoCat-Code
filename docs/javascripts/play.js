@@ -108,6 +108,49 @@
     };
   }
 
+  /** Messages à l'écran (« POINT DE CONTROLE », « TERMINAL ATTEINT »…). Toujours lisibles, quel que soit le décor (ciel clair, mousse, espace) :
+   *  une plaque sombre à liseré de la couleur du message, qui « pop » en arrivant. `celebrate` : la grande bannière de fin de trajet,
+   *  lettres arc-en-ciel qui ondulent, ligne de pièces en or, étincelles qui tournent autour (avant : un texte vert fin posé sur le décor,
+   *  illisible sur les ciels clairs). `update(dt)` à chaque image. */
+  function createToast(k, VW, VH, rgb) {
+    var Z = 31.9, time = 0, age = 99, life = 1.3, bage = 99, blife = 2.2, by = VH * 0.36;
+    var plate = k.add([k.rect(40, 22, { radius: 3 }), k.pos(VW / 2, VH * 0.46), k.anchor("center"), k.color(rgb("#0d1117")), k.opacity(0), k.outline(2, rgb("#7ee787")), k.scale(1), k.fixed(), k.z(Z)]);
+    var txt = k.add([k.text("", { size: 14, font: "monospace" }), k.pos(VW / 2, VH * 0.46), k.anchor("center"), k.color(rgb("#ffffff")), k.opacity(0), k.scale(1), k.fixed(), k.z(Z + 0.1)]);
+    var bplate = k.add([k.rect(40, 50, { radius: 4 }), k.pos(VW / 2, by), k.anchor("center"), k.color(rgb("#0d1117")), k.opacity(0), k.outline(3, rgb("#ffd54a")), k.scale(1), k.fixed(), k.z(Z)]);
+    var btxt = k.add([k.text("", { size: 20, font: "monospace", styles: { rb: function (idx) { return { color: rgb(rainbowHex(time * 0.5 + idx * 0.07, 0.6)), pos: k.vec2(0, Math.sin(time * 7 + idx * 0.7) * 2.5) }; } } }), k.pos(VW / 2, by), k.anchor("center"), k.color(rgb("#ffffff")), k.opacity(0), k.scale(1), k.fixed(), k.z(Z + 0.1)]);
+    var bsub = k.add([k.text("", { size: 12, font: "monospace" }), k.pos(VW / 2, by + 15), k.anchor("center"), k.color(rgb("#ffd54a")), k.opacity(0), k.scale(1), k.fixed(), k.z(Z + 0.1)]);
+    var stars = [], i;
+    for (i = 0; i < 8; i++) stars.push(k.add([k.rect(4, 4), k.pos(0, 0), k.anchor("center"), k.rotate(45), k.color(rgb(i % 2 ? "#ffe08a" : "#ffffff")), k.opacity(0), k.fixed(), k.z(Z + 0.2)]));
+    function pop(a) { var t = Math.min(1, a / 0.25), c = t - 1; return 0.5 + 0.5 * (1 + 2.70158 * c * c * c + 1.70158 * c * c); } // arrive en rebondissant
+    return {
+      say: function (str, color) {
+        if (bage < blife) return; // la grande bannière a la priorité
+        txt.text = str; txt.color = rgb(color || "#ffffff"); plate.outline.color = rgb(color || "#ffffff");
+        plate.width = txt.width + 18; plate.height = txt.height + 10;
+        age = 0; life = 1.3;
+      },
+      celebrate: function (title, sub) {
+        btxt.text = "[rb]" + title + "[/rb]"; bsub.text = sub || "";
+        bplate.width = Math.min(VW - 12, Math.max(btxt.width, sub ? bsub.width : 0) + 40); bplate.height = sub ? 56 : 40;
+        btxt.pos.y = sub ? by - 8 : by; bsub.pos.y = by + 15;
+        bage = 0; age = 99;
+      },
+      update: function (dt) {
+        time += dt; age += dt; bage += dt;
+        var on = age < life, op = on ? Math.min(1, (life - age) * 2.5) : 0, s = on ? pop(age) : 1;
+        plate.opacity = 0.88 * op; txt.opacity = op; plate.scale = k.vec2(s, s); txt.scale = k.vec2(s, s);
+        var bon = bage < blife, fade = bon ? Math.min(1, (blife - bage) * 3) : 0, bs = bon ? pop(bage) : 1;
+        bplate.opacity = 0.92 * fade; btxt.opacity = fade; bsub.opacity = bsub.text ? fade : 0;
+        bplate.scale = k.vec2(bs, bs); btxt.scale = k.vec2(bs, bs); bsub.scale = k.vec2(bs, bs);
+        stars.forEach(function (st, n) {
+          var a = time * 1.4 + n * 0.785;
+          st.pos.x = VW / 2 + Math.cos(a) * (bplate.width / 2 + 10) * bs; st.pos.y = by + Math.sin(a) * (bplate.height / 2 + 8) * bs;
+          st.opacity = fade * (0.4 + 0.6 * Math.abs(Math.sin(time * 6 + n)));
+        });
+      }
+    };
+  }
+
   function createPad(host, input, brawl, shuriken, opts) {
     opts = opts || {}; // opts.jump / opts.attack = false : pas ce bouton (serpent, invasion) ; opts.attackLabel : son dessin
     var wrap = el("div", "octo-pad");
@@ -503,14 +546,13 @@
       hint.text = txt; hint.textSize = sz;
     }
     var goTxt = k.add([k.text("GO >", { size: 22, font: "monospace" }), k.pos(VW - 40, VH * 0.4), k.anchor("center"), k.color(rgb("#ffe08a")), k.opacity(0), k.fixed(), k.z(32)]);
-    var toast = k.add([k.text("", { size: 14, font: "monospace" }), k.pos(VW / 2, VH * 0.46), k.anchor("center"), k.color(rgb("#ffffff")), k.opacity(0), k.fixed(), k.z(32)]);
-    var toastT = 0;
+    var toaster = createToast(k, VW, VH, rgb);
     /** Petit texte qui monte et s'efface (« OUAF ! », « ! » au-dessus d'un monstre effrayé). */
     function pop(x, y, str, color, size) {
       var t = k.add([k.text(str, { size: size || 10, font: "monospace" }), k.pos(x, y), k.anchor("center"), k.color(rgb(color || "#ffffff")), k.opacity(1), k.z(16)]), age = 0;
       t.onUpdate(function () { age += k.dt(); t.pos.y -= 28 * k.dt(); t.opacity = Math.max(0, 1 - age / 0.9); if (age >= 0.9) t.destroy(); });
     }
-    function say(str, color) { toast.text = str; toast.color = rgb(color || "#ffffff"); toastT = 1.1; }
+    function say(str, color) { toaster.say(str, color); }
 
     function burst(x, y, colors, n, power) {
       for (var j = 0; j < n; j++) {
@@ -808,7 +850,7 @@
       if (ended) return;
       ended = true; endT = 0;
       var gain = bankCoins();
-      say(gain ? "TERMINAL ATTEINT  +" + gain + " PIECES" : "TERMINAL ATTEINT", "#7ee787");
+      toaster.celebrate("TERMINAL ATTEINT !", gain ? "+ " + gain + " PIECES" : "");
       music().sfx("finish");
       burst(sim.terminal.x, sim.terminal.y - 30, ["#3fb950", "#39c5cf", "#ffffff", "#bc8cff"], 26);
     }
@@ -829,7 +871,7 @@
         if (sim.finished) finishRun();
       } else {
         endT += dt;
-        if (endT > 1) { destroyed = true; bankCoins(); hooks.finish(); return; }
+        if (endT > 2.2) { destroyed = true; bankCoins(); hooks.finish(); return; }
       }
 
       // joueur
@@ -920,7 +962,7 @@
       var introT = Math.max(0, 2.6 - time);
       banner.opacity = Math.min(1, introT); sub.opacity = Math.min(1, introT); plate.opacity = 0.5 * Math.min(1, introT);
       hint.opacity = (S && !S.get("hints")) || pad.visible() ? 0 : time < 9 ? 0.9 : Math.max(0, 0.9 - (time - 9) * 0.5); // avec les boutons à l'écran, l'aide est inutile
-      toastT = Math.max(0, toastT - dt); toast.opacity = Math.min(1, toastT * 2);
+      toaster.update(dt);
       hurtFlash = Math.max(0, hurtFlash - dt); flash.opacity = hurtFlash * 0.35;
       goTxt.opacity = brawl && sim.goT > 0 ? (Math.floor(time * 3) % 2 ? 1 : 0.2) : 0;
 
@@ -944,7 +986,7 @@
 
     var ctrl = {
       sim: sim, input: input, k: k,
-      skip: function () { if (!ended) { ended = true; endT = 0.5; } },
+      skip: function () { if (!ended) { ended = true; endT = 1.7; } },
       destroy: function () {
         destroyed = true; input.destroy(); pad.destroy();
         if (skipBtn) skipBtn.remove();
@@ -959,6 +1001,6 @@
   window.OctoPlay = {
     createRun: createRun, THEMES: THEMES, current: null, modes: {},
     // outils partagés avec play-arcade.js (entrées, boutons tactiles, texte, réglages)
-    kit: { createInput: createInput, createPad: createPad, el: el, clamp: clamp, plain: plain, rainbowHex: rainbowHex, music: music, settings: settings, menuOpen: menuOpen }
+    kit: { createToast: createToast, createInput: createInput, createPad: createPad, el: el, clamp: clamp, plain: plain, rainbowHex: rainbowHex, music: music, settings: settings, menuOpen: menuOpen }
   };
 })();
