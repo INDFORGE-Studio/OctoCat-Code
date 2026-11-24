@@ -76,6 +76,23 @@ async function run(label, opts) {
   p = await pts(page);
   check(p.lit === p.lights, label + " : le sapin est allumé");
   await shot(page, label + "-5-tree");
+  // 3b. Papa, Maman et le chat roux réagissent au clic (trois numéros chacun)
+  for (const who of ["dad", "mom"]) {
+    for (let n = 0; n < 3; n++) {
+      p = await pts(page);
+      await page.mouse.click(p[who].x, p[who].y);
+      await wait(page, 150); // Maman bat la mesure : l'image change toutes les 0,3 s, on regarde tôt
+      const f = (await pts(page)).frames[who];
+      check(f !== 0, label + " : " + who + " fait son numéro " + (n + 1) + " (image " + f + ")");
+      if (n === 0) await shot(page, label + "-5b-" + who);
+      await wait(page, 2400);
+    }
+  }
+  p = await pts(page);
+  await page.mouse.click(p.cat.x, p.cat.y);
+  await wait(page, 200);
+  check((await pts(page)).frames.hop > 0, label + " : le chat roux sursaute quand on le touche");
+  await wait(page, 1500);
   // 4. retour à l'accueil par le bouton
   await page.getByRole("button", { name: /retourner/i }).click();
   await wait(page, 1500);

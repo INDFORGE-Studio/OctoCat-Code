@@ -295,7 +295,7 @@ html.octo-fs-on .octo-fs .octo-canvas {
 @media (max-width: 1000px), (max-height: 520px) { .octo-skin__label { display: none; } }
 /* bouton « GRANGE » de l'accueil (cadeau de Noël), en bas à droite ; « RETOUR » dans la grange, en haut à gauche ; liseré or qui respire doucement, sans animation si le joueur l'a coupée dans son système */
 .octo-grange-corner { position: absolute; right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom)); z-index: 5; }
-.octo-picker--top { bottom: auto; top: max(12px, env(safe-area-inset-top)); }
+.octo-picker.octo-picker--top { bottom: auto; top: max(12px, env(safe-area-inset-top)); }
 .octo-grange-btn { border-color: #e3b341; }
 @media (prefers-reduced-motion: no-preference) { .octo-grange-btn { animation: octo-gift-pulse 2.6s ease-in-out infinite; } }
 @keyframes octo-gift-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(227, 179, 65, 0); } 50% { box-shadow: 0 0 10px 2px rgba(227, 179, 65, 0.55); } }
