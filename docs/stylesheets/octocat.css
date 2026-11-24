@@ -267,6 +267,9 @@ html.octo-fs-on .octo-fs .octo-canvas {
   accent-color: var(--octo-green); opacity: 0.75;
 }
 .octo-vol:hover, .octo-vol:focus-visible { opacity: 1; }
+/* petits écrans (téléphone en paysage, petite tablette) : le curseur de volume se cache pour laisser le logo libre ;
+   le bouton ♪ reste, et le volume se règle toujours dans ⚙ (onglet Son) ou avec les touches du téléphone */
+@media (max-width: 900px), (max-height: 520px) { .octo-vol { display: none; } }
 .octo-mute {
   padding: 0.35em 0.7em;
   border: 2px solid var(--octo-border); border-radius: 4px;
