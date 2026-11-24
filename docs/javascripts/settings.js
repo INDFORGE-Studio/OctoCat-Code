@@ -415,8 +415,12 @@
     if (!stg.ok) {
       mem.appendChild(el("span", "octo-set__desc octo-set__desc--warn", "⚠️ Ce navigateur ne peut pas garder tes réglages ni ta progression (navigation privée ?). Ils seront perdus quand tu fermeras la page. Utilise le code de sauvegarde ci-dessous pour les retrouver."));
     } else {
-      mem.appendChild(el("span", "octo-set__desc", "✅ Tes réglages, ton son et ta progression sont gardés dans ce navigateur, sur cet appareil."));
-      mem.appendChild(el("span", "octo-set__desc", stg.persisted ? "🔒 Le navigateur les protège : il ne les effacera pas tout seul." : "Si tu les retrouves vides au retour, ton navigateur efface peut-être les données des sites quand tu le fermes (dans les réglages de confidentialité du navigateur, cherche « cookies et données de sites » : décoche l'effacement à la fermeture ou ajoute ce site en exception). Tu peux aussi demander une protection :"));
+      if (stg.persisted) {
+        mem.appendChild(el("span", "octo-set__desc", "🔒 Ta progression est notée dans ce navigateur, et il la protège : il ne l'effacera pas tout seul. Un fichier de sauvegarde reste une bonne idée."));
+      } else {
+        mem.appendChild(el("span", "octo-set__desc octo-set__desc--warn", "⚠️ Ta progression est notée dans ce navigateur, mais rien ne garantit qu'il la gardera : s'il est réglé pour effacer les données des sites quand tu le fermes (ou en navigation privée), tout disparaît. Pour ne rien perdre, enregistre un fichier de sauvegarde ci-dessous."));
+        mem.appendChild(el("span", "octo-set__desc", "Pour que le navigateur la garde : dans ses réglages de confidentialité, cherche « cookies et données de sites » puis décoche l'effacement à la fermeture, ou ajoute ce site en exception. Tu peux aussi lui demander :"));
+      }
       if (!stg.persisted && stg.canPersist) {
         var pa = el("div", "octo-set__actions");
         pa.appendChild(button("🔒 Demander au navigateur de les garder", "", function () {
@@ -445,6 +449,29 @@
         var r = Settings.importAll(ta.value);
         if (r.ok) { say("Sauvegarde chargée : tout est retrouvé !"); render(); } else say(r.error, true);
       }));
+      // Un fichier sur le disque survit à tout (même si le navigateur efface les données des sites à la fermeture).
+      acts.appendChild(button("💾 Enregistrer un fichier", "", function () {
+        try {
+          var blob = new Blob([Settings.exportAll()], { type: "text/plain" }), a = document.createElement("a");
+          a.href = URL.createObjectURL(blob); a.download = "octocat-code-sauvegarde.txt";
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+          say("Fichier enregistré (cherche « octocat-code-sauvegarde.txt » dans tes téléchargements).");
+        } catch { say("Impossible d'enregistrer un fichier ici : copie le code à la place.", true); }
+      }));
+      var pick = document.createElement("input"); pick.type = "file"; pick.accept = ".txt,text/plain"; pick.hidden = true;
+      pick.addEventListener("change", function () {
+        var f = pick.files && pick.files[0]; if (!f) return;
+        var rd = new FileReader();
+        rd.onload = function () {
+          var r = Settings.importAll(String(rd.result || ""));
+          if (r.ok) { say("Sauvegarde chargée : tout est retrouvé !"); render(); } else say(r.error, true);
+        };
+        rd.onerror = function () { say("Je n'arrive pas à lire ce fichier.", true); };
+        rd.readAsText(f); pick.value = "";
+      });
+      acts.appendChild(button("📂 Charger un fichier", "", function () { pick.click(); }));
+      acts.appendChild(pick);
       save.appendChild(ta); save.appendChild(acts); bodyEl.appendChild(save);
     }
 

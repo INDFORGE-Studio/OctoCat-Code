@@ -151,6 +151,7 @@ PATH à ajouter dans un shell neuf : le dossier `node-v24…` du paquet winget `
 | `node dev/grange-check.mjs` | « La Grange » (§43) sur 7 profils (PC, Mac, ultra-large, Android, iPhone, iPad, téléphone) : clic / toucher sur la maison de l'accueil, ouverture des 3 cadeaux, mots de tonton, sapin allumé, mémoire après rechargement, bouton RETOUR, console propre ; captures `grange-*.png` |
 | `node dev/credits-end-check.mjs` | fin du générique : texte passé avec Entrée, puis l'envol (sol coupé net, fusée qui se pose, OctoCat et Laïta qui décollent), retour à l'accueil, console propre ; captures `credits-end-*.png` |
 | `node dev/grange-quick.mjs [largeur hauteur]` | coup d'œil rapide sur La Grange (une seule vue, quelques secondes) : `grange-quick.png` + une image après un clic sur Papa |
+| `node dev/save-check.mjs` | **progression réelle** : profil Chromium fermé puis rouvert (niveaux, pièces, score gardés), puis sauvegarde dans un **fichier** `.txt`, navigateur « oublieux » simulé (tout effacé), rechargement du fichier ; le menu ne doit plus afficher de ✅ sans preuve |
 | `node dev/skins-check.mjs` | planche des 5 costumes (OctoCat et Laita) : `dev/shots/skins.png` |
 | `node dev/perf-check.mjs [niveau]` | démarrage (CPU ralenti x4) et profil CPU de 6 s de jeu : les fonctions les plus coûteuses |
 | `node dev/icons.mjs` / `node dev/social.mjs` | régénèrent les icônes (PNG, .ico, Apple) et l'image de partage 1200×630 (après `npm run build`) |
@@ -249,6 +250,8 @@ Chaque niveau = **trajet** (phase d'action, scène `run<N>`) → arrivée au ter
 ## 21. Mémoire du navigateur (réglages, son, progression)
 
 Tout vit dans le `localStorage` (`octocat-code:v1` progression, `octocat-code:settings:v1` réglages, `octocat-code:music:v2` / `octocat-code:volume` son). `node dev/persist-check.mjs` ferme et rouvre un vrai profil Chromium : tout est retrouvé. Si un navigateur efface les données des sites à la fermeture (option « effacer les données des sites à la fermeture », navigation privée), rien ne peut être gardé côté site : le menu ⚙ → Jeu → **Ma mémoire** le dit en mots simples (statut du stockage, protection `navigator.storage.persist()`, pastille « ! » sur le ⚙ si l'écriture est impossible) et propose un **code de sauvegarde complet** (`OctoSettings.exportAll / importAll` : progression + touches + options + volume + musique ; l'ancien code « progression seule » reste accepté).
+
+- **Honnêteté du message « Ma mémoire »** (corrigé le 2026-11-24, un joueur perdait sa progression) : le jeu ne peut PAS savoir si le navigateur effacera les données des sites à la fermeture (réglage de confidentialité, navigation privée) : `localStorage` accepte l'écriture dans tous les cas. Le menu ne dit donc plus « ✅ gardés » ; sans protection (`navigator.storage.persisted()` faux) il avertit en orange et propose, en plus du code à copier, **💾 Enregistrer un fichier / 📂 Charger un fichier** (`octocat-code-sauvegarde.txt`, même contenu que le code : seul un fichier sur le disque survit à tout). Ne jamais réécrire ce bloc avec une promesse que le navigateur seul peut rompre. Vérifié par `node dev/save-check.mjs`. Rappel : la progression n'est écrite qu'à la **fin** d'un niveau (pièces comprises) ; fermer en plein trajet ou en pleine énigme perd ce niveau-là seulement.
 
 ## 22. Textes du jeu : lisibles par un enfant de 8 ans
 

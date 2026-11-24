@@ -56,7 +56,7 @@ ok("le code de sauvegarde rétablit son, musique et touches", r.ok && Math.abs(s
 await page.locator(".octo-gear").click();
 await page.locator(".octo-set__tab", { hasText: "Jeu" }).click();
 const body = await page.locator(".octo-set__body").innerText();
-ok("bloc « Ma mémoire » affiché", /Ma mémoire/.test(body) && /gardés dans ce navigateur/.test(body));
+ok("bloc « Ma mémoire » affiché", /Ma mémoire/.test(body) && /notée dans ce navigateur/.test(body));
 await page.screenshot({ path: path.join(OUT, "_persist-menu.png") });
 console.log(out.join("\n"));
 await ctx.close(); server.close();
