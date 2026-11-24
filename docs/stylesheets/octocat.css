@@ -267,6 +267,9 @@ html.octo-fs-on .octo-fs .octo-canvas {
   accent-color: var(--octo-green); opacity: 0.75;
 }
 .octo-vol:hover, .octo-vol:focus-visible { opacity: 1; }
+/* petits écrans (téléphone en paysage, petite tablette) : le curseur de volume se cache pour laisser le logo libre ;
+   le bouton ♪ reste, et le volume se règle toujours dans ⚙ (onglet Son) ou avec les touches du téléphone */
+@media (max-width: 900px), (max-height: 520px) { .octo-vol { display: none; } }
 .octo-mute {
   padding: 0.35em 0.7em;
   border: 2px solid var(--octo-border); border-radius: 4px;
@@ -443,6 +446,56 @@ html:has(.octo-fs), body:has(.octo-fs) { overscroll-behavior: none; }
   .octo-set__body { padding: 2px 12px 6px; }
   .octo-set__row { padding: 6px 0; }
   .octo-set__lead { margin: 2px 0 4px; }
+}
+
+/* LUCIOLE, l'aide guidée (bouton « ? » à côté de ♪ et ⚙) : une luciole = un point de lumière dessiné en CSS, aucune image. */
+.octo-luciole-btn { position: relative; color: #ffe08a; font-size: 0.85em; }
+.octo-luciole-btn::after { content: ""; position: absolute; top: 3px; right: 3px; width: 5px; height: 5px; border-radius: 50%; background: #ffe9a0; box-shadow: 0 0 4px 1px rgba(255, 224, 138, 0.8); pointer-events: none; }
+.octo-luciole-btn:hover, .octo-luciole-btn[aria-expanded="true"] { border-color: #ffe08a; }
+@media (prefers-reduced-motion: no-preference) { .octo-luciole-btn::after, .octo-luciole__fly { animation: octo-fly-glow 2.4s ease-in-out infinite; } }
+@keyframes octo-fly-glow { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+.octo-luciole { display: none; position: absolute; inset: 0; z-index: 35; align-items: flex-start; justify-content: flex-end; box-sizing: border-box; padding: max(64px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); background: rgba(1, 4, 9, 0.45); }
+.octo-luciole.is-open { display: flex; }
+.octo-luciole__card {
+  box-sizing: border-box; display: flex; flex-direction: column; width: min(430px, 100%); max-height: 100%;
+  background: #161b22; color: #c9d1d9; border: 3px solid #ffe08a; border-radius: 8px;
+  box-shadow: 0 0 0 3px #010409, 0 0 24px rgba(255, 224, 138, 0.25), 0 12px 32px rgba(1, 4, 9, 0.7); font: 15px/1.45 system-ui, sans-serif;
+}
+.octo-luciole__head { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 10px 14px 2px; }
+.octo-luciole__fly { width: 12px; height: 12px; border-radius: 50%; background: radial-gradient(circle, #fffbe6 0 30%, #ffe08a 55%, rgba(255, 224, 138, 0) 72%); box-shadow: 0 0 10px 3px rgba(255, 224, 138, 0.55); }
+.octo-luciole__name { font: 0.8rem/1.6 var(--octo-pixel, monospace); color: #ffe08a; letter-spacing: 0.04em; }
+.octo-luciole__body { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; padding: 4px 14px 10px; }
+.octo-luciole__title { margin: 4px 0 8px; color: #f0f6fc; font: 700 16px/1.4 system-ui, sans-serif; }
+.octo-luciole__title:focus { outline: none; }
+.octo-luciole__text { margin: 0 0 7px; }
+.octo-luciole__text strong { color: #f0f6fc; }
+.octo-luciole__label { margin: 12px 0 4px; color: #8b949e; font: 600 12px system-ui, sans-serif; text-transform: uppercase; letter-spacing: 0.05em; }
+.octo-luciole__qs, .octo-luciole__acts { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.octo-luciole__btn {
+  box-sizing: border-box; display: flex; align-items: center; min-height: 44px; padding: 8px 12px; text-align: left; text-decoration: none;
+  border: 2px solid #30363d; border-radius: 6px; background: #0d1117; color: #e6edf3; font: 600 14px/1.3 system-ui, sans-serif; cursor: pointer;
+}
+.octo-luciole__btn[hidden] { display: none; }
+.octo-luciole__btn:hover, .octo-luciole__btn:focus-visible { border-color: #ffe08a; background: #1c2128; outline: none; }
+.octo-luciole__btn--go { border-color: #3fb950; color: #7ee787; }
+.octo-luciole__link { margin-top: 6px; border-color: #58a6ff; color: #a5d6ff; }
+.octo-luciole__btn--ok { border-color: #3fb950; background: #238636; color: #fff; justify-content: center; }
+.octo-luciole__foot { flex: 0 0 auto; display: flex; gap: 8px; justify-content: flex-end; padding: 8px 14px 12px; border-top: 1px solid #30363d; }
+.octo-luciole__foot .octo-luciole__btn { padding: 0 14px; }
+.octo-luciole__keys { list-style: none; margin: 4px 0 10px; padding: 0; }
+.octo-luciole__keys li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid #21262d; font-size: 13px; }
+.octo-luciole__chips { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+.octo-luciole__kbd { padding: 1px 7px; border: 1px solid #484f58; border-bottom-width: 2px; border-radius: 4px; background: #0d1117; color: #f0f6fc; font: 600 12px var(--md-code-font, monospace); white-space: nowrap; }
+.octo-luciole__none { color: #6e7681; font-size: 12px; }
+/* le bouton du jeu que LUCIOLE montre (💡 Indice) : un liseré doré qui clignote 3 s */
+.octo-luciole-spot { outline: 3px solid #ffe08a !important; outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) { .octo-luciole-spot { animation: octo-blink 0.8s steps(2) 4; } }
+@media (max-width: 600px), (max-height: 480px) {
+  .octo-luciole { justify-content: center; padding: 6px; }
+  .octo-luciole__card { border-width: 2px; }
+  .octo-luciole__head { padding: 6px 12px 0; }
+  .octo-luciole__body { padding: 2px 12px 8px; }
+  .octo-luciole__foot { padding: 6px 12px 8px; }
 }
 
 /* Pas de ligatures dans le code : « >= » doit se voir comme deux signes (pas « ≥ ») pour que les enfants sachent quoi taper. */

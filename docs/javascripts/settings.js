@@ -3,7 +3,7 @@
  *   OctoSettings.get(nom) / set(nom, valeur)   options : sfx, shake, hints, quiet, pad, relax, skipAlways
  *   OctoSettings.lookup(code)                  action liée à une touche (« KeyX », « Space ») ou un bouton de souris (« Mouse0 »)
  *   OctoSettings.keys(action) / bind / unbind  touches personnalisées (jusqu'à 4 par action, clavier ou souris)
- *   OctoSettings.open() / close() / toggle()   menu ⚙ (Échap) ; isOpen() met la partie en pause
+ *   OctoSettings.open(parent?, onglet?) / close() / toggle()   menu ⚙ (Échap) ; isOpen() met la partie en pause
  *   OctoSettings.mountButton(conteneur)        ajoute le bouton ⚙ à la boîte son
  *
  * Les codes sont les codes PHYSIQUES du clavier (KeyW = la touche Z d'un AZERTY) : ils valent pour toutes les dispositions.
@@ -533,8 +533,9 @@
   }
 
   Settings.isOpen = function () { return openState; };
-  Settings.open = function (parent) {
+  Settings.open = function (parent, startTab) {
     if (openState) return;
+    if (TABS.some(function (t) { return t[0] === startTab; })) tab = startTab; // onglet demandé (l'aide LUCIOLE mène droit au bon endroit)
     if (!overlay) build();
     var host = parent || (overlay.parentNode && overlay.parentNode !== document.body ? overlay.parentNode : null) || document.querySelector(".octo-fs") || document.body;
     host.appendChild(overlay);

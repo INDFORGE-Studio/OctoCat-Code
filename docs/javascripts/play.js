@@ -51,7 +51,7 @@
   };
   function settings() { return window.OctoSettings || null; }
   function actionOf(code) { var S = settings(); return S ? S.lookup(code) : FALLBACK_KEYS[code] || null; }
-  function menuOpen() { var S = settings(); return !!(S && S.isOpen()); }
+  function menuOpen() { var S = settings(), L = window.OctoLuciole; return !!((S && S.isOpen()) || (L && L.isOpen())); } // menu ⚙ ou aide LUCIOLE : la partie est en pause
 
   function createInput(brawl) {
     var kb = {}, pad = {}, latch = {}, tapJump = false; // tapJump : un NOUVEL appui sur une touche de saut (même si une autre touche de saut est déjà tenue : Z + Espace)
