@@ -58,6 +58,7 @@ extra_javascript:
   - javascripts/pwa.js
   - javascripts/music.js
   - javascripts/settings.js
+  - javascripts/luciole.js
   - javascripts/fx.js
   - javascripts/sprites-run.js
   - javascripts/sprites-worlds.js

@@ -505,6 +505,7 @@
     var bBrief = el("button", "octo-btn", "📜 Briefing");
     var bMenu = el("button", "octo-btn octo-btn--right", "⌂ Menu");
     [bCompile, bReset, bHint, bBrief, bMenu].forEach(function (b) { b.type = "button"; actions.appendChild(b); });
+    bHint.setAttribute("data-octo-btn", "hint"); bBrief.setAttribute("data-octo-btn", "brief"); // LUCIOLE (aide « ? ») sait les montrer
     var wallet = el("span", "octo-wallet", "🪙 0");
     wallet.setAttribute("title", "Tes pièces : elles servent à acheter des indices 💡");
     bBrief.after(wallet);
@@ -545,6 +546,7 @@
     audio.appendChild(mute); audio.appendChild(vol);
     root.appendChild(audio);
     if (window.OctoSettings) window.OctoSettings.mountButton(audio); // ⚙ réglages (touches, son, affichage, remise à zéro)
+    if (window.OctoLuciole) window.OctoLuciole.mountButton(audio); // ? LUCIOLE, l'aide guidée (luciole.js)
     document.addEventListener("octo:audio", syncMute);
     host.appendChild(root);
 
